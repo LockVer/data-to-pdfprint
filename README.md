@@ -23,11 +23,6 @@ data-to-pdfprint/
 │   │   ├── __init__.py
 │   │   ├── excel_reader.py     # Excel文件读取器
 │   │   └── data_processor.py   # 数据处理器
-│   ├── template/               # 模板管理模块
-│   │   ├── __init__.py
-│   │   ├── manager.py          # 模板管理器
-│   │   ├── base_template.py    # 模板基类
-│   │   └── builtin_templates.py# 内置模板集合
 │   ├── pdf/                    # PDF生成模块
 │   │   ├── __init__.py
 │   │   └── generator.py        # PDF生成器
@@ -37,13 +32,6 @@ data-to-pdfprint/
 │   └── utils/                  # 工具函数模块
 │       ├── __init__.py
 │       └── helpers.py          # 通用工具函数
-├── templates/                  # 模板文件存放目录
-├── tests/                      # 测试文件目录
-│   ├── __init__.py
-│   ├── test_excel_reader.py    # Excel读取器测试
-│   ├── test_data_processor.py  # 数据处理器测试
-│   ├── test_template_manager.py# 模板管理器测试
-│   └── test_pdf_generator.py   # PDF生成器测试
 ├── requirements.txt            # 项目依赖
 ├── setup.py                    # 安装配置
 ├── .gitignore                  # Git忽略文件
@@ -58,11 +46,6 @@ data-to-pdfprint/
 ### 数据模块 (`src/data/`)
 - **excel_reader.py**: Excel文件读取器，负责读取Excel文件并解析数据
 - **data_processor.py**: 数据处理器，负责处理和转换Excel中的原始数据
-
-### 模板模块 (`src/template/`)
-- **manager.py**: 模板管理器，负责模板的创建、读取、保存和管理
-- **base_template.py**: 模板基类，定义模板的基本接口和通用功能
-- **builtin_templates.py**: 内置模板集合，提供一些预定义的常用模板
 
 ### PDF模块 (`src/pdf/`)
 - **generator.py**: PDF生成器，使用ReportLab生成PDF文档
@@ -145,39 +128,47 @@ data-to-pdf
 - **包安装**: 支持 `pip install` 安装项目
 - **开发模式**: 支持 `pip install -e .` 可编辑安装
 
-## 开发指南
+## 打包成可执行文件
 
-### 运行测试
+### 使用 PyInstaller 打包
+
+项目已配置好 PyInstaller 支持，可以将Python项目打包成独立的可执行文件：
+
 ```bash
-python -m pytest tests/
+# 1. 激活虚拟环境
+source venv/bin/activate
+
+# 2. 安装打包工具 (如果尚未安装)
+pip install pyinstaller
+
+# 3. 使用预配置的spec文件打包
+pyinstaller data-to-pdf.spec
 ```
 
-### 代码格式化
+打包完成后，可执行文件位于 `dist/data-to-pdf`
+
+### 测试可执行文件
+
 ```bash
-black src/
+# 查看帮助
+./dist/data-to-pdf --help
+
+# 查看版本
+./dist/data-to-pdf --version
+
+# 运行程序
+./dist/data-to-pdf
 ```
 
-### 代码检查
-```bash
-flake8 src/
-```
+### 打包配置说明
 
-## 扩展开发
+- **`data-to-pdf.spec`**: PyInstaller配置文件，包含所有打包设置
+- **`build_exe.py`**: 可选的Python脚本，提供编程方式的打包
+- **单文件输出**: 生成单个可执行文件，无需额外依赖
+- **文件大小**: 约32MB (包含所有Python运行环境和依赖)
 
-### 创建自定义模板
-1. 继承 `BaseTemplate` 类
-2. 实现 `render()` 方法
-3. 注册模板到模板管理器
+### 跨平台支持
 
-### 添加新的数据源
-1. 在 `data` 模块中创建新的读取器
-2. 实现统一的数据接口
-3. 在CLI中添加相应的参数
-
-## 许可证
-
-MIT License
-
-## 贡献
-
-欢迎提交Issue和Pull Request来改进这个项目。
+- **macOS**: 生成 `data-to-pdf` 可执行文件
+- **Windows**: 需要在Windows环境下打包生成 `data-to-pdf.exe`
+- **Linux**: 需要在Linux环境下打包生成相应的可执行文件
