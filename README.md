@@ -133,6 +133,12 @@ data-to-pdf --input data.xlsx --template basic --output output/
 
 # 快速测试（无参数运行查看使用提示）
 data-to-pdf
+
+# 选择1：在Windows系统上构建（推荐）
+# 这会生成 dist/DataToPDF_GUI.exe，可以直接在 Windows 上运行。
+
+python build_windows.py
+
 ```
 
 ## setup.py 说明

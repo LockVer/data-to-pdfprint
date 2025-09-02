@@ -22,11 +22,11 @@ class ExcelReader:
             file_path: Excel文件路径
         """
         self.file_path = Path(file_path) if isinstance(file_path, str) else file_path
-        
+
         if not self.file_path.exists():
             raise FileNotFoundError(f"Excel文件不存在: {self.file_path}")
-        
-        if self.file_path.suffix.lower() not in ['.xlsx', '.xls']:
+
+        if self.file_path.suffix.lower() not in [".xlsx", ".xls"]:
             raise ValueError(f"不支持的文件格式: {self.file_path.suffix}")
 
     def read_data(self, sheet_name: Optional[str] = None) -> pd.DataFrame:
@@ -44,7 +44,7 @@ class ExcelReader:
             return df
         except Exception as e:
             raise Exception(f"读取Excel文件失败: {e}")
-    
+
     def get_sheet_names(self) -> List[str]:
         """
         获取Excel文件中所有工作表名称
@@ -57,7 +57,7 @@ class ExcelReader:
             return excel_file.sheet_names
         except Exception as e:
             raise Exception(f"获取工作表名称失败: {e}")
-    
+
     def read_multiple_sheets(self) -> dict:
         """
         读取所有工作表数据

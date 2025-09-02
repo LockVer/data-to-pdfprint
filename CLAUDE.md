@@ -1,106 +1,128 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+此文件为 Claude Code (claude.ai/code) 在此代码库中工作时提供指导。
 
-## Project Overview
+## 项目概述
 
-Data to PDF Print (data-to-pdfprint) is a Python CLI tool for reading Excel data and generating PDF labels. It supports custom templates and allows generating different styles of PDF labels from the same data.
+Data to PDF Print (data-to-pdfprint) 是一个用于读取Excel数据并生成PDF标签的Python CLI工具。它支持自定义模板，允许从同一数据生成不同样式的PDF标签。
 
-## Development Commands
+## 开发命令
 
-### Installation and Setup
+### 安装和设置
 ```bash
-# Install dependencies
+# 安装依赖
 pip install -r requirements.txt
 
-# Install project in development mode
+# 以开发模式安装项目
 pip install -e .
 ```
 
-### Testing
+### 测试
 ```bash
-# Run all tests
+# 运行所有测试
 python -m pytest tests/
 
-# Run specific test file (when tests directory exists)
+# 运行特定测试文件（当tests目录存在时）
 python -m pytest tests/test_excel_reader.py
 ```
 
-### Code Quality
+### 代码质量
 ```bash
-# Format code
+# 格式化代码
 black src/
 
-# Lint code
+# 代码检查
 flake8 src/
 ```
 
-### Running the CLI
+### 运行CLI
 ```bash
-# Basic usage with default template
+# 使用默认模板的基本用法
 data-to-pdf --input data.xlsx --template basic
 
-# Custom template usage
+# 自定义模板用法
 data-to-pdf --input data.xlsx --template custom_template
 
-# Batch generation
+# 批量生成
 data-to-pdf --input data.xlsx --template basic --output output_dir/
 ```
 
-## Architecture
+### 构建GUI应用程序
 
-### Core Modules Structure
+#### macOS版本（当前系统）
+```bash
+# 构建macOS版本
+python build_gui.py
+```
 
-The project follows a modular architecture with clear separation of concerns:
+#### Windows版本（跨平台构建）
+```bash
+# 构建Windows版本（最好在Windows系统上运行）
+python build_windows.py
 
-- **CLI Layer** (`src/cli/`): Command-line interface and argument parsing
-- **Data Layer** (`src/data/`): Excel reading and data processing
-- **Template System** (`src/template/`): Template management and rendering (planned)
-- **PDF Generation** (`src/pdf/`): ReportLab-based PDF creation
-- **Configuration** (`src/config/`): Settings and configuration management
-- **Utilities** (`src/utils/`): Common helper functions
+# 或直接使用PyInstaller和Windows配置文件
+pyinstaller DataToPDF_GUI_Windows.spec --clean --noconfirm
+```
 
-### Key Dependencies
+#### 分发方式
+- **macOS**: `dist/DataToPDF_GUI` (ARM64架构，适用于M1/M2 Mac)
+- **Windows**: `dist/DataToPDF_GUI.exe` (使用 `build_windows.py`)
+- **跨平台**: 使用源代码分发配合 `requirements.txt`
 
-- `reportlab>=3.6.0` - PDF generation
-- `pandas>=1.5.0` - Data manipulation
-- `openpyxl>=3.1.0` - Excel file reading
-- `click>=8.1.0` - CLI framework
+## 架构设计
 
-### Template System Design
+### 核心模块结构
 
-The template system is designed around these key concepts:
-- **BaseTemplate**: Base class defining template interface
-- **Template Manager**: Handles template creation, loading, and management
-- **Builtin Templates**: Pre-defined common templates
-- Templates are stored in `/templates/` directory (to be created)
+项目采用模块化架构，职责清晰分离：
 
-### Data Flow
+- **CLI层** (`src/cli/`): 命令行界面和参数解析
+- **数据层** (`src/data/`): Excel读取和数据处理
+- **模板系统** (`src/template/`): 模板管理和渲染（计划中）
+- **PDF生成** (`src/pdf/`): 基于ReportLab的PDF创建
+- **配置管理** (`src/config/`): 设置和配置管理
+- **工具类** (`src/utils/`): 通用辅助函数
 
-1. **Excel Reading**: `ExcelReader` class reads Excel files using pandas/openpyxl
-2. **Data Processing**: `DataProcessor` extracts and validates specific fields
-3. **Template Application**: Template system renders data according to selected template
-4. **PDF Generation**: `PDFGenerator` creates final PDF using ReportLab
+### 主要依赖
 
-### Configuration Management
+- `reportlab>=3.6.0` - PDF生成
+- `pandas>=1.5.0` - 数据操作
+- `openpyxl>=3.1.0` - Excel文件读取
+- `click>=8.1.0` - CLI框架
 
-The `Settings` class manages:
-- Project root directory paths
-- Template directory location (`PROJECT_ROOT/templates`)
-- Default output directory (`PROJECT_ROOT/output`)
-- Configuration file loading/saving
+### 模板系统设计
 
-## Development Notes
+模板系统围绕以下核心概念设计：
+- **BaseTemplate**: 定义模板接口的基类
+- **Template Manager**: 处理模板创建、加载和管理
+- **内置模板**: 预定义的常用模板
+- 模板存储在 `/templates/` 目录中（待创建）
 
-### Current Implementation Status
-The codebase currently contains skeleton classes with method stubs. Most core functionality needs implementation.
+### 数据流程
 
-### Missing Directories
-- `/templates/` - Template files storage
-- `/tests/` - Test files (planned structure exists in README)
+1. **Excel读取**: `ExcelReader` 类使用pandas/openpyxl读取Excel文件
+2. **数据处理**: `DataProcessor` 提取和验证特定字段
+3. **模板应用**: 模板系统根据选定模板渲染数据
+4. **PDF生成**: `PDFGenerator` 使用ReportLab创建最终PDF
 
-### Entry Point
-CLI entry point is configured in setup.py as `data-to-pdf=src.cli.main:main`
+### 配置管理
 
-### File Naming Convention
-Uses lowercase with underscores (snake_case) for Python files and modules.
+`Settings` 类管理：
+- 项目根目录路径
+- 模板目录位置 (`PROJECT_ROOT/templates`)
+- 默认输出目录 (`PROJECT_ROOT/output`)
+- 配置文件加载/保存
+
+## 开发注意事项
+
+### 当前实现状态
+代码库目前包含方法存根的骨架类。大部分核心功能需要实现。
+
+### 缺失目录
+- `/templates/` - 模板文件存储
+- `/tests/` - 测试文件（README中存在计划结构）
+
+### 入口点
+CLI入口点在setup.py中配置为 `data-to-pdf=src.cli.main:main`
+
+### 文件命名约定
+Python文件和模块使用小写加下划线（snake_case）命名。

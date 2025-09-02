@@ -25,13 +25,20 @@ def build_gui_app():
     else:
         app_name = "DataToPDF_GUI"
     
-    # PyInstaller命令 - 不生成.app包，只生成可执行文件
+    # PyInstaller命令 - 针对不同系统优化
     cmd = [
         "pyinstaller",
         "--onefile",  # 单文件
-        "--console",  # 保留控制台版本，不生成.app包
+        "--noconsole" if system == "Windows" else "--console",  # Windows隐藏控制台
         f"--name={app_name}",
     ]
+    
+    # Windows特殊配置
+    if system == "Windows":
+        cmd.extend([
+            "--icon=icon.ico",  # 如果有图标文件
+            "--version-file=version.txt",  # 如果有版本信息
+        ])
     
     # 根据系统设置数据路径
     if system == "Windows":
