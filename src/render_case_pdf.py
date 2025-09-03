@@ -178,7 +178,7 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
                 CaseElement(role="theme", content=theme),
                 CaseElement(role="quantity", content=f"{large_quantity}PCS"),
                 CaseElement(role="serial_range", content=f"{serial_prefix}{start_box_num:05d}-{serial_prefix}{end_box_num:05d}"),
-                CaseElement(role="carton_no", content=f"{start_small_case + 1}/{end_small_case + 1}"),
+                CaseElement(role="carton_no", content=f"{large_case_idx + 1}/{total_large_cases}"),
                 CaseElement(role="remark", content=customer_code)
             ]))
             

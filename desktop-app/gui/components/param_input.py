@@ -45,7 +45,7 @@ class ParamInputStep(BaseStep):
         )
         
         # 高级参数区域（根据模式显示）
-        self.advanced_frame = ttk.LabelFrame(self.content_frame, text="高级参数", padding=20)
+        self.advanced_frame = ttk.LabelFrame(self.content_frame, text="箱标参数", padding=20)
         self.advanced_frame.pack(fill=tk.X, pady=(0, 20))
         
         # 每小箱盒数
@@ -111,14 +111,15 @@ class ParamInputStep(BaseStep):
         """根据包装模式更新高级参数可见性"""
         if hasattr(self, 'advanced_frame') and self.app_data.package_mode:
             if self.app_data.package_mode == 'regular':
-                # 常规模式隐藏高级参数
+                # 常规模式：隐藏"每小箱盒数"，显示"每大箱小箱数"
                 self.boxes_container.pack_forget()
-                self.cases_container.pack_forget()
+                self.cases_container.pack(fill=tk.X, pady=10)
                 # 自动设置默认值
-                self.boxes_per_small_case_var.set(1)
-                self.small_cases_per_large_case_var.set(1)
+                self.boxes_per_small_case_var.set(1)  # 常规模式固定为1
+                if self.small_cases_per_large_case_var.get() <= 1:
+                    self.small_cases_per_large_case_var.set(2)  # 默认2个小箱一大箱
             else:
-                # 分盒/套盒模式显示高级参数
+                # 分盒/套盒模式显示所有高级参数
                 self.boxes_container.pack(fill=tk.X, pady=10)
                 self.cases_container.pack(fill=tk.X, pady=10)
                 # 设置默认值
@@ -160,20 +161,25 @@ class ParamInputStep(BaseStep):
                 preview_text += f"包装参数:\n"
                 preview_text += f"  每盒张数: {sheets_per_box:,} 张\n"
                 
-                if self.app_data.package_mode != 'regular':
-                    preview_text += f"  每小箱盒数: {boxes_per_small_case} 盒\n"
+                if self.app_data.package_mode == 'regular':
+                    # 常规模式：只显示每大箱小箱数
                     preview_text += f"  每大箱小箱数: {small_cases_per_large_case} 小箱\n\n"
                 else:
-                    preview_text += "\n"
+                    # 分盒/套盒模式：显示所有参数
+                    preview_text += f"  每小箱盒数: {boxes_per_small_case} 盒\n"
+                    preview_text += f"  每大箱小箱数: {small_cases_per_large_case} 小箱\n\n"
                 
                 preview_text += f"计算结果:\n"
                 preview_text += f"  总盒数: {total_boxes} 盒\n"
                 
-                if self.app_data.package_mode != 'regular':
+                if self.app_data.package_mode == 'regular':
+                    # 常规模式：显示小箱数(=总盒数)和大箱数
                     preview_text += f"  总小箱数: {total_small_cases} 小箱\n"
                     preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
                 else:
-                    preview_text += "\n"
+                    # 分盒/套盒模式：显示所有计算结果
+                    preview_text += f"  总小箱数: {total_small_cases} 小箱\n"
+                    preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
                 
                 # 序列号示例
                 preview_text += f"序列号示例:\n"
@@ -187,7 +193,7 @@ class ParamInputStep(BaseStep):
                 preview_text += f"  • 盒标: {total_boxes} 页\n"
                 
                 if self.app_data.package_mode == 'regular':
-                    preview_text += f"  • 箱标: {total_small_cases} 页（常规单级）\n"
+                    preview_text += f"  • 箱标: {total_small_cases + total_large_cases} 页（常规单级：{total_small_cases}小箱+{total_large_cases}大箱）\n"
                 elif self.app_data.package_mode == 'separate':
                     preview_text += f"  • 箱标: {total_small_cases + total_large_cases} 页（分盒多级）\n"
                 else:  # set
@@ -231,7 +237,16 @@ class ParamInputStep(BaseStep):
                 self.show_error("每盒张数不能超过100,000")
                 return False
             
-            # 根据模式验证高级参数
+            # 所有模式都需要验证"每大箱小箱数"参数
+            if small_cases_per_large_case <= 0:
+                self.show_error("每大箱小箱数必须大于0")
+                return False
+            
+            if small_cases_per_large_case > 50:
+                self.show_error("每大箱小箱数不能超过50")
+                return False
+            
+            # 分盒/套盒模式需要额外验证"每小箱盒数"参数
             if self.app_data.package_mode in ['separate', 'set']:
                 if boxes_per_small_case <= 0:
                     self.show_error("每小箱盒数必须大于0")
@@ -239,14 +254,6 @@ class ParamInputStep(BaseStep):
                 
                 if boxes_per_small_case > 100:
                     self.show_error("每小箱盒数不能超过100")
-                    return False
-                
-                if small_cases_per_large_case <= 0:
-                    self.show_error("每大箱小箱数必须大于0")
-                    return False
-                
-                if small_cases_per_large_case > 50:
-                    self.show_error("每大箱小箱数不能超过50")
                     return False
             
             return True
