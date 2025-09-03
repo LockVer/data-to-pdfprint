@@ -17,8 +17,7 @@ import os
 import platform
 import math
 
-# 导入内箱标模板
-from .inner_case_template import InnerCaseTemplate
+# 内箱标和外箱标现在由GUI统一调用，不在此处生成
 
 class BoxLabelTemplate:
     """盒标/箱标模板类"""
@@ -38,8 +37,7 @@ class BoxLabelTemplate:
             'light_gray': CMYKColor(0, 0, 0, 20)
         }
         
-        # 初始化内箱标模板
-        self.inner_case_template = InnerCaseTemplate()
+        # 内箱标模板由GUI统一管理
         
     def _register_chinese_font(self):
         """注册中文字体 - 寻找最粗的字体"""
@@ -235,19 +233,12 @@ class BoxLabelTemplate:
             label_data, box_count, str(box_label_path), 'box'
         )
         
-        # 生成内箱标
-        inner_case_result = self.inner_case_template.generate_inner_case_labels_pdf(
-            data_dict, quantities, str(label_folder)
-        )
-        
         print(f"✅ 生成盒标文件: {box_label_path.name}")
-        print(f"✅ 生成内箱标文件: {Path(inner_case_result['inner_case_labels']).name}")
         
         return {
             'box_labels': str(box_label_path),
-            'inner_case_labels': inner_case_result['inner_case_labels'],
             'folder': str(label_folder),
-            'inner_case_count': inner_case_result['count']
+            'count': box_count
         }
     
     def _generate_single_type_labels(self, data, count, output_path, label_type):

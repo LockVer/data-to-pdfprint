@@ -20,6 +20,8 @@ sys.path.insert(0, str(src_dir))
 from data.excel_reader import ExcelReader
 from pdf.generator import PDFGenerator
 from template.box_label_template import BoxLabelTemplate
+from template.inner_case_template import InnerCaseTemplate
+from template.outer_case_template import OuterCaseTemplate
 
 class ModernColors:
     """现代化配色方案"""
@@ -226,6 +228,8 @@ class ModernExcelToPDFApp:
         self.excel_reader = None
         self.pdf_generator = PDFGenerator()
         self.box_label_template = BoxLabelTemplate()
+        self.inner_case_template = InnerCaseTemplate()
+        self.outer_case_template = OuterCaseTemplate()
         self.selected_file = None
         self.box_label_data = None
         self.box_config = {
@@ -828,12 +832,28 @@ class ModernExcelToPDFApp:
             
             # 根据模板类型生成不同PDF
             if template_type == 'regular':
-                # 常规模板
+                # 常规模板 - 同时生成盒标、内箱标、外箱标
                 result = self.box_label_template.generate_labels_pdf(
                     data_dict, 
                     self.box_config, 
                     output_dir
                 )
+                
+                # 生成内箱标PDF
+                inner_case_result = self.inner_case_template.generate_inner_case_labels_pdf(
+                    data_dict,
+                    self.box_config,
+                    output_dir
+                )
+                result.update(inner_case_result)
+                
+                # 生成外箱标PDF  
+                outer_case_result = self.outer_case_template.generate_outer_case_labels_pdf(
+                    data_dict,
+                    self.box_config,
+                    output_dir
+                )
+                result.update(outer_case_result)
             elif template_type == 'box':
                 # 分盒模板（暂时使用常规模板）
                 print("⚠️  分盒模板暂未实现，使用常规模板代替")
@@ -867,10 +887,15 @@ class ModernExcelToPDFApp:
 生成的文件:
 📦 盒标文件: {Path(result['box_labels']).name}"""
 
-            # 如果有内箱标信息，添加内箱标文件信息
+            # 添加内箱标文件信息
             if 'inner_case_labels' in result:
                 success_msg += f"""
 📦 内箱标文件: {Path(result['inner_case_labels']).name}"""
+
+            # 添加外箱标文件信息
+            if 'outer_case_labels' in result:
+                success_msg += f"""
+📦 外箱标文件: {Path(result['outer_case_labels']).name}"""
 
             success_msg += f"""
 

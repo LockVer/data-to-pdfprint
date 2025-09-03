@@ -1,7 +1,8 @@
 """
-内箱标(小箱标)模板系统
+外箱标(大箱标)模板系统
 
-专门用于生成内箱标PDF，采用与盒标相同的格式：A4横向页面，每页一条数据，90x50mm标签居中显示
+专门用于生成外箱标PDF，采用与盒标相同的格式：90x50mm标签页面，每页一条数据
+外箱标包含多个内箱，显示外箱总张数和内箱编号范围
 """
 
 from reportlab.lib.pagesizes import A4, landscape
@@ -19,10 +20,10 @@ import os
 import platform
 import math
 
-class InnerCaseTemplate:
-    """内箱标模板类 - 与盒标使用相同的90x50mm格式"""
+class OuterCaseTemplate:
+    """外箱标模板类 - 与盒标使用相同的90x50mm格式"""
     
-    # 标签尺寸 (90x50mm) - 与盒标保持完全一致
+    # 标签尺寸 (90x50mm) - 与盒标和内箱标保持完全一致
     LABEL_WIDTH = 90 * mm
     LABEL_HEIGHT = 50 * mm
     
@@ -88,74 +89,117 @@ class InnerCaseTemplate:
             print(f"字体注册失败: {e}")
             return 'Helvetica-Bold'
     
-    def create_inner_case_label_data(self, excel_data, box_config):
+    def create_outer_case_label_data(self, excel_data, box_config):
         """
-        根据Excel数据和配置创建内箱标数据
+        根据Excel数据和配置创建外箱标数据
         
         Args:
             excel_data: Excel数据字典 {A4, B4, B11, F4}
             box_config: 盒标配置 {min_box_count, box_per_inner_case, inner_case_per_outer_case}
         
         Returns:
-            list: 内箱标数据列表
+            list: 外箱标数据列表
         """
         # 基础数据
         total_sheets = int(excel_data.get('F4', 100))
         min_box_count = box_config.get('min_box_count', 10)
         box_per_inner = box_config.get('box_per_inner_case', 5)
+        inner_per_outer = box_config.get('inner_case_per_outer_case', 2)
         
         # 计算总盒数和内箱数
         total_boxes = math.ceil(total_sheets / min_box_count)
         total_inner_cases = math.ceil(total_boxes / box_per_inner)
+        total_outer_cases = math.ceil(total_inner_cases / inner_per_outer)
         
-        # 计算每个内箱的张数 = 分盒张数 * 小箱内的盒数
-        sheets_per_inner_case = min_box_count * box_per_inner
+        # 计算每个外箱的张数 = 分盒张数 * 小箱内的盒数 * 外箱内的内箱数
+        sheets_per_outer_case = min_box_count * box_per_inner * inner_per_outer
         
-        inner_case_labels = []
+        outer_case_labels = []
         
-        for i in range(total_inner_cases):
-            # 计算当前内箱的实际张数
-            remaining_sheets = total_sheets - (i * sheets_per_inner_case)
-            current_sheets = min(sheets_per_inner_case, remaining_sheets)
+        for i in range(total_outer_cases):
+            # 计算当前外箱的实际张数
+            remaining_sheets = total_sheets - (i * sheets_per_outer_case)
+            current_sheets = min(sheets_per_outer_case, remaining_sheets)
             
             # 提取英文主题
             theme_text = excel_data.get('B4', '默认主题')
             english_theme = self._extract_english_theme(theme_text)
             print(f"原始主题: '{theme_text}' -> 提取后: '{english_theme}'")
             
-            # 计算编号范围 - 基于当前内箱的盒数范围
-            start_box = i * box_per_inner + 1  # 当前内箱的第一个盒号
-            current_boxes_in_case = min(box_per_inner, total_boxes - i * box_per_inner)  # 当前内箱实际包含的盒数
-            end_box = start_box + current_boxes_in_case - 1  # 当前内箱的最后一个盒号
+            # 计算内箱编号范围 - 基于当前外箱包含的内箱范围
+            start_inner_case = i * inner_per_outer + 1  # 当前外箱的第一个内箱号
+            current_inner_cases_in_outer = min(inner_per_outer, total_inner_cases - i * inner_per_outer)  # 当前外箱实际包含的内箱数
+            end_inner_case = start_inner_case + current_inner_cases_in_outer - 1  # 当前外箱的最后一个内箱号
             
-            # 生成编号范围 - 始终显示为范围格式
+            # 生成内箱编号范围 - 基于内箱编号，不是盒编号
             base_number = excel_data.get('B11', 'DEFAULT001')
-            start_number = self._generate_number_by_index(base_number, start_box - 1)  # 开始编号
-            end_number = self._generate_number_by_index(base_number, end_box - 1)     # 结束编号
-            number_range = f"{start_number}-{end_number}"  # 始终显示为范围格式，即使相同
-            print(f"编号生成: 基础'{base_number}' -> 开始'{start_number}' -> 结束'{end_number}' -> 范围'{number_range}'")
+            start_inner_number = self._generate_inner_case_number(base_number, start_inner_case - 1)  # 开始内箱编号
+            end_inner_number = self._generate_inner_case_number(base_number, end_inner_case - 1)     # 结束内箱编号
+            inner_case_range = f"{start_inner_number}-{end_inner_number}"  # 内箱编号范围
+            print(f"内箱编号生成: 基础'{base_number}' -> 开始内箱'{start_inner_number}' -> 结束内箱'{end_inner_number}' -> 范围'{inner_case_range}'")
             
             # 确保字符串是纯ASCII或正确的UTF-8编码
             clean_theme = str(english_theme).encode('utf-8').decode('utf-8') if english_theme else 'DEFAULT THEME'
-            clean_range = str(number_range).encode('utf-8').decode('utf-8') if number_range else 'DEFAULT001-DEFAULT001'
+            clean_range = str(inner_case_range).encode('utf-8').decode('utf-8') if inner_case_range else 'DEFAULT001-DEFAULT001'
             clean_remark = str(excel_data.get('A4', '默认客户')).encode('utf-8').decode('utf-8')
             
             label_data = {
                 'item': 'Paper Cards',  # 固定值
                 'theme': clean_theme,  # 确保编码正确的主题
-                'quantity': f"{current_sheets}PCS",  # 小箱张数
-                'number_range': clean_range,  # 确保编码正确的编号范围
-                'carton_no': f"{i+1}/{total_inner_cases}",  # 箱号：第几箱/总箱数
+                'quantity': f"{current_sheets}PCS",  # 外箱张数
+                'number_range': clean_range,  # 确保编码正确的内箱编号范围
+                'carton_no': f"{i+1}/{total_outer_cases}",  # 外箱号：第几个外箱/总外箱数
                 'remark': clean_remark,  # 确保编码正确的备注
                 'case_index': i + 1,
-                'total_cases': total_inner_cases
+                'total_cases': total_outer_cases
             }
             
-            print(f"清理后的数据: theme='{clean_theme}', range='{clean_range}'")
+            print(f"清理后的数据: theme='{clean_theme}', inner_case_range='{clean_range}'")
             
-            inner_case_labels.append(label_data)
+            outer_case_labels.append(label_data)
         
-        return inner_case_labels
+        return outer_case_labels
+    
+    def _generate_inner_case_number(self, base_number, inner_case_index):
+        """
+        根据基础编号和内箱索引生成对应的内箱编号
+        外箱标显示的是内箱的编号范围，不是盒的编号范围
+        
+        Args:
+            base_number: 基础编号 (如: LAN01001)
+            inner_case_index: 内箱索引（从0开始）
+        
+        Returns:
+            str: 生成的内箱编号
+        """
+        try:
+            # 提取前缀和数字部分
+            prefix_part = ''
+            number_part = ''
+            
+            # 从后往前找连续的数字
+            for j in range(len(base_number)-1, -1, -1):
+                if base_number[j].isdigit():
+                    number_part = base_number[j] + number_part
+                else:
+                    prefix_part = base_number[:j+1]
+                    break
+            
+            if number_part:
+                start_num = int(number_part)
+                # 生成内箱编号：基础编号 + 内箱索引
+                current_number = start_num + inner_case_index
+                # 保持原数字部分的位数
+                width = len(number_part)
+                result = f"{prefix_part}{current_number:0{width}d}"
+                return result
+            else:
+                # 如果无法解析数字，使用简单递增
+                return f"{base_number}_INNER_{inner_case_index+1:03d}"
+                
+        except Exception as e:
+            print(f"内箱编号生成失败: {e}")
+            return f"{base_number}_INNER_{inner_case_index+1:03d}"
     
     def _extract_english_theme(self, theme_text):
         """提取英文主题"""
@@ -181,153 +225,9 @@ class InnerCaseTemplate:
         
         return clean_theme if clean_theme else 'DEFAULT THEME'
     
-    def _create_quantity_cell_content(self, quantity, number_range, full_width=False):
-        """
-        创建带分隔线的Quantity单元格内容
-        
-        Args:
-            quantity: 数量信息 (如: 2850PCS)
-            number_range: 编号范围 (如: LAN01001-LAN01005)
-            full_width: 是否跨越整个表格宽度
-            
-        Returns:
-            自定义的单元格内容
-        """
-        
-        class QuantityCell(Flowable):
-            def __init__(self, quantity, number_range, full_width=False):
-                Flowable.__init__(self)
-                self.quantity = quantity
-                self.number_range = number_range
-                self.width = 95*mm if full_width else 70*mm  # 匹配第二列宽度
-                self.height = 16*mm  # 单元格高度
-            
-            def draw(self):
-                canvas = self.canv
-                
-                # 设置字体
-                canvas.setFont('Helvetica-Bold', 10)
-                canvas.setFillColor(black)
-                
-                # 绘制数量（上半部分）
-                text_width = canvas.stringWidth(self.quantity, 'Helvetica-Bold', 10)
-                x_pos = (self.width - text_width) / 2  # 居中
-                canvas.drawString(x_pos, self.height - 5*mm, self.quantity)
-                
-                # 绘制分隔线 - 跨越整个单元格宽度
-                line_y = self.height / 2  # 中间位置
-                canvas.setLineWidth(1)
-                canvas.line(0, line_y, self.width, line_y)  # 从0到整个宽度
-                
-                # 绘制编号范围（下半部分）
-                range_width = canvas.stringWidth(self.number_range, 'Helvetica-Bold', 10)
-                x_pos_range = (self.width - range_width) / 2  # 居中
-                canvas.drawString(x_pos_range, 2*mm, self.number_range)
-        
-        return QuantityCell(quantity, number_range, full_width)
-    
-    def _generate_number_by_index(self, base_number, index):
-        """
-        根据基础编号和索引生成对应的编号
-        
-        Args:
-            base_number: 基础编号 (如: LAN01001)
-            index: 索引（从0开始）
-        
-        Returns:
-            str: 生成的编号
-        """
-        try:
-            # 提取前缀和数字部分
-            prefix_part = ''
-            number_part = ''
-            
-            # 从后往前找连续的数字
-            for j in range(len(base_number)-1, -1, -1):
-                if base_number[j].isdigit():
-                    number_part = base_number[j] + number_part
-                else:
-                    prefix_part = base_number[:j+1]
-                    break
-            
-            if number_part:
-                start_num = int(number_part)
-                # 生成编号：基础编号 + 索引
-                current_number = start_num + index
-                # 保持原数字部分的位数
-                width = len(number_part)
-                result = f"{prefix_part}{current_number:0{width}d}"
-                return result
-            else:
-                # 如果无法解析数字，使用简单递增
-                return f"{base_number}_{index+1:03d}"
-                
-        except Exception as e:
-            print(f"编号生成失败: {e}")
-            return f"{base_number}_{index+1:03d}"
-    
-    def create_inner_case_table(self, label_data):
-        """
-        创建单个内箱标的表格
-        
-        Args:
-            label_data: 单个内箱标数据
-            
-        Returns:
-            Table: ReportLab表格对象
-        """
-        # 创建带分隔线的Quantity单元格内容 - 只在第二列
-        quantity_content = self._create_quantity_cell_content(label_data['quantity'], label_data['number_range'], full_width=False)
-        
-        # 表格数据 - 保留Quantity标签
-        table_data = [
-            ['Item:', label_data['item']],
-            ['Theme:', label_data['theme']],
-            ['Quantity:', quantity_content],  # 第一列显示标签，第二列显示内容
-            ['Carton No.:', label_data['carton_no']],
-            ['Remark:', label_data['remark']]
-        ]
-        
-        # 创建表格，添加行高控制
-        table = Table(table_data, colWidths=[25*mm, 70*mm], rowHeights=[12*mm, 12*mm, 18*mm, 12*mm, 12*mm])
-        
-        # 表格样式
-        table.setStyle(TableStyle([
-            # 外边框
-            ('GRID', (0, 0), (-1, -1), 1.5, black),
-            
-            # 字体设置
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            
-            # 第一列（标签列）样式
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (0, -1), 9),
-            
-            # Theme行
-            ('FONTNAME', (1, 1), (1, 1), 'Helvetica-Bold'),
-            ('FONTSIZE', (1, 1), (1, 1), 11),
-            
-            # Quantity行 - 使用自定义Flowable，不需要字体设置
-            ('VALIGN', (1, 2), (1, 2), 'MIDDLE'),  # 垂直居中
-            
-            # Carton No.行加粗 - 注意索引调整为3
-            ('FONTNAME', (1, 3), (1, 3), 'Helvetica-Bold'),
-            ('FONTSIZE', (1, 3), (1, 3), 11),
-            
-            # 垂直对齐
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            
-            # 水平对齐
-            ('ALIGN', (0, 0), (0, -1), 'LEFT'),  # 第一列左对齐
-            ('ALIGN', (1, 0), (1, -1), 'CENTER'), # 第二列居中
-        ]))
-        
-        return table
-    
     def draw_table_on_canvas(self, canvas_obj, label_data, x, y):
         """
-        在Canvas上绘制内箱标表格 - 直接占满整个页面
+        在Canvas上绘制外箱标表格 - 与内箱标格式完全一致
         
         Args:
             canvas_obj: ReportLab Canvas对象
@@ -347,7 +247,7 @@ class InnerCaseTemplate:
         table_width = self.LABEL_WIDTH - 2 * border_margin
         table_height = self.LABEL_HEIGHT - 2 * border_margin
         
-        # 绘制外边框 - 优化线条粗细以精确匹配参考图片
+        # 绘制外边框 - 与内箱标保持一致的线条粗细
         c.setLineWidth(1.0)  # 外边框线条粗细
         c.rect(table_x, table_y, table_width, table_height)
         
@@ -358,7 +258,7 @@ class InnerCaseTemplate:
         col_divider_x = table_x + col1_width  # 列分隔线位置
         
         # 绘制内部表格线条
-        c.setLineWidth(0.6)  # 内部线条使用更细的线条，匹配参考图片
+        c.setLineWidth(0.6)  # 内部线条使用更细的线条，匹配内箱标
         
         # 水平线 - 在Quantity左列跨行区域需要分段绘制
         for i in range(1, 6):  # 5条水平线
@@ -372,18 +272,18 @@ class InnerCaseTemplate:
         # 垂直分隔线 - 完整绘制，因为我们只是左列跨行，右列还是分开的
         c.line(col_divider_x, table_y, col_divider_x, table_y + table_height)
         
-        # 设置字体 - 精确匹配参考图片的字体大小
-        font_size_label = 8    # 标签列字体，稍微减小
-        font_size_content = 9  # 内容列基础字体，稍微减小 
-        font_size_theme = 9    # Theme行字体，保持一致
-        font_size_carton = 9   # Carton No.行字体，保持一致
+        # 设置字体 - 与内箱标保持一致的字体大小
+        font_size_label = 8    # 标签列字体
+        font_size_content = 9  # 内容列基础字体
+        font_size_theme = 9    # Theme行字体
+        font_size_carton = 9   # Carton No.行字体
         
         # 表格内容数据 - 改为6行，Quantity分为两行
         table_rows = [
             ('Item:', label_data.get('item', 'Paper Cards')),
             ('Theme:', label_data.get('theme', 'DEFAULT')),
-            ('Quantity:', label_data.get('quantity', '0PCS')),  # Quantity第一行：数量
-            ('', label_data.get('number_range', '')),  # Quantity第二行：编号范围，左列空
+            ('Quantity:', label_data.get('quantity', '0PCS')),  # Quantity第一行：外箱总张数
+            ('', label_data.get('number_range', '')),  # Quantity第二行：内箱编号范围，左列空
             ('Carton No.:', label_data.get('carton_no', '1/1')),
             ('Remark:', label_data.get('remark', ''))
         ]
@@ -441,9 +341,9 @@ class InnerCaseTemplate:
             c.drawString(centered_x, row_y_center - 1 * mm, clean_content)
             print(f"绘制内容 {i}: 原始'{content}' -> 清理后'{clean_content}' 在位置 ({centered_x}, {row_y_center - 1 * mm})")
     
-    def generate_inner_case_labels_pdf(self, excel_data, box_config, output_path):
+    def generate_outer_case_labels_pdf(self, excel_data, box_config, output_path):
         """
-        生成内箱标PDF - A4横向页面，每页一条数据，90x50mm标签居中显示
+        生成外箱标PDF - 90x50mm页面，每页一条数据
         
         Args:
             excel_data: Excel数据字典
@@ -453,8 +353,8 @@ class InnerCaseTemplate:
         Returns:
             dict: 生成结果信息
         """
-        # 创建内箱标数据
-        inner_case_data = self.create_inner_case_label_data(excel_data, box_config)
+        # 创建外箱标数据
+        outer_case_data = self.create_outer_case_label_data(excel_data, box_config)
         
         # 创建输出目录
         output_dir = Path(output_path)
@@ -465,19 +365,19 @@ class InnerCaseTemplate:
         label_folder = output_dir / folder_name
         label_folder.mkdir(exist_ok=True)
         
-        # 输出文件路径 - 内箱标命名：客户名称+订单名称+"内箱"
-        inner_case_file = label_folder / f"{customer_name}+{theme}+内箱.pdf"
+        # 输出文件路径 - 大箱标命名：客户名称+订单名称+"大外箱"
+        outer_case_file = label_folder / f"{customer_name}+{theme}+大外箱.pdf"
         
         # 创建PDF - 使用标签本身尺寸作为页面尺寸，与盒标格式保持一致
         page_size = (self.LABEL_WIDTH, self.LABEL_HEIGHT)  # 90x50mm页面
-        c = canvas.Canvas(str(inner_case_file), pagesize=page_size)
+        c = canvas.Canvas(str(outer_case_file), pagesize=page_size)
         
         # 设置PDF/X-3元数据（适用于CMYK打印）
-        c.setTitle(f"内箱标 - {excel_data.get('B4', 'DEFAULT')}")
+        c.setTitle(f"外箱标 - {excel_data.get('B4', 'DEFAULT')}")
         c.setAuthor("数据转PDF打印工具")
-        c.setSubject("90x50mm内箱标批量打印")
-        c.setCreator("内箱标生成工具 v2.0")
-        c.setKeywords("内箱标,标签,PDF/X,CMYK,打印")
+        c.setSubject("90x50mm外箱标批量打印")
+        c.setCreator("外箱标生成工具 v2.0")
+        c.setKeywords("外箱标,标签,PDF/X,CMYK,打印")
         
         # PDF/X-3兼容性设置
         try:
@@ -489,28 +389,28 @@ class InnerCaseTemplate:
         except:
             pass  # 如果ReportLab版本不支持则跳过
         
-        print(f"内箱标页面布局: 90x50mm页面，每页1个标签")
-        print(f"总计需要生成 {len(inner_case_data)} 个内箱标")
+        print(f"外箱标页面布局: 90x50mm页面，每页1个标签")
+        print(f"总计需要生成 {len(outer_case_data)} 个外箱标")
         
-        # 生成每个内箱标
-        for i, label_data in enumerate(inner_case_data):
-            print(f"生成内箱标 {i+1}/{len(inner_case_data)}: {label_data.get('carton_no', f'{i+1}/1')}")
+        # 生成每个外箱标
+        for i, label_data in enumerate(outer_case_data):
+            print(f"生成外箱标 {i+1}/{len(outer_case_data)}: {label_data.get('carton_no', f'{i+1}/1')}")
             
             # 在Canvas上直接绘制表格，标签从页面左下角开始
             self.draw_table_on_canvas(c, label_data, 0, 0)
             
             # 每个标签后都换页（除了最后一个）
-            if i < len(inner_case_data) - 1:
+            if i < len(outer_case_data) - 1:
                 c.showPage()
         
         # 保存PDF
         c.save()
         
-        print(f"✅ 内箱标PDF生成成功: {inner_case_file.name}")
-        print(f"   总计生成 {len(inner_case_data)} 个内箱标")
+        print(f"✅ 外箱标PDF生成成功: {outer_case_file.name}")
+        print(f"   总计生成 {len(outer_case_data)} 个外箱标")
         
         return {
-            'inner_case_labels': str(inner_case_file),
+            'outer_case_labels': str(outer_case_file),
             'folder': str(label_folder),
-            'count': len(inner_case_data)
+            'count': len(outer_case_data)
         }
