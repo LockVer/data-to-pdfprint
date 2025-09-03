@@ -1,0 +1,24 @@
+# PDF标签生成器桌面应用依赖包
+
+# GUI相关
+# tkinter是Python内置模块，无需安装
+
+# PDF生成
+reportlab>=3.6.0
+
+# Excel处理
+pandas>=1.5.0
+openpyxl>=3.1.0
+
+# 图像处理
+Pillow>=9.0.0
+
+# 打包相关（可选，用于生成可执行文件）
+cx-Freeze>=6.0
+pyinstaller>=5.0
+
+# 数据处理
+numpy>=1.20.0
+
+# 字体支持
+matplotlib>=3.5.0  # 用于字体检测和处理
