@@ -120,18 +120,35 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
     
     # 提取额外参数
     if additional_inputs:
-        cards_per_box = additional_inputs.get('sheets_per_box', 2850)
+        sheets_per_box = additional_inputs.get('sheets_per_box', 2850)
         boxes_per_small_case = additional_inputs.get('boxes_per_small_case', 1)
         small_cases_per_large_case = additional_inputs.get('small_cases_per_large_case', 2)
     else:
-        cards_per_box = 2850
+        sheets_per_box = 2850
         boxes_per_small_case = 1  
         small_cases_per_large_case = 2
     
-    # 计算箱标数量和编号
-    total_boxes = math.ceil(total_cards / cards_per_box)
-    total_small_cases = math.ceil(total_boxes / boxes_per_small_case)
-    total_large_cases = math.ceil(total_small_cases / small_cases_per_large_case)
+    # 根据模式调整计算逻辑
+    if template_mode == "multi_set":
+        # 套盒模式：一套=一小箱，sheets_per_box 实际是每套张数
+        cards_per_set = sheets_per_box  # 每套张数（用户输入）
+        sets_per_large_case = small_cases_per_large_case  # 每大箱套数（用户输入）
+        
+        # 从boxes_per_small_case参数推断每套盒数（从序列号格式01-06可知是6盒）
+        boxes_per_set = boxes_per_small_case  # 每套盒数
+        cards_per_box = cards_per_set // boxes_per_set if boxes_per_set > 0 else cards_per_set  # 每盒张数
+        
+        # 重新计算数量：套盒模式下，小箱=套
+        total_sets = math.ceil(total_cards / cards_per_set) if cards_per_set > 0 else 0
+        total_small_cases = total_sets  # 总小箱数=总套数（一套一小箱）
+        total_large_cases = math.ceil(total_sets / sets_per_large_case) if sets_per_large_case > 0 else 0
+        total_boxes = total_sets * boxes_per_set  # 总盒数
+    else:
+        # 其他模式：按原逻辑
+        cards_per_box = sheets_per_box
+        total_boxes = math.ceil(total_cards / cards_per_box)
+        total_small_cases = math.ceil(total_boxes / boxes_per_small_case)
+        total_large_cases = math.ceil(total_small_cases / small_cases_per_large_case)
     
     # 解析开始号前缀和数字
     match = re.search(r'^([A-Za-z]+)(\d+)', start_number)
@@ -231,11 +248,12 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
         
         # 小箱标: 套内多级范围 (3780PCS, JAW01001-01-JAW01001-06, 01)
         for case_idx in range(total_small_cases):
-            box_num = start_num + case_idx
-            start_serial = f"{serial_prefix}{box_num:05d}-01"
-            end_serial = f"{serial_prefix}{box_num:05d}-{boxes_per_small_case:02d}"
+            set_num = start_num + case_idx
+            start_serial = f"{serial_prefix}{set_num:05d}-01"
+            end_serial = f"{serial_prefix}{set_num:05d}-{boxes_per_set:02d}"
             
-            small_quantity = boxes_per_small_case * cards_per_box
+            # 套盒模式：一套=一小箱，所以就是每套张数
+            small_quantity = cards_per_set
             
             pages.append(CasePage(index=case_idx*2 + 1, elements=[
                 CaseElement(role="item", content="Paper Cards"),
@@ -251,20 +269,21 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
             start_case = large_case_idx * small_cases_per_large_case
             end_case = min(start_case + small_cases_per_large_case - 1, total_small_cases - 1)
             
-            start_box_num = start_num + start_case
-            end_box_num = start_num + end_case
+            start_set_num = start_num + start_case
+            end_set_num = start_num + end_case
             
-            start_serial = f"{serial_prefix}{start_box_num:05d}-01"
-            end_serial = f"{serial_prefix}{end_box_num:05d}-{boxes_per_small_case:02d}"
+            start_serial = f"{serial_prefix}{start_set_num:05d}-01"
+            end_serial = f"{serial_prefix}{end_set_num:05d}-{boxes_per_set:02d}"
             
-            large_quantity = (end_case - start_case + 1) * boxes_per_small_case * cards_per_box
+            # 套盒模式：该大箱包含的套数 * 每套张数
+            large_quantity = (end_case - start_case + 1) * cards_per_set
             
             pages.append(CasePage(index=large_case_idx*2 + 2, elements=[
                 CaseElement(role="item", content="Paper Cards"),
                 CaseElement(role="theme", content=theme),
                 CaseElement(role="quantity", content=f"{large_quantity}PCS"),
                 CaseElement(role="serial_range", content=f"{start_serial}-{end_serial}"),
-                CaseElement(role="carton_no", content=f"{start_case + start_num}-{end_case + start_num}"),
+                CaseElement(role="carton_no", content=f"{start_set_num}-{end_set_num}"),
                 CaseElement(role="remark", content=customer_code)
             ]))
     

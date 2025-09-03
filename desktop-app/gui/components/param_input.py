@@ -36,24 +36,20 @@ class ParamInputStep(BaseStep):
         basic_frame = ttk.LabelFrame(self.content_frame, text="基础参数", padding=20)
         basic_frame.pack(fill=tk.X, pady=(0, 20))
         
-        # 每盒张数
-        self.create_param_input(
+        # 每盒张数/每套张数（根据模式动态显示）
+        self.sheets_container = self.create_dynamic_sheets_input(
             basic_frame,
-            "每盒张数:",
-            self.sheets_per_box_var,
-            "每个盒子包含的卡片数量"
+            self.sheets_per_box_var
         )
         
         # 高级参数区域（根据模式显示）
         self.advanced_frame = ttk.LabelFrame(self.content_frame, text="箱标参数", padding=20)
         self.advanced_frame.pack(fill=tk.X, pady=(0, 20))
         
-        # 每小箱盒数
-        self.boxes_container = self.create_param_input(
+        # 每小箱盒数/套数（根据模式动态显示）
+        self.boxes_container = self.create_dynamic_param_input(
             self.advanced_frame,
-            "每小箱盒数:",
-            self.boxes_per_small_case_var,
-            "每个小箱包含的盒子数量"
+            self.boxes_per_small_case_var
         )
         
         # 每大箱小箱数
@@ -107,6 +103,74 @@ class ParamInputStep(BaseStep):
         
         return container
     
+    def create_dynamic_sheets_input(self, parent, var):
+        """创建动态张数标签的参数输入控件"""
+        container = ttk.Frame(parent)
+        container.pack(fill=tk.X, pady=10)
+        
+        # 标签（动态文本）
+        self.sheets_label = tk.Label(container, text="每盒张数:", width=20, font=("Arial", 10, "bold"))
+        self.sheets_label.pack(side=tk.LEFT)
+        
+        # 输入框
+        entry = tk.Entry(container, textvariable=var, width=15, font=("Arial", 11))
+        entry.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 帮助文本（动态文本）
+        self.sheets_help_label = tk.Label(
+            container, 
+            text="每个盒子包含的卡片数量", 
+            font=("Arial", 9),
+            foreground='#666666'
+        )
+        self.sheets_help_label.pack(side=tk.LEFT, padx=(10, 0))
+        
+        return container
+    
+    def create_dynamic_param_input(self, parent, var):
+        """创建动态标签的参数输入控件"""
+        container = ttk.Frame(parent)
+        container.pack(fill=tk.X, pady=10)
+        
+        # 标签（动态文本）
+        self.boxes_label = tk.Label(container, text="每小箱盒数:", width=20, font=("Arial", 10, "bold"))
+        self.boxes_label.pack(side=tk.LEFT)
+        
+        # 输入框
+        entry = tk.Entry(container, textvariable=var, width=15, font=("Arial", 11))
+        entry.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 帮助文本（动态文本）
+        self.boxes_help_label = tk.Label(
+            container, 
+            text="每个小箱包含的盒子数量", 
+            font=("Arial", 9),
+            foreground='#666666'
+        )
+        self.boxes_help_label.pack(side=tk.LEFT, padx=(10, 0))
+        
+        return container
+    
+    def update_sheets_label_text(self):
+        """根据包装模式更新基础参数标签文本"""
+        if hasattr(self, 'sheets_label') and hasattr(self, 'sheets_help_label'):
+            if self.app_data.package_mode == 'set':
+                self.sheets_label.config(text="每套张数:")
+                self.sheets_help_label.config(text="每个套包含的卡片数量")
+            else:
+                self.sheets_label.config(text="每盒张数:")
+                self.sheets_help_label.config(text="每个盒子包含的卡片数量")
+    
+    def update_boxes_label_text(self):
+        """根据包装模式更新高级参数标签文本"""
+        if hasattr(self, 'boxes_label') and hasattr(self, 'boxes_help_label'):
+            if self.app_data.package_mode == 'set':
+                self.boxes_label.config(text="每套盒数:")
+                self.boxes_help_label.config(text="每个套包含的盒子数量")
+            else:
+                self.boxes_label.config(text="每小箱盒数:")
+                self.boxes_help_label.config(text="每个小箱包含的盒子数量")
+    
     def update_advanced_params_visibility(self):
         """根据包装模式更新高级参数可见性"""
         if hasattr(self, 'advanced_frame') and self.app_data.package_mode:
@@ -118,8 +182,17 @@ class ParamInputStep(BaseStep):
                 self.boxes_per_small_case_var.set(1)  # 常规模式固定为1
                 if self.small_cases_per_large_case_var.get() <= 1:
                     self.small_cases_per_large_case_var.set(2)  # 默认2个小箱一大箱
+            elif self.app_data.package_mode == 'set':
+                # 套盒模式：显示"每套盒数"和"每大箱套数"
+                self.boxes_container.pack(fill=tk.X, pady=10)
+                self.cases_container.pack(fill=tk.X, pady=10)
+                # 设置默认值
+                if self.boxes_per_small_case_var.get() <= 1:
+                    self.boxes_per_small_case_var.set(6)  # 每套默认6盒
+                if self.small_cases_per_large_case_var.get() <= 1:
+                    self.small_cases_per_large_case_var.set(2)  # 每大箱默认2套
             else:
-                # 分盒/套盒模式显示所有高级参数
+                # 分盒模式显示所有高级参数
                 self.boxes_container.pack(fill=tk.X, pady=10)
                 self.cases_container.pack(fill=tk.X, pady=10)
                 # 设置默认值
@@ -128,6 +201,9 @@ class ParamInputStep(BaseStep):
                 if self.small_cases_per_large_case_var.get() <= 1:
                     self.small_cases_per_large_case_var.set(2)
         
+        # 更新标签文本
+        self.update_sheets_label_text()
+        self.update_boxes_label_text()
         self.update_preview()
     
     def update_preview(self, *args):
@@ -146,9 +222,22 @@ class ParamInputStep(BaseStep):
                 
                 # 计算相关数量
                 import math
-                total_boxes = math.ceil(total_sheets / sheets_per_box) if sheets_per_box > 0 else 0
-                total_small_cases = math.ceil(total_boxes / boxes_per_small_case) if boxes_per_small_case > 0 else 0
-                total_large_cases = math.ceil(total_small_cases / small_cases_per_large_case) if small_cases_per_large_case > 0 else 0
+                
+                if self.app_data.package_mode == 'set':
+                    # 套盒模式计算
+                    cards_per_set = sheets_per_box  # 每套张数
+                    boxes_per_set = boxes_per_small_case  # 每套盒数
+                    sets_per_large_case = small_cases_per_large_case  # 每大箱套数
+                    
+                    total_sets = math.ceil(total_sheets / cards_per_set) if cards_per_set > 0 else 0
+                    total_small_cases = total_sets  # 一套=一小箱
+                    total_large_cases = math.ceil(total_sets / sets_per_large_case) if sets_per_large_case > 0 else 0
+                    total_boxes = total_sets * boxes_per_set
+                else:
+                    # 其他模式原逻辑
+                    total_boxes = math.ceil(total_sheets / sheets_per_box) if sheets_per_box > 0 else 0
+                    total_small_cases = math.ceil(total_boxes / boxes_per_small_case) if boxes_per_small_case > 0 else 0
+                    total_large_cases = math.ceil(total_small_cases / small_cases_per_large_case) if small_cases_per_large_case > 0 else 0
                 
                 preview_text = f"参数配置预览\n"
                 preview_text += f"{'='*50}\n\n"
@@ -159,13 +248,20 @@ class ParamInputStep(BaseStep):
                 preview_text += f"  总卡片数: {total_sheets:,} 张\n\n"
                 
                 preview_text += f"包装参数:\n"
-                preview_text += f"  每盒张数: {sheets_per_box:,} 张\n"
+                if self.app_data.package_mode == 'set':
+                    preview_text += f"  每套张数: {sheets_per_box:,} 张\n"
+                else:
+                    preview_text += f"  每盒张数: {sheets_per_box:,} 张\n"
                 
                 if self.app_data.package_mode == 'regular':
                     # 常规模式：只显示每大箱小箱数
                     preview_text += f"  每大箱小箱数: {small_cases_per_large_case} 小箱\n\n"
+                elif self.app_data.package_mode == 'set':
+                    # 套盒模式：显示用户输入的每套盒数和每大箱套数
+                    preview_text += f"  每套盒数: {boxes_per_small_case} 盒\n"
+                    preview_text += f"  每大箱套数: {small_cases_per_large_case} 套\n\n"
                 else:
-                    # 分盒/套盒模式：显示所有参数
+                    # 分盒模式：显示所有参数
                     preview_text += f"  每小箱盒数: {boxes_per_small_case} 盒\n"
                     preview_text += f"  每大箱小箱数: {small_cases_per_large_case} 小箱\n\n"
                 
@@ -176,8 +272,12 @@ class ParamInputStep(BaseStep):
                     # 常规模式：显示小箱数(=总盒数)和大箱数
                     preview_text += f"  总小箱数: {total_small_cases} 小箱\n"
                     preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
+                elif self.app_data.package_mode == 'set':
+                    # 套盒模式：显示套数和大箱数
+                    preview_text += f"  总套数: {total_small_cases} 套\n"
+                    preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
                 else:
-                    # 分盒/套盒模式：显示所有计算结果
+                    # 分盒模式：显示所有计算结果
                     preview_text += f"  总小箱数: {total_small_cases} 小箱\n"
                     preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
                 
@@ -186,6 +286,8 @@ class ParamInputStep(BaseStep):
                 
                 if self.app_data.package_mode == 'regular':
                     preview_text += f"  单级格式: {start_number}, {self.get_next_serial(start_number)}, {self.get_next_serial(start_number, 2)}...\n"
+                elif self.app_data.package_mode == 'set':
+                    preview_text += f"  套盒格式: {start_number}-01到{start_number}-{boxes_per_small_case:02d}, {self.get_next_serial(start_number)}-01到{self.get_next_serial(start_number)}-{boxes_per_small_case:02d}...\n"
                 else:
                     preview_text += f"  多级格式: {start_number}-01, {start_number}-02, {self.get_next_serial(start_number)}-01...\n"
                 
