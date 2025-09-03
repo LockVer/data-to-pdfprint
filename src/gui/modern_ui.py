@@ -531,7 +531,7 @@ class ModernExcelToPDFApp:
         
         tk.Radiobutton(
             self.regular_style_frame,
-            text="样式2 (待开发)",
+            text="样式2 (外观2)",
             variable=self.regular_style_var,
             value='style2',
             command=self.on_regular_style_change,
@@ -542,8 +542,7 @@ class ModernExcelToPDFApp:
             activebackground=ModernColors.CARD_BG,
             activeforeground=ModernColors.PRIMARY,
             relief='flat',
-            highlightthickness=0,
-            state='disabled'  # 暂时禁用
+            highlightthickness=0
         ).pack(side='left')
         
         # 分隔线
@@ -833,10 +832,15 @@ class ModernExcelToPDFApp:
             # 根据模板类型生成不同PDF
             if template_type == 'regular':
                 # 常规模板 - 同时生成盒标、内箱标、外箱标
+                # 获取选择的外观样式
+                regular_style = self.template_config.get('regular_style', 'style1')
+                appearance = 'v2' if regular_style == 'style2' else 'v1'
+                
                 result = self.box_label_template.generate_labels_pdf(
                     data_dict, 
                     self.box_config, 
-                    output_dir
+                    output_dir,
+                    appearance=appearance
                 )
                 
                 # 生成内箱标PDF
@@ -981,10 +985,8 @@ class ModernExcelToPDFApp:
         self.template_config['regular_style'] = style
         
         if style == 'style2':
-            messagebox.showinfo("提示", "样式2正在开发中，暂时使用样式1")
-            self.regular_style_var.set('style1')
-            self.template_config['regular_style'] = 'style1'
-            return
+            print("选择了外观2样式")
+            # 外观2已经开发完成，不需要重置
         
         self.update_status(f"✅ 已选择常规模板{style}", "外观选择")
         

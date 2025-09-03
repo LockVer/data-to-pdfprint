@@ -96,17 +96,22 @@ class BoxLabelTemplate:
             print(f"字体注册失败: {e}")
             return 'Helvetica-Bold'
     
-    def create_box_label(self, canvas_obj, data, x, y, label_type='box'):
+    def create_box_label(self, canvas_obj, data, x, y, label_type='box', appearance='v1'):
         """
-        创建单个盒标 - 统一格式：上方主题，下方编号，与PDF标签格式一致
+        创建单个盒标 - 支持两种外观样式
         
         Args:
             canvas_obj: ReportLab Canvas对象
             data: 标签数据字典
             x, y: 标签左下角坐标
             label_type: 标签类型 ('box'=盒标)
+            appearance: 外观样式 ('v1'=原有样式, 'v2'=三行文本样式)
         """
         c = canvas_obj
+        
+        if appearance == 'v2':
+            self.create_box_label_v2(c, data, x, y)
+            return
         
         # 不绘制边框 - 标签无边框，纯文字显示
         # c.rect(x, y, self.LABEL_WIDTH, self.LABEL_HEIGHT)  # 注释掉边框
@@ -172,7 +177,97 @@ class BoxLabelTemplate:
         code_y = center_y - 18  # 向下移动更多，增加与主题的间距
         c.drawString(code_x, code_y, product_code)
     
-    def generate_labels_pdf(self, data_dict, quantities, output_path, label_prefix=""):
+    def create_box_label_v2(self, canvas_obj, data, x, y):
+        """
+        创建外观2样式的盒标 - 三行文本布局
+        Game title: XXX
+        Ticket count: XXX  
+        Serial: XXX
+        """
+        c = canvas_obj
+        
+        # 标签区域中心点
+        center_x = x + self.LABEL_WIDTH / 2
+        center_y = y + self.LABEL_HEIGHT / 2
+        
+        # 提取数据并进行数据映射
+        # B4 -> Game title (提取英文部分)
+        raw_theme = data.get('subject', data.get('B4', 'Lab forest'))
+        game_title = self._extract_english_theme_v2(raw_theme)
+        
+        # Ticket count = 每盒张数 (不是总张数F4)
+        ticket_count = data.get('min_box_count', data.get('box_count', 10))
+        
+        # B11 -> Serial (当前编号)
+        serial = data.get('start_number', data.get('B11', 'LAF01001'))
+        
+        # 重置绘制设置
+        c.setFillColor(self.colors['black'])
+        
+        # 字体设置 - 更大更粗的字体
+        font_size = 18  # 增大字体大小
+        
+        # 根据标准图片精确定位三行文本
+        # 精细调整：第一行稍向下，第二三行更紧密且更靠下
+        title_y = y + self.LABEL_HEIGHT - 15 * mm     # Game title位置 - 向下移动3mm
+        count_y = y + self.LABEL_HEIGHT - 36 * mm     # Ticket count位置 - 向下移动4mm
+        serial_y = y + self.LABEL_HEIGHT - 46 * mm    # Serial位置 - 向下移动2mm，与第二行更紧密
+        
+        # 边距设置 - 确保左右都有适当边距
+        left_margin = x + 4 * mm   # 左边距
+        right_margin = 4 * mm      # 右边距（用于检查文本宽度）
+        
+        # 使用紧凑字符间距确保长文本能完整显示
+        def draw_text_with_tight_spacing(canvas, x, y, text, font_size):
+            """绘制紧凑间距的文本"""
+            canvas.setFont('Helvetica-Bold', font_size)
+            
+            # 通过逐个字符绘制来控制间距
+            current_x = x
+            for char in text:
+                canvas.drawString(current_x, y, char)
+                char_width = canvas.stringWidth(char, 'Helvetica-Bold', font_size)
+                current_x += char_width * 0.94  # 使用94%的间距，确保文本能完整显示
+        
+        # 第一行: Game title - 使用紧凑间距确保长文本显示完整
+        title_text = f"Game title: {game_title}"
+        draw_text_with_tight_spacing(c, left_margin, title_y, title_text, font_size)
+        
+        # 第二行: Ticket count - 使用紧凑间距
+        count_text = f"Ticket count: {ticket_count}"
+        draw_text_with_tight_spacing(c, left_margin, count_y, count_text, font_size)
+        
+        # 第三行: Serial - 使用紧凑间距
+        serial_text = f"Serial: {serial}"
+        draw_text_with_tight_spacing(c, left_margin, serial_y, serial_text, font_size)
+        
+        print(f"绘制外观2标签: Game='{game_title}', Ticket='{ticket_count}', Serial='{serial}'")
+    
+    def _extract_english_theme_v2(self, theme_text):
+        """为外观2提取英文主题"""
+        if not theme_text:
+            return 'Lab forest'
+        
+        import re
+        # 去掉开头的"-"符号
+        clean_theme = theme_text.lstrip('-').strip()
+        
+        # 查找英文部分
+        english_patterns = [
+            r'[A-Z][A-Z\s\'!]*[A-Z!]',           # 大写字母开头结尾的英文短语
+            r'[A-Z]+\'[A-Z\s]+[A-Z!]',           # 带撇号的英文
+            r'[A-Z]+[A-Z\s!]*',                  # 任何大写字母组合
+            r'[A-Za-z][A-Za-z\s\'!]*[A-Za-z!]'  # 任何英文字母组合
+        ]
+        
+        for pattern in english_patterns:
+            match = re.search(pattern, clean_theme)
+            if match:
+                return match.group().strip()
+        
+        return clean_theme if clean_theme else 'Lab forest'
+    
+    def generate_labels_pdf(self, data_dict, quantities, output_path, label_prefix="", appearance='v1'):
         """
         生成多级标签PDF
         
@@ -224,13 +319,16 @@ class BoxLabelTemplate:
             'start_number': data_dict.get('B11', 'DSK01001'),  # B11 - 起始编号
             'total_quantity': total_sheets,  # F4 - 总张数
             'F4': data_dict.get('F4', total_sheets),  # 保留原始F4数据
-            'B4': theme  # 保留B4数据
+            'B4': theme,  # 保留B4数据
+            'min_box_count': min_box_count,  # 每盒张数 - 用于外观2的Ticket count
+            'box_count': min_box_count  # 备用字段
         }
         
-        # 生成盒标 - 常规模版1每次+1，不需要每盒张数参数
-        box_label_path = label_folder / f"{customer_name}+{theme}+盒标.pdf"
+        # 生成盒标 - 根据外观选择生成不同样式
+        appearance_suffix = "外观2" if appearance == 'v2' else ""
+        box_label_path = label_folder / f"{customer_name}+{theme}+盒标{appearance_suffix}.pdf"
         self._generate_single_type_labels(
-            label_data, box_count, str(box_label_path), 'box'
+            label_data, box_count, str(box_label_path), 'box', appearance
         )
         
         print(f"✅ 生成盒标文件: {box_label_path.name}")
@@ -241,7 +339,7 @@ class BoxLabelTemplate:
             'count': box_count
         }
     
-    def _generate_single_type_labels(self, data, count, output_path, label_type):
+    def _generate_single_type_labels(self, data, count, output_path, label_type, appearance='v1'):
         """生成单一类型的标签PDF文件 - 90x50mm页面尺寸"""
         # 使用90x50mm作为页面尺寸
         page_size = (self.LABEL_WIDTH, self.LABEL_HEIGHT)  # 90x50mm
@@ -292,7 +390,7 @@ class BoxLabelTemplate:
                 print(f"盒标 {i+1}: 编号 {label_data['start_number']} (第{i+1}页)")
             
             # 创建标签
-            self.create_box_label(c, label_data, x, y, label_type)
+            self.create_box_label(c, label_data, x, y, label_type, appearance)
             
             # 每个标签后都换页（除了最后一个）
             if i < count - 1:
