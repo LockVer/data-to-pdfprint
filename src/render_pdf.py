@@ -1,6 +1,6 @@
 import os
 import re
-from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
@@ -85,7 +85,13 @@ class Style:
         self.y_top_pt = y_top_pt
 
 def render_pdf(template, style_set, output_filename):
-    c = canvas.Canvas(output_filename, pagesize=landscape(A4))
+    # 盒标使用90mm×50mm尺寸 (1mm = 2.834646 points)
+    width_mm = 90
+    height_mm = 50
+    width_pt = width_mm * 2.834646
+    height_pt = height_mm * 2.834646
+    
+    c = canvas.Canvas(output_filename, pagesize=(width_pt, height_pt))
     
     for page in template.pages:
         if page.index is not None:
@@ -113,8 +119,8 @@ def render_page(c, page, style_set, index=None):
 
         text_width = c.stringWidth(content, style.font_family, style.font_size_pt)
         x_position = calculate_x_position(style.x_align, text_width, c._pagesize[0])
-        # 计算垂直居中的 y_position
-        y_position = (page_height + style.y_top_pt) / 2
+        # 直接使用y_top_pt作为从底部的偏移量
+        y_position = style.y_top_pt
         c.drawString(x_position, y_position, content)
         
     c.showPage()
@@ -330,9 +336,15 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
                 )
             ]))
     
+    # 盒标使用90mm×50mm尺寸 (1mm = 2.834646 points)
+    width_mm = 90
+    height_mm = 50
+    width_pt = width_mm * 2.834646
+    height_pt = height_mm * 2.834646
+    
     return Template(
-        width_pt=landscape(A4)[0],
-        height_pt=landscape(A4)[1], 
+        width_pt=width_pt,
+        height_pt=height_pt, 
         style_refs=["customer_info", "theme_info", "serial_number"],
         pages=pages
     )
@@ -375,23 +387,23 @@ def generate_pdf_from_excel(excel_path, output_path, additional_inputs=None, tem
             "game_title": Style(
                 font_family="MicrosoftYaHei", 
                 font_weight="bold", 
-                font_size_pt=24, 
-                x_align="left", 
-                y_top_pt=350
+                font_size_pt=10,  # 恢复原始小尺寸字体
+                x_align="left",   # 恢复左对齐
+                y_top_pt=30  # 调整位置适应小尺寸
             ),
             "ticket_count": Style(
                 font_family="MicrosoftYaHei", 
                 font_weight="bold", 
-                font_size_pt=22, 
-                x_align="left", 
-                y_top_pt=200
+                font_size_pt=9,  # 恢复原始小尺寸字体
+                x_align="left",  # 恢复左对齐
+                y_top_pt=15  # 调整位置
             ),
             "serial_number": Style(
                 font_family="Helvetica-Bold", 
                 font_weight="bold", 
-                font_size_pt=20, 
-                x_align="left", 
-                y_top_pt=50
+                font_size_pt=8,  # 恢复原始小尺寸字体
+                x_align="left",  # 恢复左对齐
+                y_top_pt=5   # 调整位置
             )
         }
     else:
@@ -399,23 +411,23 @@ def generate_pdf_from_excel(excel_path, output_path, additional_inputs=None, tem
             "customer_info": Style(
                 font_family="MicrosoftYaHei", 
                 font_weight="bold", 
-                font_size_pt=20, 
+                font_size_pt=16,  # 增大字体匹配PDF显示效果
                 x_align="center", 
-                y_top_pt=300
+                y_top_pt=110  # 上半部分位置 (页面高度约142点)
             ),
             "theme_info": Style(
                 font_family="MicrosoftYaHei", 
                 font_weight="bold", 
-                font_size_pt=24, 
+                font_size_pt=14,  # 增大字体匹配PDF中的主标题效果
                 x_align="center", 
-                y_top_pt=250
+                y_top_pt=85   # 中上位置，与序列号保持足够间距
             ),
             "serial_number": Style(
                 font_family="Helvetica-Bold", 
                 font_weight="bold", 
-                font_size_pt=18, 
+                font_size_pt=12,  # 增大字体匹配PDF中的序列号效果
                 x_align="center", 
-                y_top_pt=200
+                y_top_pt=50   # 中下位置，与主题保持更大空隙
             )
         }
     
@@ -426,9 +438,15 @@ def generate_pdf_from_excel(excel_path, output_path, additional_inputs=None, tem
     return output_path
 
 # 示例数据
+# 盒标使用90mm×50mm尺寸 (1mm = 2.834646 points)
+width_mm = 90
+height_mm = 50
+width_pt = width_mm * 2.834646
+height_pt = height_mm * 2.834646
+
 template_data = Template(
-    width_pt=landscape(A4)[0],
-    height_pt=landscape(A4)[1],
+    width_pt=width_pt,
+    height_pt=height_pt,
     style_refs=["title_cn", "title_en", "serial"],
     pages=[
         Page(index=0, elements=[
@@ -442,9 +460,9 @@ template_data = Template(
 )
 
 style_set_data = {
-    "title_cn": Style(font_family="MicrosoftYaHei", font_weight="bold", font_size_pt=24, x_align="center", y_top_pt=250),
-    "title_en": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=24, x_align="center", y_top_pt=200),
-    "serial": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=24, x_align="center", y_top_pt=150)
+    "title_cn": Style(font_family="MicrosoftYaHei", font_weight="bold", font_size_pt=16, x_align="center", y_top_pt=40),  # 增大字体和间距
+    "title_en": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=14, x_align="center", y_top_pt=25), # 增大字体，适当间距
+    "serial": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=12, x_align="center", y_top_pt=10)   # 增大字体，底部位置
 }
 
 # ===========================================
