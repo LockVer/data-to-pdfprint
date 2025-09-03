@@ -37,9 +37,9 @@ class PDFGenerator:
         """
         self.page_size = (90 * mm, 50 * mm)  # 90mm x 50mm标签尺寸
         self.margin = 2 * mm
-        self.font_name = "Helvetica"
+        self.font_name = "MicrosoftYaHei"  # 使用微软雅黑作为默认字体
         self.font_size = 8
-        self.chinese_font_name = "SimHei"
+        self.chinese_font_name = "MicrosoftYaHei"  # 统一使用微软雅黑
         self.max_pages_per_file = max_pages_per_file
         self._register_chinese_font()
         
@@ -63,7 +63,7 @@ class PDFGenerator:
                     'direction': 'down'  # 开始号标签下方是数据 (B9->B10)
                 },
                 '标签名称': {
-                    'keyword': '标签名称:',  # 使用英文冒号，匹配真实Excel文件
+                    'keyword': '标签名称',  # 查找包含"标签名称"四个字的单元格
                     'direction': 'right'  # 标签名称右侧是数据 (G10->H10)
                 },
                 '结束号': {
@@ -107,8 +107,8 @@ class PDFGenerator:
         Returns:
             换行后的文本行列表
         """
-        # 设置字体以计算宽度
-        canvas_obj.setFont("Helvetica-Bold", font_size)
+        # 使用最佳字体进行宽度计算
+        used_font = self._set_best_font(canvas_obj, font_size, bold=True)
         
         # 按单词分割文本
         words = text.split()
@@ -121,7 +121,7 @@ class PDFGenerator:
         for word in words:
             # 测试加上新单词后的宽度
             test_line = current_line + " " + word if current_line else word
-            text_width = canvas_obj.stringWidth(test_line, "Helvetica-Bold", font_size)
+            text_width = canvas_obj.stringWidth(test_line, used_font, font_size)
             
             if text_width <= max_width:
                 # 如果宽度允许，加上这个单词
@@ -153,27 +153,32 @@ class PDFGenerator:
         Returns:
             实际使用的字体名称
         """
-        # 按优先级尝试不同字体，包括更多字体选项
+        # 优先使用已注册的中文字体，确保中文标点符号正确显示
         font_candidates = []
         
-        if bold:
-            font_candidates = [
-                "Helvetica-Bold",    # 标准英文粗体
-                "Times-Bold",        # Times粗体
-                "Courier-Bold",      # 等宽粗体
-                "Helvetica",         # 退回到普通字体
-                "Times-Roman",       # Times普通
-                "Courier",           # 等宽普通
-            ]
+        if self.chinese_font_name and self.chinese_font_name != "Helvetica":
+            # 如果有中文字体，优先使用
+            font_candidates = [self.chinese_font_name]
         else:
-            font_candidates = [
-                "Helvetica",         # 标准英文字体
-                "Times-Roman",       # Times字体
-                "Courier",           # 等宽字体
-            ]
+            # 回退到标准字体
+            if bold:
+                font_candidates = [
+                    "Helvetica-Bold",    # 标准英文粗体
+                    "Times-Bold",        # Times粗体
+                    "Courier-Bold",      # 等宽粗体
+                    "Helvetica",         # 退回到普通字体
+                    "Times-Roman",       # Times普通
+                    "Courier",           # 等宽普通
+                ]
+            else:
+                font_candidates = [
+                    "Helvetica",         # 标准英文字体
+                    "Times-Roman",       # Times字体
+                    "Courier",           # 等宽字体
+                ]
         
         # 尝试设置字体
-        used_font = "Helvetica"  # 默认字体
+        used_font = self.font_name  # 使用实例的字体名称作为默认
         for font_name in font_candidates:
             try:
                 canvas_obj.setFont(font_name, font_size)
@@ -186,7 +191,8 @@ class PDFGenerator:
     
     def _clean_text_for_font(self, text):
         """
-        清理文本，移除或替换可能导致乱码的字符
+        清理文本，移除可能导致渲染问题的字符
+        使用微软雅黑字体时，保留中文标点符号以确保原汁原味的显示
         
         Args:
             text: 原始文本
@@ -200,17 +206,17 @@ class PDFGenerator:
         # 转换为字符串并去除首尾空白
         text = str(text).strip()
         
-        # 移除或替换常见的问题字符，包括中文标点符号
+        # 统一的文本清理策略：无论使用什么字体都转换中文标点符号为可渲染的等价字符
         replacements = {
             '\ufffd': '',  # Unicode替换字符
-            '\u2019': "'",  # 右单引号
-            '\u2018': "'",  # 左单引号  
-            '\u201c': '"',  # 左双引号
-            '\u201d': '"',  # 右双引号
-            '\u2013': '-',  # en dash
-            '\u2014': '-',  # em dash
-            '\u00a0': ' ',  # 不间断空格
-            # 中文标点符号替换为ASCII等价字符
+            '\u2019': "'",  # 右单引号 → 英文单引号
+            '\u2018': "'",  # 左单引号 → 英文单引号
+            '\u201c': '"',  # 左双引号 → 英文双引号
+            '\u201d': '"',  # 右双引号 → 英文双引号
+            '\u2013': '-',  # en dash → 连字符
+            '\u2014': '-',  # em dash → 连字符
+            '\u00a0': ' ',  # 不间断空格 → 普通空格
+            # 中文标点符号转换为ASCII等价字符，确保在任何字体下都能正常显示
             '！': '!',      # 中文感叹号 → 英文感叹号
             '？': '?',      # 中文问号 → 英文问号
             '，': ',',      # 中文逗号 → 英文逗号
@@ -232,7 +238,7 @@ class PDFGenerator:
         for old_char, new_char in replacements.items():
             text = text.replace(old_char, new_char)
         
-        # 更保守的字符清理策略，最大限度保留原文
+        # 移除明确的问题字符，但保留转换后的标点符号
         cleaned_chars = []
         for char in text:
             char_code = ord(char)
@@ -245,23 +251,8 @@ class PDFGenerator:
             elif (0 <= char_code <= 31) and char not in ['\n', '\r', '\t']:  # 控制字符但保留换行
                 continue
             else:
-                # 保留所有其他字符，包括中文、标点符号等
-                # 对一些中文标点进行ASCII替换以确保兼容性
-                if char == '（':
-                    cleaned_chars.append('(')
-                elif char == '）':
-                    cleaned_chars.append(')')
-                elif char == '【':
-                    cleaned_chars.append('[')
-                elif char == '】':
-                    cleaned_chars.append(']')
-                elif char == '—':  # 中文破折号
-                    cleaned_chars.append('-')
-                elif char == '…':  # 中文省略号
-                    cleaned_chars.append('...')
-                else:
-                    # 保留原字符（包括中文）
-                    cleaned_chars.append(char)
+                # 保留所有其他字符（包括中文字符和转换后的ASCII标点）
+                cleaned_chars.append(char)
         
         result = ''.join(cleaned_chars)
         return result if result else text  # 如果清理后为空，返回原文本
@@ -713,8 +704,8 @@ class PDFGenerator:
         title_content = clean_game_title
         
         # 计算标签部分宽度
-        c.setFont("Helvetica-Bold", 12)  # 确保字体设置用于宽度计算
-        prefix_width = c.stringWidth(title_prefix, "Helvetica-Bold", 12)
+        used_font = self._set_best_font(c, 12, bold=True)  # 使用最佳字体
+        prefix_width = c.stringWidth(title_prefix, used_font, 12)
         
         # 计算内容可用宽度
         content_max_width = max_title_width - prefix_width
@@ -722,26 +713,32 @@ class PDFGenerator:
         # 对内容部分进行换行处理
         title_lines = self._wrap_text_to_fit(c, title_content, content_max_width, 12)
         
-        # 绘制Game title
+        # 绘制Game title - 加粗效果通过多次绘制实现
         for i, line in enumerate(title_lines):
             current_y = game_title_y - i * 14  # 行间距14点
             if i == 0:
-                # 第一行包含"Game title: "前缀，左对齐
+                # 第一行包含"Game title: "前缀，左对齐，多次绘制加粗
                 full_line = f"{title_prefix}{line}"
-                c.drawString(left_margin, current_y, full_line)
+                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                    c.drawString(left_margin + offset[0], current_y + offset[1], full_line)
             else:
-                # 后续换行内容居中显示
-                line_width = c.stringWidth(line, "Helvetica-Bold", 12)
+                # 后续换行内容居中显示，多次绘制加粗
+                line_width = c.stringWidth(line, used_font, 12)
                 center_x = (width - line_width) / 2
-                c.drawString(center_x, current_y, line)
+                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                    c.drawString(center_x + offset[0], current_y + offset[1], line)
         
-        # Ticket count: 左下区域，增加与Serial的间距
+        # Ticket count: 左下区域，增加与Serial的间距，多次绘制加粗
         ticket_count_y = 15 * mm  # 距离底部15mm
-        c.drawString(left_margin, ticket_count_y, f"Ticket count: {ticket_count}")
+        ticket_text = f"Ticket count: {ticket_count}"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawString(left_margin + offset[0], ticket_count_y + offset[1], ticket_text)
         
-        # Serial: 距离底部
+        # Serial: 距离底部，多次绘制加粗
         serial_y = 6 * mm  # 距离底部6mm
-        c.drawString(left_margin, serial_y, f"Serial: {clean_serial_number}")
+        serial_text = f"Serial: {clean_serial_number}"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawString(left_margin + offset[0], serial_y + offset[1], serial_text)
 
     def _create_fenhe_box_label(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, style: str, excel_file_path: str = None
@@ -1019,21 +1016,23 @@ class PDFGenerator:
         label_center_x = table_x + label_col_width / 2  # 标签列居中
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
-        # 行1: Item (第5行，从上往下)
+        # 行1: Item (第5行，从上往下) - 多次绘制加粗
         item_y = row_positions[4] + base_row_height/2
-        c.drawCentredString(label_center_x, item_y, "Item:")
-        c.drawCentredString(data_center_x, item_y, "Paper Cards")
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
         
-        # 行2: Theme (第4行)
+        # 行2: Theme (第4行) - 多次绘制加粗
         theme_y = row_positions[3] + base_row_height/2
-        c.drawCentredString(label_center_x, theme_y, "Theme:")
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
         
         # 应用文本清理和换行处理
         clean_theme_text = self._clean_text_for_font(theme_text)
         max_theme_width = data_col_width - 4*mm  # 留出边距
         theme_lines = self._wrap_text_to_fit(c, clean_theme_text, max_theme_width, 10)
         
-        # 绘制主题文本（支持多行）
+        # 绘制主题文本（支持多行） - 多次绘制加粗
         if len(theme_lines) > 1:
             # 多行：调整字体大小并垂直居中
             self._set_best_font(c, 8, bold=True)
@@ -1043,32 +1042,41 @@ class PDFGenerator:
             # 让文本块在单元格中垂直居中
             start_y = theme_y + total_text_height / 2
             for i, line in enumerate(theme_lines):
-                c.drawCentredString(data_center_x, start_y - i * line_height, line)
-            c.setFont("Helvetica-Bold", 10)  # 恢复字体大小
+                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+            self._set_best_font(c, 10, bold=True)  # 恢复字体大小
         else:
-            c.drawCentredString(data_center_x, theme_y, theme_lines[0])
+            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
         
-        # 行3: Quantity (第3行，双倍高度)
+        # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗
         quantity_label_y = row_positions[2] + quantity_row_height/2
-        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
         # 上层：票数（在分隔线上方居中）
         upper_y = row_positions[2] + quantity_row_height * 3/4
-        c.drawCentredString(data_center_x, upper_y, f"{pieces_per_small_box}PCS")
+        pcs_text = f"{pieces_per_small_box}PCS"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
         # 下层：序列号（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4
         clean_serial_range = self._clean_text_for_font(serial_range)
-        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
         
-        # 行4: Carton No (第2行)
+        # 行4: Carton No (第2行) - 多次绘制加粗
         carton_y = row_positions[1] + base_row_height/2
-        c.drawCentredString(label_center_x, carton_y, "Carton No:")
-        c.drawCentredString(data_center_x, carton_y, f"{small_box_num}/{total_small_boxes}")
+        carton_text = f"{small_box_num}/{total_small_boxes}"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+            c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_text)
         
-        # 行5: Remark (第1行)
+        # 行5: Remark (第1行) - 多次绘制加粗
         remark_y = row_positions[0] + base_row_height/2
-        c.drawCentredString(label_center_x, remark_y, "Remark:")
         clean_remark_text = self._clean_text_for_font(remark_text)
-        c.drawCentredString(data_center_x, remark_y, clean_remark_text)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
     def _create_large_box_label(
         self,
@@ -1219,14 +1227,16 @@ class PDFGenerator:
         label_center_x = table_x + label_col_width / 2
         data_center_x = col_x + (table_width - label_col_width) / 2
         
-        # 行1: Item
+        # 行1: Item - 多次绘制加粗
         item_y = row_positions[4] + base_row_height/2
-        c.drawCentredString(label_center_x, item_y, "Item:")
-        c.drawCentredString(data_center_x, item_y, "Paper Cards")
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
         
-        # 行2: Theme
+        # 行2: Theme - 多次绘制加粗
         theme_y = row_positions[3] + base_row_height/2
-        c.drawCentredString(label_center_x, theme_y, "Theme:")
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
         
         # 应用文本清理和换行处理
         clean_theme_text = self._clean_text_for_font(theme_text)
@@ -1234,7 +1244,7 @@ class PDFGenerator:
         max_theme_width = data_col_width - 4*mm  # 留出边距
         theme_lines = self._wrap_text_to_fit(c, clean_theme_text, max_theme_width, 10)
         
-        # 绘制主题文本（支持多行）
+        # 绘制主题文本（支持多行） - 多次绘制加粗
         if len(theme_lines) > 1:
             # 多行：调整字体大小并垂直居中
             self._set_best_font(c, 8, bold=True)
@@ -1244,32 +1254,41 @@ class PDFGenerator:
             # 让文本块在单元格中垂直居中
             start_y = theme_y + total_text_height / 2
             for i, line in enumerate(theme_lines):
-                c.drawCentredString(data_center_x, start_y - i * line_height, line)
-            c.setFont("Helvetica-Bold", 10)  # 恢复字体大小
+                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+            self._set_best_font(c, 10, bold=True)  # 恢复字体大小
         else:
-            c.drawCentredString(data_center_x, theme_y, theme_lines[0])
+            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
         
-        # 行3: Quantity (双倍高度)
+        # 行3: Quantity (双倍高度) - 多次绘制加粗
         quantity_label_y = row_positions[2] + quantity_row_height/2
-        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
         # 上层：每大箱票数
         upper_y = row_positions[2] + quantity_row_height * 3/4
-        c.drawCentredString(data_center_x, upper_y, f"{pieces_per_large_box}PCS")
+        large_pcs_text = f"{pieces_per_large_box}PCS"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], large_pcs_text)
         # 下层：大箱内盒序列号范围
         lower_y = row_positions[2] + quantity_row_height/4
         clean_box_serial_range = self._clean_text_for_font(box_serial_range)
-        c.drawCentredString(data_center_x, lower_y, clean_box_serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_box_serial_range)
         
-        # 行4: Carton No
+        # 行4: Carton No - 多次绘制加粗
         carton_y = row_positions[1] + base_row_height/2
-        c.drawCentredString(label_center_x, carton_y, "Carton No:")
-        c.drawCentredString(data_center_x, carton_y, f"{large_box_num}/{total_large_boxes}")
+        large_carton_text = f"{large_box_num}/{total_large_boxes}"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+            c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], large_carton_text)
         
-        # 行5: Remark
+        # 行5: Remark - 多次绘制加粗
         remark_y = row_positions[0] + base_row_height/2
-        c.drawCentredString(label_center_x, remark_y, "Remark:")
         clean_remark_text = self._clean_text_for_font(remark_text)
-        c.drawCentredString(data_center_x, remark_y, clean_remark_text)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
     def create_label_pdf(self, data: Dict[str, Any], output_path: str):
         """
@@ -1319,37 +1338,41 @@ class PDFGenerator:
             if self._has_chinese(clean_text):
                 canvas_obj.setFont(self.chinese_font_name, self.font_size)
             else:
-                canvas_obj.setFont("Helvetica", self.font_size)
+                canvas_obj.setFont(self.font_name, self.font_size)
             canvas_obj.drawString(x_start, y_pos, clean_text)
             y_pos -= line_height
 
     def _register_chinese_font(self):
         """
-        注册中文字体
+        注册中文字体 - 优先使用微软雅黑
         """
         try:
-            # 根据操作系统选择字体路径
+            # 根据操作系统选择字体路径，优先微软雅黑
             system = platform.system()
             font_paths = []
 
             if system == "Darwin":  # macOS
                 font_paths = [
-                    "/System/Library/Fonts/Supplemental/Songti.ttc",
-                    "/System/Library/Fonts/STHeiti Light.ttc",
-                    "/System/Library/Fonts/STHeiti Medium.ttc",
-                    "/Library/Fonts/SimHei.ttf",
+                    "/System/Library/Fonts/Microsoft/msyh.ttf",  # 微软雅黑
+                    "/Library/Fonts/Microsoft YaHei.ttf",       # 用户安装的微软雅黑
+                    "/System/Library/Fonts/PingFang.ttc",       # 苹方字体
+                    "/System/Library/Fonts/STHeiti Light.ttc",  # 黑体Light
+                    "/System/Library/Fonts/STHeiti Medium.ttc", # 黑体Medium
+                    "/System/Library/Fonts/Supplemental/Songti.ttc", # 宋体
                 ]
             elif system == "Windows":
                 font_paths = [
-                    "C:/Windows/Fonts/simhei.ttf",
-                    "C:/Windows/Fonts/simsun.ttc",
-                    "C:/Windows/Fonts/msyh.ttc",
+                    "C:/Windows/Fonts/msyh.ttc",     # 微软雅黑
+                    "C:/Windows/Fonts/msyhbd.ttc",   # 微软雅黑粗体
+                    "C:/Windows/Fonts/simhei.ttf",   # 黑体
+                    "C:/Windows/Fonts/simsun.ttc",   # 宋体
                 ]
             elif system == "Linux":
                 font_paths = [
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-                    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+                    "/usr/share/fonts/truetype/msyh/msyh.ttf",    # 微软雅黑
+                    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", # 文泉驿微米黑
+                    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", # Noto中文
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", # 备选
                 ]
 
             # 尝试注册第一个可用的字体
@@ -1360,15 +1383,21 @@ class PDFGenerator:
                             TTFont(self.chinese_font_name, font_path)
                         )
                         self.font_name = self.chinese_font_name
+                        print(f"✅ 成功注册中文字体: {font_path}")
                         return
-                    except Exception:
+                    except Exception as e:
+                        print(f"❌ 注册字体失败 {font_path}: {e}")
                         continue
 
-            # 如果没有找到中文字体，保持默认字体
-            print("警告: 未找到中文字体，使用默认字体")
+            # 如果没有找到中文字体，回退到默认字体但发出警告
+            print("⚠️ 警告: 未找到微软雅黑或其他中文字体，回退到Helvetica")
+            self.font_name = "Helvetica"
+            self.chinese_font_name = "Helvetica"
 
         except Exception as e:
-            print(f"注册中文字体失败: {e}")
+            print(f"❌ 注册中文字体过程失败: {e}")
+            self.font_name = "Helvetica"
+            self.chinese_font_name = "Helvetica"
 
     def _has_chinese(self, text: str) -> bool:
         """
