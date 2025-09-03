@@ -117,21 +117,48 @@ def render_page(c, page, style_set, index=None):
         # 设置字体
         c.setFont(style.font_family, style.font_size_pt)
 
-        text_width = c.stringWidth(content, style.font_family, style.font_size_pt)
-        x_position = calculate_x_position(style.x_align, text_width, c._pagesize[0])
-        # 直接使用y_top_pt作为从底部的偏移量
-        y_position = style.y_top_pt
-        c.drawString(x_position, y_position, content)
+        # 检测是否为游戏模式的标签:值格式，如果是则分别绘制
+        if ":" in content and style.x_align == "left" and element.role in ["game_title", "ticket_count", "serial_number"]:
+            # 分离标签和值
+            parts = content.split(":", 1)
+            if len(parts) == 2:
+                label = parts[0] + ":"  # "Game title:"
+                value = parts[1].strip()  # "JAWS"
+                
+                # 绘制左对齐的标签
+                label_width = c.stringWidth(label, style.font_family, style.font_size_pt)
+                label_x = calculate_x_position("left", label_width, c._pagesize[0])
+                y_position = style.y_top_pt
+                c.drawString(label_x, y_position, label)
+                
+                # 绘制右对齐的值（右边距是左边距的两倍）
+                value_width = c.stringWidth(value, style.font_family, style.font_size_pt)
+                right_margin = 20  # 右边距为20点，是左边距10点的两倍
+                value_x = c._pagesize[0] - value_width - right_margin
+                c.drawString(value_x, y_position, value)
+            else:
+                # 如果分离失败，按原方式绘制
+                text_width = c.stringWidth(content, style.font_family, style.font_size_pt)
+                x_position = calculate_x_position(style.x_align, text_width, c._pagesize[0])
+                y_position = style.y_top_pt
+                c.drawString(x_position, y_position, content)
+        else:
+            # 常规模式或不包含冒号的内容，按原方式绘制
+            text_width = c.stringWidth(content, style.font_family, style.font_size_pt)
+            x_position = calculate_x_position(style.x_align, text_width, c._pagesize[0])
+            y_position = style.y_top_pt
+            c.drawString(x_position, y_position, content)
         
     c.showPage()
 
 def calculate_x_position(x_align, text_width, page_width):
+    left_margin = 10  # 左页边距，10点约3.5mm
     if x_align == "center":
         return (page_width - text_width) / 2
     elif x_align == "left":
-        return 0
+        return left_margin  # 添加左页边距
     elif x_align == "right":
-        return page_width - text_width
+        return page_width - text_width - left_margin  # 右对齐也考虑边距
 
 def create_template_data(excel_variables, additional_inputs=None, template_mode="two_level"):
     """
@@ -385,25 +412,25 @@ def generate_pdf_from_excel(excel_path, output_path, additional_inputs=None, tem
     if template_mode == "game_info":
         style_set = {
             "game_title": Style(
-                font_family="MicrosoftYaHei", 
+                font_family="Helvetica-Bold",  # 使用粗黑体字体
                 font_weight="bold", 
-                font_size_pt=10,  # 恢复原始小尺寸字体
-                x_align="left",   # 恢复左对齐
-                y_top_pt=30  # 调整位置适应小尺寸
+                font_size_pt=18,  # 增大字体，游戏标题最大
+                x_align="left",   # 保持左对齐
+                y_top_pt=100  # 上部位置 (页面高度约142点，均分三等份)
             ),
             "ticket_count": Style(
-                font_family="MicrosoftYaHei", 
+                font_family="Helvetica-Bold",  # 使用粗黑体字体
                 font_weight="bold", 
-                font_size_pt=9,  # 恢复原始小尺寸字体
-                x_align="left",  # 恢复左对齐
-                y_top_pt=15  # 调整位置
+                font_size_pt=16,  # 中等字体大小
+                x_align="left",  # 保持左对齐
+                y_top_pt=70   # 中部位置，均分垂直空间
             ),
             "serial_number": Style(
                 font_family="Helvetica-Bold", 
                 font_weight="bold", 
-                font_size_pt=8,  # 恢复原始小尺寸字体
-                x_align="left",  # 恢复左对齐
-                y_top_pt=5   # 调整位置
+                font_size_pt=14,  # 序列号稍小但仍然清晰
+                x_align="left",  # 保持左对齐
+                y_top_pt=40   # 下部位置，三行均分空间
             )
         }
     else:
