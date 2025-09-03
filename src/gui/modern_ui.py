@@ -733,7 +733,9 @@ class ModernExcelToPDFApp:
                         preview_content += f"• 模板样式: {style}\n"
                         preview_content += f"• 盒标数量: {box_count} 个\n"
                         preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
-                        preview_content += f"• 序号递增: 每个标签+1\n\n"
+                        preview_content += f"• 序号递增: 每个标签+1\n"
+                        preview_content += f"• 内箱标数量: {inner_count} 个\n"
+                        preview_content += f"• 每箱张数: {self.box_config['min_box_count'] * self.box_config['box_per_inner_case']}\n\n"
                     elif template_type == 'box':
                         preview_content += f"• 分盒标数量: {box_count} 个\n"
                         preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
@@ -863,7 +865,14 @@ class ModernExcelToPDFApp:
 📁 输出文件夹: {result['folder']}
 
 生成的文件:
-📦 标签文件: {Path(result['box_labels']).name}
+📦 盒标文件: {Path(result['box_labels']).name}"""
+
+            # 如果有内箱标信息，添加内箱标文件信息
+            if 'inner_case_labels' in result:
+                success_msg += f"""
+📦 内箱标文件: {Path(result['inner_case_labels']).name}"""
+
+            success_msg += f"""
 
 📊 数据信息:
 • 模板类型: {template_name}
@@ -873,6 +882,12 @@ class ModernExcelToPDFApp:
 • 总张数 (F4): {data_dict['F4']}
 • 盒标数量: {math.ceil(int(data_dict['F4']) / self.box_config['min_box_count'])} 个
 • 编号方式: 每个标签+1"""
+
+            # 如果有内箱标信息，添加内箱标数量
+            if 'inner_case_count' in result:
+                success_msg += f"""
+• 内箱标数量: {result['inner_case_count']} 个
+• 每箱张数: {self.box_config['min_box_count'] * self.box_config['box_per_inner_case']}"""
             
             if template_type != 'regular':
                 success_msg += f"\n\n⚠️  注意: {template_name}正在开发中，当前使用常规模板生成"

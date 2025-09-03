@@ -17,6 +17,9 @@ import os
 import platform
 import math
 
+# 导入内箱标模板
+from .inner_case_template import InnerCaseTemplate
+
 class BoxLabelTemplate:
     """盒标/箱标模板类"""
     
@@ -34,6 +37,9 @@ class BoxLabelTemplate:
             'gray': CMYKColor(0, 0, 0, 60),
             'light_gray': CMYKColor(0, 0, 0, 20)
         }
+        
+        # 初始化内箱标模板
+        self.inner_case_template = InnerCaseTemplate()
         
     def _register_chinese_font(self):
         """注册中文字体 - 寻找最粗的字体"""
@@ -223,18 +229,25 @@ class BoxLabelTemplate:
             'B4': theme  # 保留B4数据
         }
         
-        # 只生成盒标 - 常规模版1每次+1，不需要每盒张数参数
+        # 生成盒标 - 常规模版1每次+1，不需要每盒张数参数
         box_label_path = label_folder / f"{customer_name}+{theme}+盒标.pdf"
-        # 不再传递min_box_count，因为编号逻辑已改为每次+1
         self._generate_single_type_labels(
             label_data, box_count, str(box_label_path), 'box'
         )
         
-        print(f"✅ 只生成盒标文件: {box_label_path.name}")
+        # 生成内箱标
+        inner_case_result = self.inner_case_template.generate_inner_case_labels_pdf(
+            data_dict, quantities, str(label_folder)
+        )
+        
+        print(f"✅ 生成盒标文件: {box_label_path.name}")
+        print(f"✅ 生成内箱标文件: {Path(inner_case_result['inner_case_labels']).name}")
         
         return {
             'box_labels': str(box_label_path),
-            'folder': str(label_folder)
+            'inner_case_labels': inner_case_result['inner_case_labels'],
+            'folder': str(label_folder),
+            'inner_case_count': inner_case_result['count']
         }
     
     def _generate_single_type_labels(self, data, count, output_path, label_type):
