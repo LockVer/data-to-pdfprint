@@ -914,17 +914,25 @@ class PDFGenerator:
                 base_main_num = int(match.group(1))  # 主号
                 
                 # 分盒模板小箱标的特殊逻辑：
-                # 每个小箱标对应一个特定的盒标序列号
-                # 第small_box_num个小箱对应第small_box_num个盒标
-                box_index = small_box_num - 1  # 转为0基数
-                main_number_offset = box_index // group_size  # 主号偏移
-                suffix_number = (box_index % group_size) + 1  # 副号(1开始)
+                # 每个小箱标包含boxes_per_small_box个盒标的序列号范围
+                # 计算当前小箱标包含的盒标范围
+                start_box_index = (small_box_num - 1) * boxes_per_small_box  # 起始盒标索引(0基数)
+                end_box_index = start_box_index + boxes_per_small_box - 1    # 结束盒标索引(0基数)
                 
-                current_main_number = base_main_num + main_number_offset
-                current_serial = f"{prefix_part}{current_main_number:05d}-{suffix_number:02d}"
+                # 计算起始盒标的序列号
+                start_main_offset = start_box_index // group_size
+                start_suffix = (start_box_index % group_size) + 1
+                start_main_number = base_main_num + start_main_offset
+                start_serial = f"{prefix_part}{start_main_number:05d}-{start_suffix:02d}"
                 
-                # 分盒小箱标显示相同的序列号范围（每个小箱只对应一个盒标）
-                serial_range = f"{current_serial}-{current_serial}"
+                # 计算结束盒标的序列号
+                end_main_offset = end_box_index // group_size
+                end_suffix = (end_box_index % group_size) + 1
+                end_main_number = base_main_num + end_main_offset
+                end_serial = f"{prefix_part}{end_main_number:05d}-{end_suffix:02d}"
+                
+                # 分盒小箱标显示序列号范围
+                serial_range = f"{start_serial}-{end_serial}"
             else:
                 serial_range = f"DSK{small_box_num:05d}-DSK{small_box_num:05d}"
 
@@ -1805,3 +1813,405 @@ class PDFGenerator:
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
             c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
+
+    # ===================== 套盒模板方法 =====================
+
+    def create_taohebox_multi_level_pdfs(
+        self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None
+    ) -> Dict[str, str]:
+        """创建套盒模板的多级标签PDF"""
+        # 创建输出目录
+        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+        folder_name = f"{data['客户编码']}+{clean_theme}+标签"
+        full_output_dir = Path(output_dir) / folder_name
+        full_output_dir.mkdir(parents=True, exist_ok=True)
+
+        generated_files = {}
+
+        # 生成套盒模板的盒标 - 第二个参数用于结束号逻辑（套盒无外观选择）
+        box_label_path = full_output_dir / f"{data['客户编码']}+{clean_theme}+套盒盒标.pdf"
+
+        self._create_taohebox_box_label(data, params, str(box_label_path), excel_file_path)
+        generated_files["盒标"] = str(box_label_path)
+
+        # 计算各级数量用于小箱标生成
+        total_pieces = int(float(data["总张数"]))
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_small_box = int(params["盒/小箱"])
+        small_boxes_per_large_box = int(params["小箱/大箱"])
+
+        total_boxes = math.ceil(total_pieces / pieces_per_box)
+        total_small_boxes = math.ceil(total_boxes / boxes_per_small_box)
+
+        # 生成套盒模板小箱标
+        small_box_path = full_output_dir / f"{data['客户编码']}+{clean_theme}+套盒小箱标.pdf"
+        self._create_taohebox_small_box_label(
+            data, params, str(small_box_path), total_small_boxes, excel_file_path
+        )
+        generated_files["小箱标"] = str(small_box_path)
+
+        # 生成套盒模板大箱标
+        total_large_boxes = math.ceil(total_small_boxes / small_boxes_per_large_box)
+        large_box_path = full_output_dir / f"{data['客户编码']}+{clean_theme}+套盒大箱标.pdf"
+        self._create_taohebox_large_box_label(
+            data, params, str(large_box_path), total_large_boxes, excel_file_path
+        )
+        generated_files["大箱标"] = str(large_box_path)
+
+        return generated_files
+
+    def _create_taohebox_box_label(
+        self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, excel_file_path: str = None
+    ):
+        """创建套盒模板的盒标 - 基于Excel文件的开始号和结束号"""
+        # 分析Excel文件获取套盒特有的数据
+        excel_path = excel_file_path
+        print(f"🔍 正在分析套盒模板Excel文件: {excel_path}")
+        
+        try:
+            import pandas as pd
+            df = pd.read_excel(excel_path, header=None)
+            print(f"✅ Excel文件已加载: {df.shape[0]}行 x {df.shape[1]}列")
+            
+            # 根据分析的结果提取数据
+            # 标签名称：第10行第9列 (索引9,8)
+            theme_text = df.iloc[9, 8] if pd.notna(df.iloc[9, 8]) else 'Unknown Title'
+            
+            # 开始号：第10行第2列 (索引9,1) 
+            base_number = df.iloc[9, 1] if pd.notna(df.iloc[9, 1]) else 'DEFAULT01001'
+            
+            # 结束号：第10行第3列 (索引9,2)
+            end_number = df.iloc[9, 2] if pd.notna(df.iloc[9, 2]) else base_number
+            
+            # 主题：第4行第2列 (索引3,1)
+            full_theme = df.iloc[3, 1] if pd.notna(df.iloc[3, 1]) else 'Unknown Theme'
+            
+            print(f"✅ 套盒模板数据提取:")
+            print(f"   标签名称: '{theme_text}'")
+            print(f"   开始号: '{base_number}'")
+            print(f"   结束号: '{end_number}'")
+            print(f"   完整主题: '{full_theme}'")
+            
+        except Exception as e:
+            print(f"❌ 读取Excel文件失败: {e}")
+            # 回退到关键字提取
+            excel_data = self._extract_excel_data_by_keywords(excel_path)
+            theme_text = excel_data.get('标签名称') or 'Unknown Title'
+            base_number = excel_data.get('开始号') or 'DEFAULT01001'
+            end_number = excel_data.get('结束号') or base_number
+        
+        # 套盒模板参数分析
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_ending_unit = int(params["盒/小箱"])  # 在套盒模板中，这个参数用于结束号的范围计算
+        group_size = int(params["小箱/大箱"])
+        
+        print(f"✅ 套盒模板参数:")
+        print(f"   张/盒: {pieces_per_box}")
+        print(f"   盒/小箱(结束号范围): {boxes_per_ending_unit}")
+        print(f"   小箱/大箱(分组大小): {group_size}")
+        
+        # 解析开始号和结束号的格式
+        import re
+        start_match = re.search(r'(.+?)(\d+)-(\d+)', base_number)
+        end_match = re.search(r'(.+?)(\d+)-(\d+)', end_number)
+        
+        if start_match and end_match:
+            start_prefix = start_match.group(1)
+            start_main = int(start_match.group(2))
+            start_suffix = int(start_match.group(3))
+            
+            end_prefix = end_match.group(1)
+            end_main = int(end_match.group(2))
+            end_suffix = int(end_match.group(3))
+            
+            print(f"✅ 解析序列号格式:")
+            print(f"   开始: {start_prefix}{start_main:05d}-{start_suffix:02d}")
+            print(f"   结束: {end_prefix}{end_main:05d}-{end_suffix:02d}")
+            
+        else:
+            print("⚠️ 无法解析序列号格式，使用默认逻辑")
+            start_prefix = "JAW"
+            start_main = 1001
+            start_suffix = 1
+            end_suffix = boxes_per_ending_unit
+        
+        # 计算需要生成的盒标数量
+        total_pieces = int(float(data["总张数"]))
+        total_boxes = math.ceil(total_pieces / pieces_per_box)
+        
+        # 创建PDF
+        c = canvas.Canvas(output_path, pagesize=self.page_size)
+        c.setTitle("套盒模板盒标")
+        
+        width, height = self.page_size
+        blank_height = height / 5
+        top_text_y = height - 1.5 * blank_height
+        serial_number_y = height - 3.5 * blank_height
+        
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+        
+        # 生成套盒盒标 - 基于开始号到结束号的范围
+        print(f"📝 开始生成套盒盒标，预计生成 {total_boxes} 个标签")
+        
+        for box_num in range(1, total_boxes + 1):
+            if box_num > 1:
+                c.showPage()
+                c.setFillColor(cmyk_black)
+
+            # 套盒模板序列号生成逻辑 - 基于开始号和结束号范围
+            box_index = box_num - 1
+            
+            # 计算当前盒的序列号在范围内的位置
+            main_offset = box_index // boxes_per_ending_unit
+            suffix_in_range = (box_index % boxes_per_ending_unit) + start_suffix
+            
+            current_main = start_main + main_offset
+            current_number = f"{start_prefix}{current_main:05d}-{suffix_in_range:02d}"
+            
+            print(f"📝 生成套盒盒标 #{box_num}: {current_number}")
+            
+            # 套盒模板使用固定外观（类似分盒模板外观一）
+            self._render_taohebox_appearance_one(c, width, theme_text, current_number, top_text_y, serial_number_y)
+
+        c.save()
+        print(f"✅ 套盒模板盒标PDF已生成: {output_path}")
+
+    def _render_taohebox_appearance_one(self, c, width, top_text, current_number, top_text_y, serial_number_y):
+        """套盒模板盒标外观一渲染"""
+        clean_top_text = self._clean_text_for_font(top_text)
+        self._set_best_font(c, 14, bold=True)
+        
+        # 绘制Game title和序列号 - 加粗效果
+        for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
+            c.drawCentredString(width / 2 + offset[0], top_text_y + offset[1], clean_top_text)
+            c.drawCentredString(width / 2 + offset[0], serial_number_y + offset[1], current_number)
+
+    def _render_taohebox_appearance_two(self, c, width, top_text, current_number, top_text_y, serial_number_y):
+        """套盒模板盒标外观二渲染"""
+        clean_top_text = self._clean_text_for_font(top_text)
+        self._set_best_font(c, 14, bold=True)
+        
+        # 外观二：Game title左对齐，但溢出文本居中
+        max_width = width * 0.8
+        title_lines = self._wrap_text_to_fit(c, clean_top_text, max_width, 14)
+        
+        if len(title_lines) > 1:
+            # 首行左对齐，其他行居中
+            for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
+                c.drawString(width * 0.1 + offset[0], top_text_y + 15 + offset[1], title_lines[0])
+            for i, line in enumerate(title_lines[1:], 1):
+                for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
+                    c.drawCentredString(width / 2 + offset[0], top_text_y + 15 - i * 16 + offset[1], line)
+        else:
+            for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
+                c.drawString(width * 0.1 + offset[0], top_text_y + offset[1], title_lines[0])
+        
+        # 绘制序列号
+        for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
+            c.drawCentredString(width / 2 + offset[0], serial_number_y + offset[1], current_number)
+
+    def _create_taohebox_small_box_label(
+        self,
+        data: Dict[str, Any],
+        params: Dict[str, Any],
+        output_path: str,
+        total_small_boxes: int,
+        excel_file_path: str = None,
+    ):
+        """创建套盒模板的小箱标 - 借鉴分盒模板的计算逻辑"""
+        # 获取Excel数据 - 使用关键字提取
+        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
+        
+        excel_data = self._extract_excel_data_by_keywords(excel_path)
+        theme_text = excel_data.get('标签名称') or 'Unknown Title'
+        base_number = excel_data.get('开始号') or 'DEFAULT01001'
+        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        print(f"✅ 套盒小箱标使用关键字提取: 标签名称='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        
+        # 获取用户输入的分组大小（从"小箱/大箱"参数获取） - 借鉴分盒模板逻辑
+        try:
+            group_size = int(params["小箱/大箱"])  # 用户的第三个参数，控制副号满几进一
+            if group_size <= 0:
+                group_size = 2
+            print(f"✅ 套盒小箱标使用用户输入分组大小: {group_size} (小箱/大箱)")
+        except (ValueError, KeyError) as e:
+            print(f"⚠️ 获取小箱/大箱参数失败: {e}")
+            group_size = 2  # 默认分组大小
+        
+        # 计算参数 - 借鉴分盒模板逻辑
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_small_box = int(params["盒/小箱"])
+        pieces_per_small_box = pieces_per_box * boxes_per_small_box
+        
+        # 创建PDF
+        c = canvas.Canvas(output_path, pagesize=self.page_size)
+        width, height = self.page_size
+
+        # 设置PDF/X兼容模式和CMYK颜色
+        c.setPageCompression(1)
+        c.setTitle(f"套盒小箱标-1到{total_small_boxes}")
+        c.setSubject("Taohebox Small Box Label")
+        c.setCreator("Data-to-PDF Print")
+
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 生成指定范围的套盒小箱标
+        for small_box_num in range(1, total_small_boxes + 1):
+            if small_box_num > 1:
+                c.showPage()
+                c.setFillColor(cmyk_black)
+
+            # 计算套盒模板的序列号范围 - 简化逻辑
+            import re
+            match = re.search(r'(\d+)', base_number)
+            if match:
+                # 获取第一个数字（主号）的起始位置
+                digit_start = match.start()
+                # 截取主号前面的所有字符作为前缀
+                prefix_part = base_number[:digit_start]
+                base_main_num = int(match.group(1))  # 主号
+                
+                # 套盒模板小箱标的简化逻辑：
+                # 每个小箱标对应一个主号，包含连续的boxes_per_small_box个副号
+                # 第1个小箱：主号base_main_num，副号01-06
+                # 第2个小箱：主号base_main_num+1，副号01-06
+                # 第3个小箱：主号base_main_num+2，副号01-06
+                
+                current_main_number = base_main_num + (small_box_num - 1)  # 当前小箱对应的主号
+                
+                # 副号始终从01开始，到boxes_per_small_box结束
+                start_suffix = 1
+                end_suffix = boxes_per_small_box
+                
+                start_serial = f"{prefix_part}{current_main_number:05d}-{start_suffix:02d}"
+                end_serial = f"{prefix_part}{current_main_number:05d}-{end_suffix:02d}"
+                
+                # 套盒小箱标显示序列号范围
+                serial_range = f"{start_serial}-{end_serial}"
+                print(f"📝 小箱标 #{small_box_num}: 主号{current_main_number}, 副号{start_suffix}-{end_suffix} = {serial_range}")
+            else:
+                serial_range = f"DSK{small_box_num:05d}-DSK{small_box_num:05d}"
+
+            # 计算套盒小箱标的Carton No（简单序号格式，不是主-副箱号格式）
+            carton_no = small_box_num  # 套盒使用简单的递增序号
+
+            # 绘制套盒小箱标表格
+            self._draw_taohebox_small_box_table(c, width, height, theme_text, pieces_per_small_box, 
+                                               serial_range, carton_no, remark_text)
+
+        c.save()
+        print(f"✅ 套盒模板小箱标PDF已生成: {output_path}")
+
+    def _draw_taohebox_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
+                                      serial_range, carton_no, remark_text):
+        """绘制套盒小箱标表格 - 直接复用分盒模板的表格绘制逻辑"""
+        # 直接调用分盒模板的表格绘制方法，只修改数据内容
+        # 套盒模板需要的特殊数据：
+        # - Item: "Paper Cards" (固定值)
+        # - Carton No: 格式为 "01", "02" 等，而不是 "1-1" 格式
+        
+        # 修正Carton No格式：套盒使用简单的序号格式
+        simple_carton_no = f"{carton_no:02d}" if isinstance(carton_no, int) else str(carton_no).zfill(2)
+        
+        # 直接使用分盒模板的绘制逻辑
+        self._draw_fenhe_small_box_table(c, width, height, theme_text, pieces_per_small_box, 
+                                       serial_range, simple_carton_no, remark_text)
+
+    def _create_taohebox_large_box_label(
+        self,
+        data: Dict[str, Any],
+        params: Dict[str, Any],
+        output_path: str,
+        total_large_boxes: int,
+        excel_file_path: str = None,
+    ):
+        """创建套盒模板的大箱标 - 借鉴分盒模板的大箱标逻辑"""
+        # 获取Excel数据 - 使用关键字提取
+        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
+        
+        excel_data = self._extract_excel_data_by_keywords(excel_path)
+        theme_text = excel_data.get('标签名称') or 'Unknown Title'
+        base_number = excel_data.get('开始号') or 'DEFAULT01001'
+        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        print(f"✅ 套盒大箱标使用关键字提取: 标签名称='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        
+        # 计算参数
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_small_box = int(params["盒/小箱"])
+        small_boxes_per_large_box = int(params["小箱/大箱"])  # 每个大箱包含的小箱数量
+        
+        pieces_per_small_box = pieces_per_box * boxes_per_small_box
+        pieces_per_large_box = pieces_per_small_box * small_boxes_per_large_box
+        
+        print(f"✅ 套盒大箱标参数: 张/盒={pieces_per_box}, 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}")
+        print(f"✅ 计算结果: 每小箱{pieces_per_small_box}PCS, 每大箱{pieces_per_large_box}PCS")
+        
+        # 创建PDF
+        c = canvas.Canvas(output_path, pagesize=self.page_size)
+        width, height = self.page_size
+
+        # 设置PDF/X兼容模式和CMYK颜色
+        c.setPageCompression(1)
+        c.setTitle(f"套盒大箱标-1到{total_large_boxes}")
+        c.setSubject("Taohebox Large Box Label")
+        c.setCreator("Data-to-PDF Print")
+
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 生成指定范围的套盒大箱标
+        for large_box_num in range(1, total_large_boxes + 1):
+            if large_box_num > 1:
+                c.showPage()
+                c.setFillColor(cmyk_black)
+
+            # 计算当前大箱包含的小箱范围
+            start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
+            end_small_box = start_small_box + small_boxes_per_large_box - 1
+            
+            # 计算序列号范围 - 从第一个小箱的起始号到最后一个小箱的结束号
+            import re
+            match = re.search(r'(\d+)', base_number)
+            if match:
+                # 获取第一个数字（主号）的起始位置
+                digit_start = match.start()
+                # 截取主号前面的所有字符作为前缀
+                prefix_part = base_number[:digit_start]
+                base_main_num = int(match.group(1))  # 主号
+                
+                # 第一个小箱的序列号范围
+                first_main_number = base_main_num + (start_small_box - 1)
+                first_start_serial = f"{prefix_part}{first_main_number:05d}-01"
+                
+                # 最后一个小箱的序列号范围
+                last_main_number = base_main_num + (end_small_box - 1)
+                last_end_serial = f"{prefix_part}{last_main_number:05d}-{boxes_per_small_box:02d}"
+                
+                # 大箱标显示完整序列号范围
+                serial_range = f"{first_start_serial}-{last_end_serial}"
+                print(f"📝 大箱标 #{large_box_num}: 包含小箱{start_small_box}-{end_small_box}, 序列号范围={serial_range}")
+            else:
+                serial_range = f"DSK{large_box_num:05d}-DSK{large_box_num:05d}"
+
+            # 计算套盒大箱标的Carton No（小箱范围格式）
+            carton_range = f"{start_small_box}-{end_small_box}"
+
+            # 绘制套盒大箱标表格 - 直接复用分盒大箱标的绘制逻辑
+            self._draw_taohebox_large_box_table(c, width, height, theme_text, pieces_per_large_box, 
+                                               serial_range, carton_range, remark_text)
+
+        c.save()
+        print(f"✅ 套盒模板大箱标PDF已生成: {output_path}")
+
+    def _draw_taohebox_large_box_table(self, c, width, height, theme_text, pieces_per_large_box, 
+                                      serial_range, carton_range, remark_text):
+        """绘制套盒大箱标表格 - 直接复用分盒大箱标的表格绘制逻辑"""
+        # 分盒大箱标方法的参数：(c, width, height, theme_text, pieces_per_box, small_boxes_per_large_box, serial_range, carton_no, remark_text)
+        # 套盒需要传递：pieces_per_large_box作为总PCS，carton_range作为Carton No
+        # 中间的small_boxes_per_large_box参数在分盒中用于计算，在套盒中我们直接传递总PCS，设为1即可
+        self._draw_fenhe_large_box_table(c, width, height, theme_text, pieces_per_large_box, 
+                                        1, serial_range, carton_range, remark_text)
