@@ -72,8 +72,8 @@ class DataToPDFApp:
         # 生成PDF按钮
         self.generate_btn = ttk.Button(
             button_frame,
-            text="🔄 生成多级标签PDF",
-            command=self.show_parameters_dialog,
+            text="🔄 选择模板并生成PDF",
+            command=self.start_generation_workflow,
             state="disabled",
         )
         self.generate_btn.pack(side=tk.LEFT)
@@ -334,6 +334,164 @@ class DataToPDFApp:
         # 设置焦点
         pieces_per_box_entry.focus()
 
+    def show_fenhe_parameters_dialog(self):
+        """显示分盒模板的参数设置对话框（无外观选择）"""
+        if not self.current_data:
+            messagebox.showwarning("警告", "请先选择Excel文件")
+            return
+
+        # 创建对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("分盒模板 - 包装参数设置")
+        dialog.geometry("500x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # 居中显示
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
+        dialog.geometry(f"500x400+{x}+{y}")
+
+        # 创建滚动框架
+        canvas = tk.Canvas(dialog)
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # 绑定鼠标滚轮
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # 主框架在可滚动区域内
+        main_frame = ttk.Frame(scrollable_frame, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 标题
+        title_label = ttk.Label(
+            main_frame, text="分盒模板参数设置", font=("Arial", 14, "bold")
+        )
+        title_label.pack(pady=(0, 20))
+
+        # 参数输入框架
+        params_frame = ttk.LabelFrame(main_frame, text="包装参数", padding="15")
+        params_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # 张/盒输入
+        ttk.Label(params_frame, text="张/盒:").grid(
+            row=0, column=0, sticky=tk.W, pady=5
+        )
+        self.pieces_per_box_var = tk.StringVar(value="2850")
+        pieces_per_box_entry = ttk.Entry(
+            params_frame, textvariable=self.pieces_per_box_var, width=15
+        )
+        pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+
+        # 盒/小箱输入
+        ttk.Label(params_frame, text="盒/小箱:").grid(
+            row=1, column=0, sticky=tk.W, pady=5
+        )
+        self.boxes_per_small_box_var = tk.StringVar(value="1")
+        boxes_per_small_box_entry = ttk.Entry(
+            params_frame, textvariable=self.boxes_per_small_box_var, width=15
+        )
+        boxes_per_small_box_entry.grid(
+            row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5
+        )
+
+        # 小箱/大箱输入
+        ttk.Label(params_frame, text="小箱/大箱:").grid(
+            row=2, column=0, sticky=tk.W, pady=5
+        )
+        self.small_boxes_per_large_box_var = tk.StringVar(value="2")
+        small_boxes_entry = ttk.Entry(
+            params_frame, textvariable=self.small_boxes_per_large_box_var, width=15
+        )
+        small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+
+        # 提示信息框架
+        info_frame = ttk.LabelFrame(main_frame, text="分盒模板说明", padding="15")
+        info_frame.pack(fill=tk.X, pady=(0, 20))
+
+        info_text = "分盒模板使用特殊的序列号生成规则：\n"
+        info_text += "• 从C10单元格读取分组数据\n"
+        info_text += "• 序列号格式：前缀+数字-后缀\n"
+        info_text += "• 示例：MOP01001-01, MOP01001-02, MOP01002-01..."
+
+        info_label = ttk.Label(info_frame, text=info_text, font=("Consolas", 9))
+        info_label.pack(anchor=tk.W)
+
+        # 当前数据显示
+        data_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
+        data_frame.pack(fill=tk.X, pady=(0, 20))
+
+        data_text = f"客户编码: {self.current_data['客户编码']}\n"
+        data_text += f"主题: {self.current_data['主题']}\n"
+        data_text += f"总张数: {self.current_data['总张数']}"
+
+        data_label = ttk.Label(data_frame, text=data_text, font=("Consolas", 10))
+        data_label.pack(anchor=tk.W)
+
+        # 按钮框架
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(pady=(10, 0))
+
+        # 确认按钮
+        confirm_btn = ttk.Button(
+            button_frame,
+            text="确认生成",
+            command=lambda: self.confirm_fenhe_parameters(dialog),
+        )
+        confirm_btn.pack(side=tk.LEFT, padx=(0, 10))
+
+        # 取消按钮
+        cancel_btn = ttk.Button(button_frame, text="取消", command=dialog.destroy)
+        cancel_btn.pack(side=tk.LEFT)
+
+        # 设置焦点
+        pieces_per_box_entry.focus()
+
+    def confirm_fenhe_parameters(self, dialog):
+        """确认分盒模板参数并生成PDF"""
+        try:
+            # 验证三个参数
+            pieces_per_box = int(self.pieces_per_box_var.get())
+            boxes_per_small_box = int(self.boxes_per_small_box_var.get())
+            small_boxes_per_large_box = int(self.small_boxes_per_large_box_var.get())
+
+            if (
+                pieces_per_box <= 0
+                or boxes_per_small_box <= 0
+                or small_boxes_per_large_box <= 0
+            ):
+                messagebox.showerror("参数错误", "所有参数必须为正整数")
+                return
+
+            # 分盒模板不需要外观选择，使用默认外观一
+            self.packaging_params = {
+                "张/盒": pieces_per_box,
+                "盒/小箱": boxes_per_small_box,
+                "小箱/大箱": small_boxes_per_large_box,
+                "选择外观": "外观一",  # 分盒模板固定使用外观一
+            }
+
+            dialog.destroy()
+            self.generate_multi_level_pdfs()
+
+        except ValueError:
+            messagebox.showerror("参数错误", "请输入有效的数字")
+
     def confirm_parameters(self, dialog):
         """确认参数并生成PDF"""
         try:
@@ -366,15 +524,114 @@ class DataToPDFApp:
         except ValueError:
             messagebox.showerror("参数错误", "请输入有效的数字")
 
+    def show_template_selection_dialog(self):
+        """显示模板选择对话框"""
+        # 创建对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("选择标签模板")
+        dialog.geometry("400x300")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # 居中显示
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (400 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (300 // 2)
+        dialog.geometry(f"400x300+{x}+{y}")
+
+        # 主框架
+        main_frame = ttk.Frame(dialog, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 标题
+        title_label = ttk.Label(
+            main_frame, text="选择标签模板", font=("Arial", 14, "bold")
+        )
+        title_label.pack(pady=(0, 20))
+
+        # 模板选择变量
+        self.template_choice = tk.StringVar(value="常规")
+
+        # 模板选择框架
+        template_frame = ttk.LabelFrame(main_frame, text="模板类型", padding="15")
+        template_frame.pack(fill=tk.X, pady=(0, 20))
+
+        # 三个模板选项
+        templates = [
+            ("常规", "适用于普通包装标签"),
+            ("分盒", "适用于分盒包装标签"),
+            ("套盒", "适用于套盒包装标签")
+        ]
+
+        for i, (template_name, description) in enumerate(templates):
+            radio = ttk.Radiobutton(
+                template_frame, 
+                text=f"{template_name} - {description}",
+                variable=self.template_choice,
+                value=template_name
+            )
+            radio.pack(anchor=tk.W, pady=5)
+
+        # 按钮框架
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(20, 0))
+
+        self.selected_template = None
+
+        def confirm_template():
+            self.selected_template = self.template_choice.get()
+            dialog.destroy()
+
+        def cancel_template():
+            self.selected_template = None
+            dialog.destroy()
+
+        # 确认和取消按钮
+        ttk.Button(button_frame, text="确认", command=confirm_template).pack(side=tk.RIGHT, padx=(10, 0))
+        ttk.Button(button_frame, text="取消", command=cancel_template).pack(side=tk.RIGHT)
+
+        # 等待对话框关闭
+        dialog.wait_window()
+        return self.selected_template
+
+    def start_generation_workflow(self):
+        """开始生成工作流：先选择模板，再设置参数"""
+        if not self.current_data:
+            messagebox.showwarning("警告", "请先选择Excel文件")
+            return
+
+        # 步骤1: 选择模板
+        template_choice = self.show_template_selection_dialog()
+        if not template_choice:
+            return  # 用户取消选择
+
+        # 保存模板选择
+        self.selected_main_template = template_choice
+
+        # 步骤2: 设置参数（根据模板调整参数界面）
+        self.show_parameters_dialog_for_template(template_choice)
+
+    def show_parameters_dialog_for_template(self, template_type):
+        """根据模板类型显示对应的参数设置对话框"""
+        if template_type == "常规":
+            self.show_parameters_dialog()
+        elif template_type == "分盒":
+            self.show_fenhe_parameters_dialog()  # 分盒模板专用对话框
+        elif template_type == "套盒":
+            self.show_parameters_dialog()  # 暂时复用，后续可调整
+
     def generate_multi_level_pdfs(self):
         """生成多级标签PDF"""
         if not self.current_data or not self.packaging_params:
             messagebox.showwarning("警告", "缺少必要数据或参数")
             return
 
+        # 使用已选择的模板
+        template_choice = getattr(self, 'selected_main_template', '常规')
+
         try:
-            self.status_var.set("🔄 正在生成多级标签PDF...")
-            self.info_text.insert(tk.END, "\n开始生成多级标签PDF...\n")
+            self.status_var.set(f"🔄 正在生成{template_choice}模板PDF...")
+            self.info_text.insert(tk.END, f"\n开始生成{template_choice}模板PDF...\n")
             self.root.update()
 
             # 选择输出目录
@@ -383,13 +640,24 @@ class DataToPDFApp:
             )
 
             if output_dir:
-                # 生成多级PDF
+                # 创建PDF生成器
                 generator = PDFGenerator()
-                generated_files = generator.create_multi_level_pdfs(
-                    self.current_data, self.packaging_params, output_dir
-                )
+                
+                # 根据模板选择调用不同的生成方法
+                if template_choice == "常规":
+                    generated_files = generator.create_multi_level_pdfs(
+                        self.current_data, self.packaging_params, output_dir, self.current_file
+                    )
+                elif template_choice == "分盒":
+                    generated_files = generator.create_fenhe_multi_level_pdfs(
+                        self.current_data, self.packaging_params, output_dir, self.current_file
+                    )
+                elif template_choice == "套盒":
+                    # TODO: 实现套盒模板生成
+                    messagebox.showinfo("提示", "套盒模板功能开发中...")
+                    return
 
-                self.status_var.set("✅ 多级标签PDF生成成功!")
+                self.status_var.set(f"✅ {template_choice}模板PDF生成成功!")
 
                 # 显示生成结果
                 result_text = "\n✅ 生成完成! 文件列表:\n"
