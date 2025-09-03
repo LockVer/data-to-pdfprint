@@ -233,6 +233,12 @@ class ModernExcelToPDFApp:
             'box_per_inner_case': 5,
             'inner_case_per_outer_case': 4
         }
+        
+        # 模板配置
+        self.template_config = {
+            'template_type': 'regular',  # regular, box, case
+            'regular_style': 'style1'    # style1, style2
+        }
         self.setup_window()
         self.create_widgets()
         
@@ -429,6 +435,117 @@ class ModernExcelToPDFApp:
         card.pack(fill='x', pady=(0, 20))
         content = card.get_content_frame()
         
+        # 模板选择区域
+        template_frame = tk.Frame(content, bg=ModernColors.CARD_BG)
+        template_frame.pack(fill='x', pady=(0, 15))
+        
+        # 模板标题
+        template_title = tk.Label(
+            template_frame,
+            text="📋 模板类型",
+            font=ModernFonts.BODY,
+            bg=ModernColors.CARD_BG,
+            fg=ModernColors.BLACK
+        )
+        template_title.pack(anchor='w', pady=(0, 8))
+        
+        # 模板类型选择
+        template_type_frame = tk.Frame(template_frame, bg=ModernColors.CARD_BG)
+        template_type_frame.pack(fill='x', pady=(0, 10))
+        
+        self.template_type_var = tk.StringVar(value='regular')
+        
+        # 单选按钮样式配置
+        radio_style = {
+            'bg': ModernColors.CARD_BG,
+            'fg': ModernColors.BLACK,
+            'font': ModernFonts.BODY,
+            'selectcolor': ModernColors.PRIMARY_LIGHT,
+            'activebackground': ModernColors.CARD_BG,
+            'activeforeground': ModernColors.PRIMARY,
+            'relief': 'flat',
+            'highlightthickness': 0
+        }
+        
+        tk.Radiobutton(
+            template_type_frame,
+            text="常规模板",
+            variable=self.template_type_var,
+            value='regular',
+            command=self.on_template_type_change,
+            **radio_style
+        ).pack(side='left', padx=(0, 20))
+        
+        tk.Radiobutton(
+            template_type_frame,
+            text="分盒模板",
+            variable=self.template_type_var,
+            value='box',
+            command=self.on_template_type_change,
+            **radio_style
+        ).pack(side='left', padx=(0, 20))
+        
+        tk.Radiobutton(
+            template_type_frame,
+            text="套盒模板",
+            variable=self.template_type_var,
+            value='case',
+            command=self.on_template_type_change,
+            **radio_style
+        ).pack(side='left')
+        
+        # 常规模板外观选择（只在选择常规模板时显示）
+        self.regular_style_frame = tk.Frame(template_frame, bg=ModernColors.CARD_BG)
+        self.regular_style_frame.pack(fill='x', pady=(5, 0))
+        
+        regular_style_label = tk.Label(
+            self.regular_style_frame,
+            text="  🎨 外观样式:",
+            font=ModernFonts.BODY_SMALL,
+            bg=ModernColors.CARD_BG,
+            fg=ModernColors.GRAY
+        )
+        regular_style_label.pack(side='left')
+        
+        self.regular_style_var = tk.StringVar(value='style1')
+        
+        tk.Radiobutton(
+            self.regular_style_frame,
+            text="样式1 (当前)",
+            variable=self.regular_style_var,
+            value='style1',
+            command=self.on_regular_style_change,
+            font=ModernFonts.BODY_SMALL,
+            bg=ModernColors.CARD_BG,
+            fg=ModernColors.GRAY,
+            selectcolor=ModernColors.PRIMARY_LIGHT,
+            activebackground=ModernColors.CARD_BG,
+            activeforeground=ModernColors.PRIMARY,
+            relief='flat',
+            highlightthickness=0
+        ).pack(side='left', padx=(10, 15))
+        
+        tk.Radiobutton(
+            self.regular_style_frame,
+            text="样式2 (待开发)",
+            variable=self.regular_style_var,
+            value='style2',
+            command=self.on_regular_style_change,
+            font=ModernFonts.BODY_SMALL,
+            bg=ModernColors.CARD_BG,
+            fg=ModernColors.GRAY,
+            selectcolor=ModernColors.PRIMARY_LIGHT,
+            activebackground=ModernColors.CARD_BG,
+            activeforeground=ModernColors.PRIMARY,
+            relief='flat',
+            highlightthickness=0,
+            state='disabled'  # 暂时禁用
+        ).pack(side='left')
+        
+        # 分隔线
+        separator = tk.Frame(content, bg=ModernColors.BORDER, height=1)
+        separator.pack(fill='x', pady=(15, 15))
+        
         # 进度条
         self.progress_frame = tk.Frame(content, bg=ModernColors.CARD_BG)
         self.progress_frame.pack(fill='x', pady=(0, 15))
@@ -471,14 +588,14 @@ class ModernExcelToPDFApp:
         self.generate_btn.config(state='disabled')
         
         # 操作提示
-        hint_label = tk.Label(
+        self.hint_label = tk.Label(
             content,
-            text="选择Excel文件后即可生成PDF",
+            text="选择Excel文件和模板类型后即可生成PDF",
             font=ModernFonts.BODY_SMALL,
             bg=ModernColors.CARD_BG,
             fg=ModernColors.GRAY
         )
-        hint_label.pack(fill='x')
+        self.hint_label.pack(fill='x')
         
     def create_status_bar(self, parent):
         """创建状态栏"""
@@ -592,7 +709,10 @@ class ModernExcelToPDFApp:
             
             # 优先显示盒标数据
             if self.box_label_data:
-                preview_content = "📦 盒标数据预览\n"
+                template_type = self.template_config.get('template_type', 'regular')
+                template_name = self._get_template_display_name(template_type)
+                
+                preview_content = f"📦 {template_name}数据预览\n"
                 preview_content += "=" * 40 + "\n\n"
                 preview_content += f"📋 A4 (客户名称): {self.box_label_data['A4']}\n"
                 preview_content += f"🎯 B4 (主题): {self.box_label_data['B4']}\n"
@@ -606,12 +726,28 @@ class ModernExcelToPDFApp:
                     inner_count = math.ceil(box_count / self.box_config['box_per_inner_case'])
                     outer_count = math.ceil(inner_count / self.box_config['inner_case_per_outer_case'])
                     
-                    preview_content += "📦 生成预览:\n"
-                    preview_content += f"• 盒标数量: {box_count} 个\n"
-                    preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
-                    preview_content += f"• 序号递增: 基于张数计算\n\n"
+                    preview_content += f"📦 {template_name}生成预览:\n"
+                    
+                    if template_type == 'regular':
+                        style = self.template_config.get('regular_style', 'style1')
+                        preview_content += f"• 模板样式: {style}\n"
+                        preview_content += f"• 盒标数量: {box_count} 个\n"
+                        preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
+                        preview_content += f"• 序号递增: 每个标签+1\n\n"
+                    elif template_type == 'box':
+                        preview_content += f"• 分盒标数量: {box_count} 个\n"
+                        preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
+                        preview_content += f"• 分盒配置: 待开发\n\n"
+                    elif template_type == 'case':
+                        preview_content += f"• 套盒标数量: {outer_count} 个\n"
+                        preview_content += f"• 每套盒数: {self.box_config['inner_case_per_outer_case']}\n"
+                        preview_content += f"• 套盒配置: 待开发\n\n"
                 
-                preview_content += "✅ 盒标数据已准备就绪，可以生成PDF"
+                if template_type == 'regular':
+                    preview_content += "✅ 常规模板数据已准备就绪，可以生成PDF"
+                else:
+                    preview_content += f"⚠️  {template_name}正在开发中，暂时使用常规模板生成"
+                    
                 self.data_text.insert('end', preview_content)
                 
             elif data is not None and not data.empty:
@@ -658,7 +794,10 @@ class ModernExcelToPDFApp:
     def _generate_pdf_thread(self):
         """在线程中生成PDF"""
         try:
-            self.root.after(0, lambda: self.update_status("🚀 正在生成盒标PDF...", "生成中"))
+            template_type = self.template_config.get('template_type', 'regular')
+            template_name = self._get_template_display_name(template_type)
+            
+            self.root.after(0, lambda: self.update_status(f"🚀 正在生成{template_name}PDF...", "生成中"))
             self.root.after(0, lambda: self.progress_bar.start())
             
             # 检查是否有盒标数据
@@ -679,39 +818,64 @@ class ModernExcelToPDFApp:
             data_dict = self.box_label_data
             
             # 输出详细信息到控制台
-            print(f"开始生成PDF...")
+            print(f"开始生成{template_name}PDF...")
             print(f"输出目录: {output_dir}")
+            print(f"模板配置: {self.template_config}")
             print(f"盒标数据: {data_dict}")
             print(f"配置参数: {self.box_config}")
             
-            # 生成多级标签PDF
-            result = self.box_label_template.generate_labels_pdf(
-                data_dict, 
-                self.box_config, 
-                output_dir
-            )
+            # 根据模板类型生成不同PDF
+            if template_type == 'regular':
+                # 常规模板
+                result = self.box_label_template.generate_labels_pdf(
+                    data_dict, 
+                    self.box_config, 
+                    output_dir
+                )
+            elif template_type == 'box':
+                # 分盒模板（暂时使用常规模板）
+                print("⚠️  分盒模板暂未实现，使用常规模板代替")
+                result = self.box_label_template.generate_labels_pdf(
+                    data_dict, 
+                    self.box_config, 
+                    output_dir
+                )
+            elif template_type == 'case':
+                # 套盒模板（暂时使用常规模板）
+                print("⚠️  套盒模板暂未实现，使用常规模板代替")
+                result = self.box_label_template.generate_labels_pdf(
+                    data_dict, 
+                    self.box_config, 
+                    output_dir
+                )
+            else:
+                raise Exception(f"未知的模板类型: {template_type}")
             
             print(f"PDF生成结果: {result}")
             
             # 更新界面
             self.root.after(0, lambda: self.progress_bar.stop())
-            self.root.after(0, lambda: self.update_status("🎉 盒标PDF生成成功！", "完成"))
+            self.root.after(0, lambda: self.update_status(f"🎉 {template_name}PDF生成成功！", "完成"))
             
             # 显示成功信息
-            success_msg = f"""🎉 盒标PDF文件已成功生成！
+            success_msg = f"""🎉 {template_name}PDF文件已成功生成！
 
 📁 输出文件夹: {result['folder']}
 
 生成的文件:
-📦 盒标: {Path(result['box_labels']).name}
+📦 标签文件: {Path(result['box_labels']).name}
 
 📊 数据信息:
+• 模板类型: {template_name}
 • 客户名称 (A4): {data_dict['A4']}
 • 主题 (B4): {data_dict['B4']}
 • 起始编号 (B11): {data_dict['B11']}  
 • 总张数 (F4): {data_dict['F4']}
 • 盒标数量: {math.ceil(int(data_dict['F4']) / self.box_config['min_box_count'])} 个
-• 编号方式: 基于张数递增"""
+• 编号方式: 每个标签+1"""
+            
+            if template_type != 'regular':
+                success_msg += f"\n\n⚠️  注意: {template_name}正在开发中，当前使用常规模板生成"
             
             # 显示成功对话框，并询问是否打开文件夹
             def show_success_and_open():
@@ -737,10 +901,66 @@ class ModernExcelToPDFApp:
             self.root.after(0, show_success_and_open)
             
         except Exception as e:
-            error_msg = f"生成盒标PDF失败：{str(e)}"
+            error_msg = f"生成{template_name}PDF失败：{str(e)}"
             self.root.after(0, lambda: self.progress_bar.stop())
             self.root.after(0, lambda: self.update_status(f"❌ {error_msg}", "错误"))
             self.root.after(0, lambda: messagebox.showerror("错误", error_msg))
+    
+    def on_template_type_change(self):
+        """模板类型改变时的回调"""
+        template_type = self.template_type_var.get()
+        self.template_config['template_type'] = template_type
+        
+        # 根据模板类型显示/隐藏外观选择
+        if template_type == 'regular':
+            self.regular_style_frame.pack(fill='x', pady=(5, 0))
+        else:
+            self.regular_style_frame.pack_forget()
+        
+        # 更新生成按钮文字和配置按钮
+        if template_type == 'regular':
+            self.generate_btn.button.config(text="🚀  生成盒标PDF")
+            self.config_btn.button.config(text="⚙️  盒标参数设置")
+        elif template_type == 'box':
+            self.generate_btn.button.config(text="🚀  生成分盒PDF")  
+            self.config_btn.button.config(text="⚙️  分盒参数设置")
+        elif template_type == 'case':
+            self.generate_btn.button.config(text="🚀  生成套盒PDF")
+            self.config_btn.button.config(text="⚙️  套盒参数设置")
+        
+        self.update_status(f"✅ 已选择{self._get_template_display_name(template_type)}", "模板选择")
+        
+        # 如果已经有加载的数据，重新生成预览
+        if self.box_label_data and self.excel_reader:
+            data = self.excel_reader.read_data()
+            self.display_data_preview(data)
+    
+    def on_regular_style_change(self):
+        """常规模板外观改变时的回调"""
+        style = self.regular_style_var.get()
+        self.template_config['regular_style'] = style
+        
+        if style == 'style2':
+            messagebox.showinfo("提示", "样式2正在开发中，暂时使用样式1")
+            self.regular_style_var.set('style1')
+            self.template_config['regular_style'] = 'style1'
+            return
+        
+        self.update_status(f"✅ 已选择常规模板{style}", "外观选择")
+        
+        # 如果已经有加载的数据，重新生成预览
+        if self.box_label_data and self.excel_reader:
+            data = self.excel_reader.read_data()
+            self.display_data_preview(data)
+    
+    def _get_template_display_name(self, template_type):
+        """获取模板类型的显示名称"""
+        names = {
+            'regular': '常规模板',
+            'box': '分盒模板', 
+            'case': '套盒模板'
+        }
+        return names.get(template_type, template_type)
     
     def show_box_config(self):
         """显示盒标参数配置对话框"""
@@ -750,6 +970,10 @@ class ModernExcelToPDFApp:
             if config:
                 self.box_config = config
                 self.update_status("✅ 盒标参数已更新", "配置完成")
+                # 如果已经有加载的数据，重新生成预览
+                if self.box_label_data and self.excel_reader:
+                    data = self.excel_reader.read_data()
+                    self.display_data_preview(data)
         except ImportError as e:
             messagebox.showerror("错误", f"无法加载配置对话框: {e}")
         except Exception as e:
