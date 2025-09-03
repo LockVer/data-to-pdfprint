@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 import sys
 import pandas as pd
+import math
 
 # 添加src目录到Python路径
 current_dir = Path(__file__).parent
@@ -18,6 +19,7 @@ sys.path.insert(0, str(src_dir))
 
 from data.excel_reader import ExcelReader
 from pdf.generator import PDFGenerator
+from template.box_label_template import BoxLabelTemplate
 
 class ModernColors:
     """现代化配色方案"""
@@ -223,7 +225,14 @@ class ModernExcelToPDFApp:
         self.root = tk.Tk()
         self.excel_reader = None
         self.pdf_generator = PDFGenerator()
+        self.box_label_template = BoxLabelTemplate()
         self.selected_file = None
+        self.box_label_data = None
+        self.box_config = {
+            'min_box_count': 10,
+            'box_per_inner_case': 5,
+            'inner_case_per_outer_case': 4
+        }
         self.setup_window()
         self.create_widgets()
         
@@ -440,10 +449,20 @@ class ModernExcelToPDFApp:
         )
         self.progress_bar.pack(fill='x', pady=(5, 0))
         
+        # 参数配置按钮
+        self.config_btn = ModernButton(
+            content,
+            text="⚙️  盒标参数设置",
+            command=self.show_box_config,
+            style='secondary',
+            width=300
+        )
+        self.config_btn.pack(fill='x', pady=(0, 10))
+        
         # 生成按钮
         self.generate_btn = ModernButton(
             content,
-            text="🚀  生成多级标签PDF",
+            text="🚀  生成盒标PDF",
             command=self.generate_pdf,
             style='success',
             width=300
@@ -509,6 +528,13 @@ class ModernExcelToPDFApp:
             self.excel_reader = ExcelReader(file_path)
             data = self.excel_reader.read_data()
             
+            # 提取盒标特定数据
+            try:
+                self.box_label_data = self.excel_reader.extract_box_label_data()
+            except Exception as e:
+                print(f"提取盒标数据失败: {e}")
+                self.box_label_data = None
+            
             # 更新文件状态
             file_info = self.excel_reader.get_file_info()
             
@@ -564,11 +590,35 @@ class ModernExcelToPDFApp:
         try:
             self.data_text.delete(1.0, 'end')
             
-            if data is not None and not data.empty:
+            # 优先显示盒标数据
+            if self.box_label_data:
+                preview_content = "📦 盒标数据预览\n"
+                preview_content += "=" * 40 + "\n\n"
+                preview_content += f"📋 A4 (客户名称): {self.box_label_data['A4']}\n"
+                preview_content += f"🎯 B4 (主题): {self.box_label_data['B4']}\n"
+                preview_content += f"🔢 B11 (开始号): {self.box_label_data['B11']}\n"
+                preview_content += f"📊 F4 (总张数): {self.box_label_data['F4']}\n\n"
+                
+                # 计算预览信息
+                total_qty = int(self.box_label_data['F4']) if str(self.box_label_data['F4']).isdigit() else 0
+                if total_qty > 0:
+                    box_count = math.ceil(total_qty / self.box_config['min_box_count'])
+                    inner_count = math.ceil(box_count / self.box_config['box_per_inner_case'])
+                    outer_count = math.ceil(inner_count / self.box_config['inner_case_per_outer_case'])
+                    
+                    preview_content += "📦 生成预览:\n"
+                    preview_content += f"• 盒标数量: {box_count} 个\n"
+                    preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
+                    preview_content += f"• 序号递增: 基于张数计算\n\n"
+                
+                preview_content += "✅ 盒标数据已准备就绪，可以生成PDF"
+                self.data_text.insert('end', preview_content)
+                
+            elif data is not None and not data.empty:
+                # 显示常规数据预览
                 preview_content = "📋 数据预览 (前3行)\n"
                 preview_content += "=" * 40 + "\n\n"
                 
-                # 显示前3行数据
                 for i, (_idx, row) in enumerate(data.head(3).iterrows()):
                     preview_content += f"📌 记录 #{i+1}:\n"
                     preview_content += "-" * 25 + "\n"
@@ -581,7 +631,8 @@ class ModernExcelToPDFApp:
                 if len(data) > 3:
                     preview_content += f"... 还有 {len(data) - 3} 条记录\n\n"
                 
-                preview_content += f"✨ 总计: {len(data)} 条记录待处理"
+                preview_content += f"⚠️  未找到盒标数据 (A4、B4、B11、F4)\n"
+                preview_content += f"✨ 总计: {len(data)} 条记录"
                 
                 self.data_text.insert('end', preview_content)
             else:
@@ -607,55 +658,102 @@ class ModernExcelToPDFApp:
     def _generate_pdf_thread(self):
         """在线程中生成PDF"""
         try:
-            self.root.after(0, lambda: self.update_status("🚀 正在生成PDF...", "生成中"))
+            self.root.after(0, lambda: self.update_status("🚀 正在生成盒标PDF...", "生成中"))
             self.root.after(0, lambda: self.progress_bar.start())
             
-            # 获取数据
-            data = self.excel_reader.data
+            # 检查是否有盒标数据
+            if not self.box_label_data:
+                raise Exception("未找到盒标数据，请确保Excel文件包含A4、B4、B11、F4位置的数据")
             
-            # 转换数据格式
-            data_list = []
-            for _, row in data.iterrows():
-                row_data = {}
-                for col, value in row.items():
-                    if not pd.isna(value):
-                        # 特殊处理客户编号和主题
-                        if any(keyword in str(col).lower() for keyword in ['客户', 'customer', '编号', 'code']):
-                            row_data['customer_code'] = str(value)
-                        elif any(keyword in str(col).lower() for keyword in ['主题', 'subject', '标题']):
-                            row_data['subject'] = str(value)
-                        else:
-                            row_data[str(col)] = str(value)
-                data_list.append(row_data)
-            
-            # 选择输出文件
-            output_file = filedialog.asksaveasfilename(
-                title="保存PDF文件",
-                defaultextension=".pdf",
-                filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")]
+            # 选择输出目录
+            output_dir = filedialog.askdirectory(
+                title="选择输出目录"
             )
             
-            if not output_file:
+            if not output_dir:
                 self.root.after(0, lambda: self.progress_bar.stop())
                 self.root.after(0, lambda: self.update_status("❌ 取消生成", "就绪"))
                 return
             
-            # 生成PDF
-            self.pdf_generator.generate_multi_label_pdf(data_list, output_file)
+            # 准备数据 - 直接传递盒标数据字典
+            data_dict = self.box_label_data
+            
+            # 输出详细信息到控制台
+            print(f"开始生成PDF...")
+            print(f"输出目录: {output_dir}")
+            print(f"盒标数据: {data_dict}")
+            print(f"配置参数: {self.box_config}")
+            
+            # 生成多级标签PDF
+            result = self.box_label_template.generate_labels_pdf(
+                data_dict, 
+                self.box_config, 
+                output_dir
+            )
+            
+            print(f"PDF生成结果: {result}")
             
             # 更新界面
             self.root.after(0, lambda: self.progress_bar.stop())
-            self.root.after(0, lambda: self.update_status("🎉 PDF生成成功！", "完成"))
-            self.root.after(0, lambda: messagebox.showinfo(
-                "生成成功", 
-                f"🎉 PDF文件已成功生成！\n\n📄 文件位置: {output_file}\n📊 包含记录: {len(data_list)} 条"
-            ))
+            self.root.after(0, lambda: self.update_status("🎉 盒标PDF生成成功！", "完成"))
+            
+            # 显示成功信息
+            success_msg = f"""🎉 盒标PDF文件已成功生成！
+
+📁 输出文件夹: {result['folder']}
+
+生成的文件:
+📦 盒标: {Path(result['box_labels']).name}
+
+📊 数据信息:
+• 客户名称 (A4): {data_dict['A4']}
+• 主题 (B4): {data_dict['B4']}
+• 起始编号 (B11): {data_dict['B11']}  
+• 总张数 (F4): {data_dict['F4']}
+• 盒标数量: {math.ceil(int(data_dict['F4']) / self.box_config['min_box_count'])} 个
+• 编号方式: 基于张数递增"""
+            
+            # 显示成功对话框，并询问是否打开文件夹
+            def show_success_and_open():
+                response = messagebox.askyesno(
+                    "生成成功", 
+                    success_msg + "\n\n是否打开输出文件夹？",
+                    icon='question'
+                )
+                if response:
+                    try:
+                        import subprocess
+                        import platform
+                        folder_path = result['folder']
+                        if platform.system() == "Darwin":  # macOS
+                            subprocess.run(["open", folder_path])
+                        elif platform.system() == "Windows":  # Windows
+                            subprocess.run(["explorer", folder_path])
+                        else:  # Linux
+                            subprocess.run(["xdg-open", folder_path])
+                    except Exception as e:
+                        messagebox.showerror("错误", f"无法打开文件夹: {e}")
+            
+            self.root.after(0, show_success_and_open)
             
         except Exception as e:
-            error_msg = f"生成PDF失败：{str(e)}"
+            error_msg = f"生成盒标PDF失败：{str(e)}"
             self.root.after(0, lambda: self.progress_bar.stop())
             self.root.after(0, lambda: self.update_status(f"❌ {error_msg}", "错误"))
             self.root.after(0, lambda: messagebox.showerror("错误", error_msg))
+    
+    def show_box_config(self):
+        """显示盒标参数配置对话框"""
+        try:
+            from .box_label_dialog import show_box_label_config_dialog
+            config = show_box_label_config_dialog(self.root, self.box_config)
+            if config:
+                self.box_config = config
+                self.update_status("✅ 盒标参数已更新", "配置完成")
+        except ImportError as e:
+            messagebox.showerror("错误", f"无法加载配置对话框: {e}")
+        except Exception as e:
+            messagebox.showerror("错误", f"配置对话框出错: {e}")
     
     def update_status(self, message, right_status=None):
         """更新状态栏"""
