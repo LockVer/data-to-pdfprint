@@ -312,8 +312,8 @@ def render_case_template_to_pdf(template, output_path):
         table_width = page_width - 2 * table_margin  # 几乎填满宽度
         table_height = page_height - 2 * table_margin  # 几乎填满高度
         
-        # 左列固定宽度60点，右列占剩余空间 (适应小尺寸)
-        label_width = 60
+        # 左列固定宽度80点，右列占剩余空间 (增加宽度避免文字被切断)
+        label_width = 80
         content_width = table_width - label_width
         
         # 设置线条宽度，适应小尺寸
@@ -322,9 +322,9 @@ def render_case_template_to_pdf(template, output_path):
         # 绘制外框
         c.rect(table_x, table_y, table_width, table_height)
         
-        # 每行固定高度 - 平均分配
-        row_height = table_height / 5
-        row_heights = [row_height] * 5  # 5行相等高度
+        # 6行布局：均分表格高度，其中Quantity占2行
+        single_row_height = table_height / 6
+        row_heights = [single_row_height] * 6  # 6行基础高度
         
         # 从elements中提取数据
         elements_dict = {element.role: element.content for element in page.elements}
@@ -333,75 +333,85 @@ def render_case_template_to_pdf(template, output_path):
         
         # 第1行: Item
         current_y -= row_heights[0]
-        # 绘制列分隔线
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[0])
-        # 标签 - 小尺寸字体，左对齐有边距
-        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
-        c.drawString(table_x + 3, current_y + (row_heights[0] - 8) / 2, "Item:")
-        # 内容 - 小尺寸字体，严格居中
-        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
+        c.setFont("Helvetica-Bold", 12)  # 增大左侧标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[0] - 12) / 2, "Item:")
+        c.setFont("Helvetica-Bold", 10)  # 增大右侧内容字体，但小于左侧
         item_content = elements_dict.get("item", "Paper Cards")
-        text_width = c.stringWidth(item_content, "MicrosoftYaHei", 9)
+        text_width = c.stringWidth(item_content, "Helvetica-Bold", 10)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[0] - 9) / 2, item_content)
+        c.drawString(content_x, current_y + (row_heights[0] - 10) / 2, item_content)
         
         # 第2行: Theme
-        c.line(table_x, current_y, table_x + table_width, current_y)  # 行分隔线 (粗线)
+        c.line(table_x, current_y, table_x + table_width, current_y)
         current_y -= row_heights[1]
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[1])
-        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
-        c.drawString(table_x + 3, current_y + (row_heights[1] - 8) / 2, "Theme:")
-        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
+        c.setFont("Helvetica-Bold", 12)  # 增大左侧标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[1] - 12) / 2, "Theme:")
+        c.setFont("Helvetica-Bold", 10)  # 增大右侧内容字体
         theme_content = elements_dict.get("theme", "")
-        text_width = c.stringWidth(theme_content, "MicrosoftYaHei", 9)
+        text_width = c.stringWidth(theme_content, "Helvetica-Bold", 10)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[1] - 9) / 2, theme_content)
+        c.drawString(content_x, current_y + (row_heights[1] - 10) / 2, theme_content)
         
-        # 第3行: Quantity (均匀行高，包含双层内容)
+        # 第3-4行: Quantity (占用两行高度的合并单元格)
         c.line(table_x, current_y, table_x + table_width, current_y)
-        current_y -= row_heights[2]
-        c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[2])
-        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
-        c.drawString(table_x + 3, current_y + (row_heights[2] - 8) / 2, "Quantity:")
+        double_row_height = row_heights[2] + row_heights[3]  # 两行高度
+        current_y -= double_row_height
         
-        # 上半部分：数量 - 小尺寸字体，居中
+        # 绘制Quantity标签的垂直边线（跨越两行）
+        c.line(table_x + label_width, current_y, table_x + label_width, current_y + double_row_height)
+        
+        # Quantity标签居中显示在两行高度中
+        c.setFont("Helvetica-Bold", 12)  # 增大左侧标签字体
+        c.drawString(table_x + 3, current_y + (double_row_height - 12) / 2, "Quantity:")
+        
+        # 右侧内容分为上下两部分，用中线分隔
+        content_area_height = double_row_height
+        mid_y = current_y + content_area_height / 2
+        
+        # 绘制中间分隔线
+        c.line(table_x + label_width, mid_y, table_x + table_width, mid_y)
+        
+        # 上半部分：数量
         quantity_content = elements_dict.get("quantity", "")
-        c.setFont("MicrosoftYaHei", 10)  # 数量小尺寸字体
-        text_width = c.stringWidth(quantity_content, "MicrosoftYaHei", 10)
+        c.setFont("Helvetica-Bold", 11)  # 增大右侧内容字体，稍小于左侧
+        text_width = c.stringWidth(quantity_content, "Helvetica-Bold", 11)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        # 调整位置，使双层内容在行内均匀分布
-        c.drawString(content_x, current_y + row_heights[2] * 0.7, quantity_content)
+        upper_center_y = mid_y + (content_area_height / 4)  # 上半部分中心
+        c.drawString(content_x, upper_center_y - 5, quantity_content)
         
-        # 下半部分：序列号范围 - 小尺寸字体，居中
+        # 下半部分：序列号范围
         serial_content = elements_dict.get("serial_range", "")
-        c.setFont("MicrosoftYaHei", 8)  # 序列号小尺寸字体
-        text_width = c.stringWidth(serial_content, "MicrosoftYaHei", 8)
+        c.setFont("Helvetica-Bold", 9)  # 增大序列号字体，但相对较小
+        text_width = c.stringWidth(serial_content, "Helvetica-Bold", 9)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + row_heights[2] * 0.25, serial_content)
+        lower_center_y = current_y + (content_area_height / 4)  # 下半部分中心
+        c.drawString(content_x, lower_center_y - 4, serial_content)
         
-        # 第4行: Carton No.
-        c.line(table_x, current_y, table_x + table_width, current_y)
-        current_y -= row_heights[3]
-        c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[3])
-        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
-        c.drawString(table_x + 3, current_y + (row_heights[3] - 8) / 2, "Carton No.:")
-        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
-        carton_content = elements_dict.get("carton_no", "")
-        text_width = c.stringWidth(carton_content, "MicrosoftYaHei", 9)
-        content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[3] - 9) / 2, carton_content)
-        
-        # 第5行: Remark
+        # 第5行: Carton No.
         c.line(table_x, current_y, table_x + table_width, current_y)
         current_y -= row_heights[4]
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[4])
-        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
-        c.drawString(table_x + 3, current_y + (row_heights[4] - 8) / 2, "Remark:")
-        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
-        remark_content = elements_dict.get("remark", "")
-        text_width = c.stringWidth(remark_content, "MicrosoftYaHei", 9)
+        c.setFont("Helvetica-Bold", 12)  # 增大左侧标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[4] - 12) / 2, "Carton No.:")
+        c.setFont("Helvetica-Bold", 10)  # 增大右侧内容字体
+        carton_content = elements_dict.get("carton_no", "")
+        text_width = c.stringWidth(carton_content, "Helvetica-Bold", 10)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[4] - 9) / 2, remark_content)
+        c.drawString(content_x, current_y + (row_heights[4] - 10) / 2, carton_content)
+        
+        # 第6行: Remark
+        c.line(table_x, current_y, table_x + table_width, current_y)
+        current_y -= row_heights[5]
+        c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[5])
+        c.setFont("Helvetica-Bold", 12)  # 增大左侧标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[5] - 12) / 2, "Remark:")
+        c.setFont("Helvetica-Bold", 10)  # 增大右侧内容字体
+        remark_content = elements_dict.get("remark", "")
+        text_width = c.stringWidth(remark_content, "Helvetica-Bold", 10)
+        content_x = table_x + label_width + (content_width - text_width) / 2
+        c.drawString(content_x, current_y + (row_heights[5] - 10) / 2, remark_content)
         
         c.showPage()
     
