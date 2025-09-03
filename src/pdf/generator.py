@@ -403,7 +403,7 @@ class PDFGenerator:
         }
 
         # 创建输出目录 - 清理文件名中的特殊字符
-        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
         folder_name = f"{data['客户编码']}+{clean_theme}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
@@ -501,7 +501,7 @@ class PDFGenerator:
         }
 
         # 创建输出目录 - 清理文件名中的特殊字符
-        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
         folder_name = f"{data['客户编码']}+{clean_theme}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
@@ -518,26 +518,24 @@ class PDFGenerator:
         self._create_fenhe_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
         generated_files["盒标"] = str(box_label_path)
 
-        # 生成小箱标 (同常规模板)
+        # 生成分盒模板专用的小箱标
         small_box_path = (
-            full_output_dir / f"{data['客户编码']}+{clean_theme}+小箱标.pdf"
+            full_output_dir / f"{data['客户编码']}+{clean_theme}+分盒小箱标.pdf"
         )
-        self._create_small_box_label(
+        self._create_fenhe_small_box_label(
             data, params, str(small_box_path), total_small_boxes, remainder_info, excel_file_path
         )
         generated_files["小箱标"] = str(small_box_path)
 
-        # 生成大箱标 (同常规模板)
+        # 生成分盒模板专用的大箱标 (显示序列号范围)
         large_box_path = (
-            full_output_dir / f"{data['客户编码']}+{clean_theme}+大箱标.pdf"
+            full_output_dir / f"{data['客户编码']}+{clean_theme}+分盒大箱标.pdf"
         )
-        self._create_large_box_label(
+        self._create_fenhe_large_box_label(
             data,
             params,
             str(large_box_path),
             total_large_boxes,
-            total_small_boxes,
-            remainder_info,
             excel_file_path
         )
         generated_files["大箱标"] = str(large_box_path)
@@ -761,55 +759,21 @@ class PDFGenerator:
         base_number = excel_data.get('开始号') or 'DEFAULT01001'
         print(f"✅ 分盒盒标使用关键字提取: 标签名称='{top_text}', 开始号='{base_number}'")
         
-        # 读取C10单元格获取分组数据
-        import pandas as pd
-        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
-        df = pd.read_excel(excel_path, header=None)
-        c10_value = str(df.iloc[9, 2])  # C10单元格 (行索引9，列索引2)
+        # 从用户输入的第三个参数获取分组大小（从"小箱/大箱"参数获取）
+        try:
+            group_size = int(params["小箱/大箱"])  # 用户的第三个参数，控制副号满几进一
+            if group_size <= 0:  # 避免除零错误
+                group_size = 2
+            print(f"✅ 分盒盒标使用用户输入分组大小: {group_size} (小箱/大箱)")
+        except (ValueError, KeyError) as e:
+            print(f"⚠️ 获取小箱/大箱参数失败: {e}")
+            group_size = 2  # 默认分组大小
         
-        # 提取C10最后两位数字作为分组数量
-        import re
-        last_two_digits_match = re.search(r'(\d{2})$', c10_value)
-        if last_two_digits_match:
-            group_size = int(last_two_digits_match.group(1))
-            if group_size == 0:  # 避免除零错误
-                group_size = 1
-        else:
-            # 如果C10没有以数字结尾，尝试查找任何数字
-            any_digits_match = re.search(r'(\d+)', c10_value)
-            if any_digits_match:
-                # 取最后两位数字，不足两位用1
-                num_str = any_digits_match.group(1)
-                if len(num_str) >= 2:
-                    group_size = int(num_str[-2:])
-                else:
-                    group_size = int(num_str)
-                if group_size == 0:
-                    group_size = 1
-            else:
-                group_size = 2  # 如果C10完全没有数字，默认分组大小为2（符合示例MOP01001-01, MOP01001-02）
-        
-        # 计算需要的文件数量
-        total_files = math.ceil(total_boxes / self.max_pages_per_file)
-        
-        # 分页生成多个PDF文件
-        for file_num in range(total_files):
-            # 计算当前文件的页数范围
-            start_box = file_num * self.max_pages_per_file + 1
-            end_box = min((file_num + 1) * self.max_pages_per_file, total_boxes)
-            
-            # 生成文件名
-            if total_files == 1:
-                current_output_path = output_path
-            else:
-                path_obj = Path(output_path)
-                current_output_path = str(path_obj.parent / f"{path_obj.stem}_part{file_num + 1:02d}{path_obj.suffix}")
-            
-            # 创建当前文件的PDF
-            self._create_single_fenhe_box_label_file(
-                data, params, current_output_path, style, 
-                start_box, end_box, top_text, base_number, group_size
-            )
+        # 直接创建单个PDF文件，包含所有盒标（移除分页限制）
+        self._create_single_fenhe_box_label_file(
+            data, params, output_path, style, 
+            1, total_boxes, top_text, base_number, group_size
+        )
 
     def _create_single_fenhe_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, 
@@ -867,15 +831,224 @@ class PDFGenerator:
                 # 备用方案
                 current_number = f"DSK{box_num:05d}-01"
             
-            # 根据外观选择不同的样式 (复用常规模板的外观)
-            if style == "外观一":
-                self._render_appearance_one(c, width, top_text, current_number, top_text_y, serial_number_y)
-            else:
-                # 外观二需要额外的票数信息
-                ticket_count = params["张/盒"]
-                self._render_appearance_two(c, width, top_text, ticket_count, current_number, top_text_y, serial_number_y)
+            # 分盒模板只有一种固定外观，使用简洁标准样式
+            self._render_appearance_one(c, width, top_text, current_number, top_text_y, serial_number_y)
 
         c.save()
+
+    def _create_fenhe_small_box_label(
+        self,
+        data: Dict[str, Any],
+        params: Dict[str, Any],
+        output_path: str,
+        total_small_boxes: int,
+        remainder_info: Dict[str, Any],
+        excel_file_path: str = None,
+    ):
+        """创建分盒模板的小箱标"""
+        # 获取Excel数据 - 使用关键字提取
+        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
+        
+        excel_data = self._extract_excel_data_by_keywords(excel_path)
+        theme_text = excel_data.get('标签名称') or 'Unknown Title'
+        base_number = excel_data.get('开始号') or 'DEFAULT01001'
+        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        print(f"✅ 分盒小箱标使用关键字提取: 标签名称='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        
+        # 获取用户输入的分组大小（从"小箱/大箱"参数获取）
+        try:
+            group_size = int(params["小箱/大箱"])  # 用户的第三个参数，控制副号满几进一
+            if group_size <= 0:
+                group_size = 2
+            print(f"✅ 分盒小箱标使用用户输入分组大小: {group_size} (小箱/大箱)")
+        except (ValueError, KeyError) as e:
+            print(f"⚠️ 获取小箱/大箱参数失败: {e}")
+            group_size = 2  # 默认分组大小
+        
+        # 计算参数
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_small_box = int(params["盒/小箱"])
+        pieces_per_small_box = pieces_per_box * boxes_per_small_box
+        
+        # 直接创建单个PDF文件，包含所有小箱标
+        self._create_single_fenhe_small_box_label_file(
+            data, params, output_path, 1, total_small_boxes,
+            theme_text, base_number, remark_text, pieces_per_small_box, 
+            boxes_per_small_box, total_small_boxes, group_size
+        )
+
+    def _create_single_fenhe_small_box_label_file(
+        self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
+        start_small_box: int, end_small_box: int, theme_text: str, base_number: str,
+        remark_text: str, pieces_per_small_box: int, boxes_per_small_box: int, 
+        total_small_boxes: int, group_size: int
+    ):
+        """创建单个分盒小箱标PDF文件"""
+        c = canvas.Canvas(output_path, pagesize=self.page_size)
+        width, height = self.page_size
+
+        # 设置PDF/X兼容模式和CMYK颜色
+        c.setPageCompression(1)
+        c.setTitle(f"分盒小箱标-{start_small_box}到{end_small_box}")
+        c.setSubject("Fenhe Small Box Label")
+        c.setCreator("Data-to-PDF Print")
+
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 生成指定范围的分盒小箱标
+        for small_box_num in range(start_small_box, end_small_box + 1):
+            if small_box_num > start_small_box:
+                c.showPage()
+                c.setFillColor(cmyk_black)
+
+            # 计算分盒模板的序列号范围
+            import re
+            match = re.search(r'(\d+)', base_number)
+            if match:
+                # 获取第一个数字（主号）的起始位置
+                digit_start = match.start()
+                # 截取主号前面的所有字符作为前缀
+                prefix_part = base_number[:digit_start]
+                base_main_num = int(match.group(1))  # 主号
+                
+                # 分盒模板小箱标的特殊逻辑：
+                # 每个小箱标对应一个特定的盒标序列号
+                # 第small_box_num个小箱对应第small_box_num个盒标
+                box_index = small_box_num - 1  # 转为0基数
+                main_number_offset = box_index // group_size  # 主号偏移
+                suffix_number = (box_index % group_size) + 1  # 副号(1开始)
+                
+                current_main_number = base_main_num + main_number_offset
+                current_serial = f"{prefix_part}{current_main_number:05d}-{suffix_number:02d}"
+                
+                # 分盒小箱标显示相同的序列号范围（每个小箱只对应一个盒标）
+                serial_range = f"{current_serial}-{current_serial}"
+            else:
+                serial_range = f"DSK{small_box_num:05d}-DSK{small_box_num:05d}"
+
+            # 计算分盒小箱标的Carton No（主箱号-副箱号格式）
+            main_box_num = ((small_box_num - 1) // group_size) + 1  # 主箱号
+            sub_box_num = ((small_box_num - 1) % group_size) + 1    # 副箱号
+            carton_no = f"{main_box_num}-{sub_box_num}"
+
+            # 绘制分盒小箱标表格
+            self._draw_fenhe_small_box_table(c, width, height, theme_text, pieces_per_small_box, 
+                                           serial_range, carton_no, remark_text)
+
+        c.save()
+
+    def _draw_fenhe_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
+                                  serial_range, carton_no, remark_text):
+        """绘制分盒小箱标表格"""
+        # 表格尺寸和位置
+        table_width = width - 4 * mm
+        table_height = height - 4 * mm
+        table_x = 2 * mm
+        table_y = 2 * mm
+        
+        # 高度分配：Quantity行占2/6，其他4行各占1/6
+        base_row_height = table_height / 6
+        quantity_row_height = base_row_height * 2  # Quantity行双倍高度
+        
+        # 列宽 (标签列:数据列 = 1:2)
+        label_col_width = table_width / 3
+        data_col_width = table_width * 2 / 3
+        
+        # 绘制表格边框
+        c.setStrokeColor(CMYKColor(0, 0, 0, 1))
+        c.setLineWidth(1)
+        c.rect(table_x, table_y, table_width, table_height)
+        
+        # 计算各行的Y坐标
+        row_positions = []
+        current_y = table_y
+        # 从底部开始：Remark, Carton No, Quantity(双倍), Theme, Item
+        for height_val in [base_row_height, base_row_height, quantity_row_height, base_row_height, base_row_height]:
+            row_positions.append(current_y)
+            current_y += height_val
+        
+        # 绘制行线
+        for i in range(1, 5):
+            y = row_positions[i]
+            c.line(table_x, y, table_x + table_width, y)
+        
+        # 绘制列线
+        col_x = table_x + label_col_width
+        c.line(col_x, table_y, col_x, table_y + table_height)
+        
+        # 绘制Quantity行的分隔线（上层和下层之间）
+        quantity_split_y = row_positions[2] + quantity_row_height / 2
+        c.line(col_x, quantity_split_y, table_x + table_width, quantity_split_y)
+        
+        # 表格内容
+        self._set_best_font(c, 10, bold=True)
+        
+        # 计算居中位置
+        label_center_x = table_x + label_col_width / 2  # 标签列居中
+        data_center_x = col_x + data_col_width / 2      # 数据列居中
+        
+        # 行1: Item (第5行，从上往下) - 多次绘制加粗
+        item_y = row_positions[4] + base_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+        
+        # 行2: Theme (第4行) - 多次绘制加粗
+        theme_y = row_positions[3] + base_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
+        
+        # 应用文本清理和换行处理
+        clean_theme_text = self._clean_text_for_font(theme_text)
+        max_theme_width = data_col_width - 4*mm  # 留出边距
+        theme_lines = self._wrap_text_to_fit(c, clean_theme_text, max_theme_width, 10)
+        
+        # 绘制主题文本（支持多行） - 多次绘制加粗
+        if len(theme_lines) > 1:
+            # 多行：调整字体大小并垂直居中
+            self._set_best_font(c, 8, bold=True)
+            line_height = 10
+            # 计算整个文本块的总高度
+            total_text_height = (len(theme_lines) - 1) * line_height
+            # 让文本块在单元格中垂直居中
+            start_y = theme_y + total_text_height / 2
+            for i, line in enumerate(theme_lines):
+                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+            self._set_best_font(c, 10, bold=True)  # 恢复字体大小
+        else:
+            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
+        
+        # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗
+        quantity_label_y = row_positions[2] + quantity_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        # 上层：票数（在分隔线上方居中）
+        upper_y = row_positions[2] + quantity_row_height * 3/4
+        pcs_text = f"{pieces_per_small_box}PCS"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+        # 下层：序列号范围（在分隔线下方居中）
+        lower_y = row_positions[2] + quantity_row_height/4
+        clean_serial_range = self._clean_text_for_font(serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        
+        # 行4: Carton No (第2行) - 多次绘制加粗，显示主箱号-副箱号格式
+        carton_y = row_positions[1] + base_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+            c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+        
+        # 行5: Remark (第1行) - 多次绘制加粗
+        remark_y = row_positions[0] + base_row_height/2
+        clean_remark_text = self._clean_text_for_font(remark_text)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
     def _create_small_box_label(
         self,
@@ -1428,3 +1601,207 @@ class PDFGenerator:
             if "\u4e00" <= char <= "\u9fff":
                 return True
         return False
+
+    def _create_fenhe_large_box_label(
+        self,
+        data: Dict[str, Any],
+        params: Dict[str, Any],
+        output_path: str,
+        total_large_boxes: int,
+        excel_file_path: str = None,
+    ):
+        """创建分盒模板的大箱标 - 完全参考小箱标模式"""
+        # 获取Excel数据 - 使用关键字提取，与小箱标相同
+        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
+        
+        excel_data = self._extract_excel_data_by_keywords(excel_path)
+        theme_text = excel_data.get('标签名称') or 'Unknown Title'
+        base_number = excel_data.get('开始号') or 'DEFAULT01001'
+        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        print(f"✅ 分盒大箱标使用关键字提取: 标签名称='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        
+        # 获取用户输入的分组大小（从"小箱/大箱"参数获取）
+        try:
+            group_size = int(params["小箱/大箱"])  # 用户的第三个参数，控制副号满几进一
+            print(f"✅ 分盒大箱标使用用户输入分组大小: {group_size} (小箱/大箱)")
+        except (ValueError, KeyError) as e:
+            print(f"⚠️ 获取小箱/大箱参数失败: {e}")
+            group_size = 2  # 默认分组大小
+        
+        # 计算参数 - 大箱标专用
+        pieces_per_box = int(params["张/盒"])  # 第一个参数：张/盒
+        boxes_per_small_box = int(params["盒/小箱"])  # 第二个参数：盒/小箱
+        small_boxes_per_large_box = int(params["小箱/大箱"])  # 第三个参数：小箱/大箱
+        
+        # 直接创建单个PDF文件，包含所有大箱标
+        self._create_single_fenhe_large_box_label_file(
+            data, params, output_path, 1, total_large_boxes,
+            theme_text, base_number, remark_text, pieces_per_box, 
+            small_boxes_per_large_box, total_large_boxes, group_size
+        )
+
+    def _create_single_fenhe_large_box_label_file(
+        self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
+        start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
+        remark_text: str, pieces_per_box: int, small_boxes_per_large_box: int, 
+        total_large_boxes: int, group_size: int
+    ):
+        """创建单个分盒大箱标PDF文件 - 完全参考小箱标"""
+        c = canvas.Canvas(output_path, pagesize=self.page_size)
+        width, height = self.page_size
+
+        # 设置PDF/X兼容模式和CMYK颜色
+        c.setPageCompression(1)
+        c.setTitle(f"分盒大箱标-{start_large_box}到{end_large_box}")
+        c.setSubject("Fenhe Large Box Label")
+        c.setCreator("Data-to-PDF Print")
+
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 生成指定范围的大箱标
+        for large_box_num in range(start_large_box, end_large_box + 1):
+            if large_box_num > start_large_box:
+                c.showPage()
+                c.setFillColor(cmyk_black)
+
+            # 计算当前大箱的序列号范围
+            import re
+            match = re.search(r'(\d+)', base_number)
+            if match:
+                # 获取第一个数字（主号）的起始位置
+                main_digit_start = match.start()
+                # 截取主号前面的所有字符作为前缀
+                prefix_part = base_number[:main_digit_start]  # 比如 "LGM"
+                base_main_num = int(match.group(1))  # 主号，如 01001
+                
+                # 计算当前大箱的主号 (每个大箱主号递增)
+                current_main_number = base_main_num + (large_box_num - 1)
+                
+                # 生成序列号范围（从01到group_size）
+                start_serial = f"{prefix_part}{current_main_number:05d}-01"
+                end_serial = f"{prefix_part}{current_main_number:05d}-{group_size:02d}"
+                serial_range = f"{start_serial}-{end_serial}"
+            else:
+                # 备用方案
+                serial_range = f"DSK{large_box_num:05d}-01-DSK{large_box_num:05d}-{group_size:02d}"
+            
+            # 绘制大箱标表格 - 完全使用小箱标的表格结构
+            self._draw_fenhe_large_box_table(c, width, height, theme_text, pieces_per_box, 
+                                           small_boxes_per_large_box, serial_range, 
+                                           str(large_box_num), remark_text)
+
+        c.save()
+
+    def _draw_fenhe_large_box_table(self, c, width, height, theme_text, pieces_per_box, 
+                                  small_boxes_per_large_box, serial_range, carton_no, remark_text):
+        """绘制分盒大箱标表格 - 完全复制小箱标实现"""
+        # 表格尺寸和位置
+        table_width = width - 4 * mm
+        table_height = height - 4 * mm
+        table_x = 2 * mm
+        table_y = 2 * mm
+        
+        # 高度分配：Quantity行占2/6，其他4行各占1/6
+        base_row_height = table_height / 6
+        quantity_row_height = base_row_height * 2  # Quantity行双倍高度
+        
+        # 列宽 (标签列:数据列 = 1:2)
+        label_col_width = table_width / 3
+        data_col_width = table_width * 2 / 3
+        
+        # 绘制表格边框
+        c.setStrokeColor(CMYKColor(0, 0, 0, 1))
+        c.setLineWidth(1)
+        c.rect(table_x, table_y, table_width, table_height)
+        
+        # 计算各行的Y坐标
+        row_positions = []
+        current_y = table_y
+        # 从底部开始：Remark, Carton No, Quantity(双倍), Theme, Item
+        for height_val in [base_row_height, base_row_height, quantity_row_height, base_row_height, base_row_height]:
+            row_positions.append(current_y)
+            current_y += height_val
+        
+        # 绘制行线
+        for i in range(1, 5):
+            y = row_positions[i]
+            c.line(table_x, y, table_x + table_width, y)
+        
+        # 绘制列线
+        col_x = table_x + label_col_width
+        c.line(col_x, table_y, col_x, table_y + table_height)
+        
+        # 绘制Quantity行的分隔线（上层和下层之间）
+        quantity_split_y = row_positions[2] + quantity_row_height / 2
+        c.line(col_x, quantity_split_y, table_x + table_width, quantity_split_y)
+        
+        # 表格内容
+        self._set_best_font(c, 10, bold=True)
+        
+        # 计算居中位置
+        label_center_x = table_x + label_col_width / 2  # 标签列居中
+        data_center_x = col_x + data_col_width / 2      # 数据列居中
+        
+        # 行1: Item (第5行，从上往下) - 多次绘制加粗
+        item_y = row_positions[4] + base_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+        
+        # 行2: Theme (第4行) - 多次绘制加粗
+        theme_y = row_positions[3] + base_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
+        
+        # 应用文本清理和换行处理
+        clean_theme_text = self._clean_text_for_font(theme_text)
+        max_theme_width = data_col_width - 4*mm  # 留出边距
+        theme_lines = self._wrap_text_to_fit(c, clean_theme_text, max_theme_width, 10)
+        
+        # 绘制主题文本（支持多行） - 多次绘制加粗
+        if len(theme_lines) > 1:
+            # 多行：调整字体大小并垂直居中
+            self._set_best_font(c, 8, bold=True)
+            line_height = 10
+            # 计算整个文本块的总高度
+            total_text_height = (len(theme_lines) - 1) * line_height
+            # 让文本块在单元格中垂直居中
+            start_y = theme_y + total_text_height / 2
+            for i, line in enumerate(theme_lines):
+                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+            self._set_best_font(c, 10, bold=True)  # 恢复字体大小
+        else:
+            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
+        
+        # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗
+        quantity_label_y = row_positions[2] + quantity_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        # 上层：计算并显示 (张/盒 * 小箱/大箱)PCS
+        upper_y = row_positions[2] + quantity_row_height * 3/4
+        pcs_count = pieces_per_box * small_boxes_per_large_box  # 张/盒 * 小箱/大箱
+        pcs_text = f"{pcs_count}PCS"
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+        # 下层：序列号范围（在分隔线下方居中）
+        lower_y = row_positions[2] + quantity_row_height/4
+        clean_serial_range = self._clean_text_for_font(serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        
+        # 行4: Carton No (第2行) - 多次绘制加粗，显示大箱编号
+        carton_y = row_positions[1] + base_row_height/2
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+            c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+        
+        # 行5: Remark (第1行) - 多次绘制加粗
+        remark_y = row_positions[0] + base_row_height/2
+        clean_remark_text = self._clean_text_for_font(remark_text)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)

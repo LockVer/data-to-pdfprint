@@ -425,9 +425,10 @@ class DataToPDFApp:
         info_frame.pack(fill=tk.X, pady=(0, 20))
 
         info_text = "分盒模板使用特殊的序列号生成规则：\n"
-        info_text += "• 从C10单元格读取分组数据\n"
+        info_text += "• 从小箱/大箱参数控制副号满几进一\n"
         info_text += "• 序列号格式：前缀+数字-后缀\n"
-        info_text += "• 示例：MOP01001-01, MOP01001-02, MOP01002-01..."
+        info_text += "• 示例：MOP01001-01, MOP01001-02, MOP01002-01...\n"
+        info_text += "• 说明：小箱标序列号只取决于小箱/大箱参数，盒/小箱参数建议设为1"
 
         info_label = ttk.Label(info_frame, text=info_text, font=("Consolas", 9))
         info_label.pack(anchor=tk.W)
