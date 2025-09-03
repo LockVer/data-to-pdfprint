@@ -66,7 +66,7 @@ class ParamInputStep(BaseStep):
         
         self.preview_text = tk.Text(
             preview_frame,
-            height=10,
+            height=8,
             wrap=tk.WORD,
             state='disabled',
             font=("Arial", 10),

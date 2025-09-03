@@ -44,8 +44,8 @@ class PDFLabelGeneratorApp:
     def setup_window(self):
         """设置主窗口"""
         self.root.title("PDF标签生成器 v1.0")
-        self.root.geometry("1000x700")
-        self.root.minsize(800, 600)
+        self.root.geometry("1000x950")
+        self.root.minsize(800, 850)
         
         # 设置窗口居中
         self.center_window()
