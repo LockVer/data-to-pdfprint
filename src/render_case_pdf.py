@@ -268,10 +268,15 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
                 CaseElement(role="remark", content=customer_code)
             ]))
     
-    # 箱标使用横向A4布局
+    # 箱标使用90mm×50mm尺寸 (1mm = 2.834646 points)
+    width_mm = 90
+    height_mm = 50
+    width_pt = width_mm * 2.834646
+    height_pt = height_mm * 2.834646
+    
     return CaseTemplate(
-        width_pt=landscape(A4)[0],
-        height_pt=landscape(A4)[1], 
+        width_pt=width_pt,
+        height_pt=height_pt, 
         style_refs=["item", "theme", "quantity", "serial_range", "carton_no", "remark"],
         pages=pages
     )
@@ -284,8 +289,8 @@ def render_case_template_to_pdf(template, output_path):
         template: CaseTemplate对象
         output_path: 输出PDF文件路径
     """
-    c = canvas.Canvas(output_path, pagesize=landscape(A4))
-    page_width, page_height = landscape(A4)
+    c = canvas.Canvas(output_path, pagesize=(template.width_pt, template.height_pt))
+    page_width, page_height = template.width_pt, template.height_pt
     
     # 箱标样式设置 - 表格形式布局
     case_style_set = {
@@ -298,21 +303,21 @@ def render_case_template_to_pdf(template, output_path):
     }
     
     for page in template.pages:
-        # 完全按照目标样式的绝对尺寸定义 - 填充整个纸张
-        # A4横向尺寸：842x595 点
-        # 表格几乎填满整个纸张，只留极小边距
-        table_margin = 20  # 极小边距
+        # 90mm×50mm尺寸定义 - 填充整个小页面
+        # 90mm×50mm ≈ 255×142 点
+        # 表格几乎填满整个页面，只留小边距
+        table_margin = 5  # 小边距适应小尺寸
         table_x = table_margin
         table_y = table_margin
         table_width = page_width - 2 * table_margin  # 几乎填满宽度
         table_height = page_height - 2 * table_margin  # 几乎填满高度
         
-        # 左列固定宽度200点，右列占剩余空间
-        label_width = 200
+        # 左列固定宽度60点，右列占剩余空间 (适应小尺寸)
+        label_width = 60
         content_width = table_width - label_width
         
-        # 设置粗线条
-        c.setLineWidth(3)  # 更粗的边框
+        # 设置线条宽度，适应小尺寸
+        c.setLineWidth(1)  # 适中线条
         
         # 绘制外框
         c.rect(table_x, table_y, table_width, table_height)
@@ -328,49 +333,49 @@ def render_case_template_to_pdf(template, output_path):
         
         # 第1行: Item
         current_y -= row_heights[0]
-        # 绘制列分隔线 (粗线)
+        # 绘制列分隔线
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[0])
-        # 标签 - 绝对大小字体，左对齐有边距
-        c.setFont("MicrosoftYaHei", 40)  # 绝对大字体标签
-        c.drawString(table_x + 30, current_y + (row_heights[0] - 40) / 2, "Item:")
-        # 内容 - 绝对大字体，严格居中
-        c.setFont("MicrosoftYaHei", 45)  # 绝对大内容字体
+        # 标签 - 小尺寸字体，左对齐有边距
+        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[0] - 8) / 2, "Item:")
+        # 内容 - 小尺寸字体，严格居中
+        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
         item_content = elements_dict.get("item", "Paper Cards")
-        text_width = c.stringWidth(item_content, "MicrosoftYaHei", 45)
+        text_width = c.stringWidth(item_content, "MicrosoftYaHei", 9)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[0] - 45) / 2, item_content)
+        c.drawString(content_x, current_y + (row_heights[0] - 9) / 2, item_content)
         
         # 第2行: Theme
         c.line(table_x, current_y, table_x + table_width, current_y)  # 行分隔线 (粗线)
         current_y -= row_heights[1]
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[1])
-        c.setFont("MicrosoftYaHei", 40)
-        c.drawString(table_x + 30, current_y + (row_heights[1] - 40) / 2, "Theme:")
-        c.setFont("MicrosoftYaHei", 45)
+        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[1] - 8) / 2, "Theme:")
+        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
         theme_content = elements_dict.get("theme", "")
-        text_width = c.stringWidth(theme_content, "MicrosoftYaHei", 45)
+        text_width = c.stringWidth(theme_content, "MicrosoftYaHei", 9)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[1] - 45) / 2, theme_content)
+        c.drawString(content_x, current_y + (row_heights[1] - 9) / 2, theme_content)
         
         # 第3行: Quantity (均匀行高，包含双层内容)
         c.line(table_x, current_y, table_x + table_width, current_y)
         current_y -= row_heights[2]
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[2])
-        c.setFont("MicrosoftYaHei", 40)
-        c.drawString(table_x + 30, current_y + (row_heights[2] - 40) / 2, "Quantity:")
+        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[2] - 8) / 2, "Quantity:")
         
-        # 上半部分：数量 - 超大字体，居中
+        # 上半部分：数量 - 小尺寸字体，居中
         quantity_content = elements_dict.get("quantity", "")
-        c.setFont("MicrosoftYaHei", 42)  # 数量绝对大字体
-        text_width = c.stringWidth(quantity_content, "MicrosoftYaHei", 42)
+        c.setFont("MicrosoftYaHei", 10)  # 数量小尺寸字体
+        text_width = c.stringWidth(quantity_content, "MicrosoftYaHei", 10)
         content_x = table_x + label_width + (content_width - text_width) / 2
         # 调整位置，使双层内容在行内均匀分布
         c.drawString(content_x, current_y + row_heights[2] * 0.7, quantity_content)
         
-        # 下半部分：序列号范围 - 大字体，居中
+        # 下半部分：序列号范围 - 小尺寸字体，居中
         serial_content = elements_dict.get("serial_range", "")
-        c.setFont("MicrosoftYaHei", 35)  # 序列号绝对大字体
-        text_width = c.stringWidth(serial_content, "MicrosoftYaHei", 35)
+        c.setFont("MicrosoftYaHei", 8)  # 序列号小尺寸字体
+        text_width = c.stringWidth(serial_content, "MicrosoftYaHei", 8)
         content_x = table_x + label_width + (content_width - text_width) / 2
         c.drawString(content_x, current_y + row_heights[2] * 0.25, serial_content)
         
@@ -378,25 +383,25 @@ def render_case_template_to_pdf(template, output_path):
         c.line(table_x, current_y, table_x + table_width, current_y)
         current_y -= row_heights[3]
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[3])
-        c.setFont("MicrosoftYaHei", 40)
-        c.drawString(table_x + 30, current_y + (row_heights[3] - 40) / 2, "Carton No.:")
-        c.setFont("MicrosoftYaHei", 45)
+        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[3] - 8) / 2, "Carton No.:")
+        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
         carton_content = elements_dict.get("carton_no", "")
-        text_width = c.stringWidth(carton_content, "MicrosoftYaHei", 45)
+        text_width = c.stringWidth(carton_content, "MicrosoftYaHei", 9)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[3] - 45) / 2, carton_content)
+        c.drawString(content_x, current_y + (row_heights[3] - 9) / 2, carton_content)
         
         # 第5行: Remark
         c.line(table_x, current_y, table_x + table_width, current_y)
         current_y -= row_heights[4]
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[4])
-        c.setFont("MicrosoftYaHei", 40)
-        c.drawString(table_x + 30, current_y + (row_heights[4] - 40) / 2, "Remark:")
-        c.setFont("MicrosoftYaHei", 45)
+        c.setFont("MicrosoftYaHei", 8)  # 小尺寸标签字体
+        c.drawString(table_x + 3, current_y + (row_heights[4] - 8) / 2, "Remark:")
+        c.setFont("MicrosoftYaHei", 9)  # 小尺寸内容字体
         remark_content = elements_dict.get("remark", "")
-        text_width = c.stringWidth(remark_content, "MicrosoftYaHei", 45)
+        text_width = c.stringWidth(remark_content, "MicrosoftYaHei", 9)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[4] - 45) / 2, remark_content)
+        c.drawString(content_x, current_y + (row_heights[4] - 9) / 2, remark_content)
         
         c.showPage()
     
