@@ -621,16 +621,21 @@ class PDFGenerator:
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 生成当前盒标的编号 - 基于B11单元格的格式
-            # B11是LAN01001，提取前缀和数字部分
+            # 生成当前盒标的编号 - 截取数字前面的所有字符作为前缀
             import re
-            match = re.match(r'([A-Z]+)(\d+)', base_number)
+            # 查找第一个数字的位置，数字前面的所有字符都是前缀
+            match = re.search(r'(\d+)', base_number)
             if match:
-                prefix = match.group(1)  # LAN
-                base_num = int(match.group(2))  # 01001
-                current_number = f"{prefix}{base_num + box_num - 1:05d}"
+                # 获取第一个数字的起始位置
+                digit_start = match.start()
+                # 截取数字前面的所有字符作为前缀
+                prefix_part = base_number[:digit_start]  # 比如 "GLA-", "A—B@C", "XYZ_"
+                base_num = int(match.group(1))  # 第一个连续数字 01001
+                
+                # 生成新序列号：前缀 + 新数字（保持5位格式）
+                current_number = f"{prefix_part}{base_num + box_num - 1:05d}"
             else:
-                # 备用方案
+                # 备用方案：如果完全没有数字
                 current_number = f"DSK{box_num:05d}"
             
             # 根据外观选择不同的样式
@@ -837,13 +842,17 @@ class PDFGenerator:
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 生成分盒模板的序列号 - 基于C10规律
-            # 例如：如果group_size=2，则 MOP01001-01, MOP01001-02, MOP01002-01, MOP01002-02
+            # 生成分盒模板的序列号 - 特殊处理主号和副号
             import re
-            match = re.match(r'([A-Z]+)(\d+)', base_number)
+            # 分盒模板格式：前缀+主号+"-"+副号，如 ABC01001-02
+            # 需要找到主号（第一个数字）前面的字符作为前缀
+            match = re.search(r'(\d+)', base_number)
             if match:
-                prefix = match.group(1)  # MOP
-                base_num = int(match.group(2))  # 01001
+                # 获取第一个数字（主号）的起始位置
+                main_digit_start = match.start()
+                # 截取主号前面的所有字符作为前缀
+                prefix_part = base_number[:main_digit_start]  # 比如 "ABC", "GLA-", "A—B@C"
+                base_main_num = int(match.group(1))  # 主号，如 01001
                 
                 # 计算主号码和后缀
                 # box_num从1开始，需要转换为0基数来计算
@@ -851,8 +860,9 @@ class PDFGenerator:
                 main_number_offset = box_index // group_size  # 主号码偏移
                 suffix_number = (box_index % group_size) + 1  # 后缀号码(1开始)
                 
-                main_number = base_num + main_number_offset
-                current_number = f"{prefix}{main_number:05d}-{suffix_number:02d}"
+                new_main_number = base_main_num + main_number_offset
+                # 分盒模板格式：前缀 + 主号码 + "-" + 副号
+                current_number = f"{prefix_part}{new_main_number:05d}-{suffix_number:02d}"
             else:
                 # 备用方案
                 current_number = f"DSK{box_num:05d}-01"
@@ -942,21 +952,28 @@ class PDFGenerator:
 
             # 计算当前小箱的序列号范围
             import re
-            match = re.match(r'([A-Z]+)(\d+)', base_number)
+            match = re.search(r'(\d+)', base_number)
             if match:
-                prefix = match.group(1)  # LAN
-                base_num = int(match.group(2))  # 01001
+                # 获取第一个数字的起始位置
+                digit_start = match.start()
+                # 截取数字前面的所有字符作为前缀
+                prefix_part = base_number[:digit_start]  # 比如 "GLA-", "A—B@C"
+                base_num = int(match.group(1))  # 第一个连续数字
                 
                 # 计算序列号范围
                 start_serial = base_num + (small_box_num - 1) * boxes_per_small_box
                 end_serial = start_serial + boxes_per_small_box - 1
                 
+                # 生成序列号格式
+                start_format = f"{prefix_part}{start_serial:05d}"
+                end_format = f"{prefix_part}{end_serial:05d}"
+                
                 if boxes_per_small_box == 1:
                     # 一盒一小箱：序列号相同
-                    serial_range = f"{prefix}{start_serial:05d}-{prefix}{start_serial:05d}"
+                    serial_range = f"{start_format}-{start_format}"
                 else:
                     # 多盒一小箱：序列号范围
-                    serial_range = f"{prefix}{start_serial:05d}-{prefix}{end_serial:05d}"
+                    serial_range = f"{start_format}-{end_format}"
             else:
                 serial_range = f"DSK{small_box_num:05d}-DSK{small_box_num:05d}"
 
@@ -1156,10 +1173,13 @@ class PDFGenerator:
 
             # 计算当前大箱包含的盒序列号范围
             import re
-            match = re.match(r'([A-Z]+)(\d+)', base_number)
+            match = re.search(r'(\d+)', base_number)
             if match:
-                prefix = match.group(1)  # LAN
-                base_num = int(match.group(2))  # 01001
+                # 获取第一个数字的起始位置
+                digit_start = match.start()
+                # 截取数字前面的所有字符作为前缀
+                prefix_part = base_number[:digit_start]  # 比如 "GLA-", "A—B@C"
+                base_num = int(match.group(1))  # 第一个连续数字
                 
                 # 计算大箱内盒序列号范围
                 # 每大箱包含的盒数 = 盒/小箱 × 小箱/大箱
@@ -1167,7 +1187,8 @@ class PDFGenerator:
                 start_box_serial = base_num + (large_box_num - 1) * boxes_per_large_box
                 end_box_serial = start_box_serial + boxes_per_large_box - 1
                 
-                box_serial_range = f"{prefix}{start_box_serial:05d}-{prefix}{end_box_serial:05d}"
+                # 生成大箱序列号范围格式
+                box_serial_range = f"{prefix_part}{start_box_serial:05d}-{prefix_part}{end_box_serial:05d}"
             else:
                 box_serial_range = f"DSK{large_box_num:05d}-DSK{large_box_num:05d}"
 
