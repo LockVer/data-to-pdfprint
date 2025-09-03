@@ -1,6 +1,6 @@
 import os
 import re
-from reportlab.lib.pagesizes import A4
+# A4 导入已移除，现在使用自定义的90mm×50mm尺寸
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
@@ -409,23 +409,23 @@ def generate_pdf_from_excel(excel_path, output_path, additional_inputs=None, tem
     else:
         style_set = {
             "customer_info": Style(
-                font_family="MicrosoftYaHei", 
+                font_family="Helvetica-Bold",  # 使用粗黑体字体
                 font_weight="bold", 
                 font_size_pt=16,  # 增大字体匹配PDF显示效果
                 x_align="center", 
                 y_top_pt=110  # 上半部分位置 (页面高度约142点)
             ),
             "theme_info": Style(
-                font_family="MicrosoftYaHei", 
+                font_family="Helvetica-Bold",  # 使用粗黑体字体匹配第二张图效果
                 font_weight="bold", 
-                font_size_pt=14,  # 增大字体匹配PDF中的主标题效果
+                font_size_pt=22,  # 增大到22pt匹配示例数据的效果
                 x_align="center", 
                 y_top_pt=85   # 中上位置，与序列号保持足够间距
             ),
             "serial_number": Style(
                 font_family="Helvetica-Bold", 
                 font_weight="bold", 
-                font_size_pt=12,  # 增大字体匹配PDF中的序列号效果
+                font_size_pt=18,  # 增大序列号字体以更好填满空间
                 x_align="center", 
                 y_top_pt=50   # 中下位置，与主题保持更大空隙
             )
@@ -460,9 +460,9 @@ template_data = Template(
 )
 
 style_set_data = {
-    "title_cn": Style(font_family="MicrosoftYaHei", font_weight="bold", font_size_pt=16, x_align="center", y_top_pt=40),  # 增大字体和间距
-    "title_en": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=14, x_align="center", y_top_pt=25), # 增大字体，适当间距
-    "serial": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=12, x_align="center", y_top_pt=10)   # 增大字体，底部位置
+    "title_cn": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=24, x_align="center", y_top_pt=110),  # 使用粗黑体字体，调整位置
+    "title_en": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=22, x_align="center", y_top_pt=85), # 使用粗黑体字体，中上位置
+    "serial": Style(font_family="Helvetica-Bold", font_weight="bold", font_size_pt=12, x_align="center", y_top_pt=50)   # 粗黑体字体，中下位置
 }
 
 # ===========================================
