@@ -327,8 +327,15 @@ class SetBoxLabelTemplate:
         
         print(f"✅ 生成套盒盒标文件: {set_box_label_path.name}")
         
-        # 生成套盒小箱标
+        # 生成套盒小箱标和大箱标
+        result = {
+            'set_box_labels': str(set_box_label_path),
+            'folder': str(label_folder),
+            'count': box_count
+        }
+        
         try:
+            # 生成套盒小箱标
             from .set_box_inner_case_template import SetBoxInnerCaseTemplate
             inner_case_template = SetBoxInnerCaseTemplate()
             inner_case_result = inner_case_template.generate_set_box_inner_case_labels_pdf(
@@ -336,20 +343,28 @@ class SetBoxLabelTemplate:
             )
             print(f"✅ 生成套盒小箱标文件: {Path(inner_case_result['set_box_inner_case_labels']).name}")
             
-            return {
-                'set_box_labels': str(set_box_label_path),
-                'set_box_inner_case_labels': inner_case_result['set_box_inner_case_labels'],
-                'folder': str(label_folder),
-                'count': box_count,
-                'inner_case_count': inner_case_result['count']
-            }
+            result['set_box_inner_case_labels'] = inner_case_result['set_box_inner_case_labels']
+            result['inner_case_count'] = inner_case_result['count']
+            
         except Exception as e:
             print(f"⚠️ 套盒小箱标生成失败: {e}")
-            return {
-                'set_box_labels': str(set_box_label_path),
-                'folder': str(label_folder),
-                'count': box_count
-            }
+        
+        try:
+            # 生成套盒大箱标
+            from .set_box_outer_case_template import SetBoxOuterCaseTemplate
+            outer_case_template = SetBoxOuterCaseTemplate()
+            outer_case_result = outer_case_template.generate_set_box_outer_case_labels_pdf(
+                data_dict, quantities, output_dir
+            )
+            print(f"✅ 生成套盒大箱标文件: {Path(outer_case_result['set_box_outer_case_labels']).name}")
+            
+            result['set_box_outer_case_labels'] = outer_case_result['set_box_outer_case_labels']
+            result['outer_case_count'] = outer_case_result['count']
+            
+        except Exception as e:
+            print(f"⚠️ 套盒大箱标生成失败: {e}")
+        
+        return result
     
     def _generate_set_box_labels(self, data, count, output_path, boxes_per_set):
         """生成套盒盒标PDF文件 - 90x50mm页面尺寸"""

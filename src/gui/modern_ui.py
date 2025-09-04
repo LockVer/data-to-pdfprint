@@ -983,6 +983,19 @@ class ModernExcelToPDFApp:
 • 内箱标数量: {result['inner_case_count']} 个
 • 每箱张数: {self.box_config.get('min_box_count', 10) * self.box_config.get('box_per_inner_case', 5)}"""
             
+            # 如果有大箱标信息，添加大箱标数量
+            if 'outer_case_count' in result:
+                if template_type == 'case':
+                    # 套盒大箱标信息
+                    sets_per_outer_case = self.box_config.get('sets_per_outer_case', 2)
+                    success_msg += f"""
+• 套盒大箱标数量: {result['outer_case_count']} 个
+• 每大箱套数: {sets_per_outer_case}"""
+                else:
+                    # 常规大箱标信息（如果将来需要的话）
+                    success_msg += f"""
+• 大箱标数量: {result['outer_case_count']} 个"""
+            
             if template_type == 'outer':
                 success_msg += f"\n\n⚠️  注意: {template_name}正在开发中，当前使用常规模板生成"
             
