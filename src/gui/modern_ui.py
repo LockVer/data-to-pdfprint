@@ -24,6 +24,7 @@ from template.inner_case_template import InnerCaseTemplate
 from template.outer_case_template import OuterCaseTemplate
 from template.set_box_label_template import SetBoxLabelTemplate
 from template.division_box_template import DivisionBoxTemplate
+from template.division_inner_case_template import DivisionInnerCaseTemplate
 
 class ModernColors:
     """现代化配色方案"""
@@ -234,6 +235,7 @@ class ModernExcelToPDFApp:
         self.outer_case_template = OuterCaseTemplate()
         self.set_box_label_template = SetBoxLabelTemplate()
         self.division_box_template = DivisionBoxTemplate()
+        self.division_inner_case_template = DivisionInnerCaseTemplate()
         self.selected_file = None
         self.box_label_data = None
         self.box_config = {
@@ -866,14 +868,24 @@ class ModernExcelToPDFApp:
                 )
                 result.update(outer_case_result)
             elif template_type == 'box':
-                # 分盒模板 - 使用专门的分盒模版
+                # 分盒模板 - 同时生成分盒标和分合小箱标
                 print("🎯 使用分盒模板生成标签")
                 try:
+                    # 生成分盒标PDF
                     result = self.division_box_template.generate_division_box_labels_pdf(
                         data_dict, 
                         self.box_config, 
                         output_dir
                     )
+                    
+                    # 生成分合小箱标PDF
+                    division_inner_case_result = self.division_inner_case_template.generate_division_inner_case_labels_pdf(
+                        data_dict,
+                        self.box_config,
+                        output_dir
+                    )
+                    result.update(division_inner_case_result)
+                    
                 except Exception as e:
                     print(f"❌ 分盒模版调用失败: {e}")
                     print(f"   回退到使用常规模版")
