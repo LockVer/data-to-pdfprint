@@ -971,11 +971,19 @@ class ModernExcelToPDFApp:
 
             # 如果有内箱标信息，添加内箱标数量
             if 'inner_case_count' in result:
-                success_msg += f"""
+                if template_type == 'case':
+                    # 套盒小箱标信息
+                    min_set_count = self.box_config.get('min_set_count', 30)
+                    success_msg += f"""
+• 套盒小箱标数量: {result['inner_case_count']} 个
+• 每套张数: {min_set_count}"""
+                else:
+                    # 常规内箱标信息
+                    success_msg += f"""
 • 内箱标数量: {result['inner_case_count']} 个
 • 每箱张数: {self.box_config.get('min_box_count', 10) * self.box_config.get('box_per_inner_case', 5)}"""
             
-            if template_type != 'regular':
+            if template_type == 'outer':
                 success_msg += f"\n\n⚠️  注意: {template_name}正在开发中，当前使用常规模板生成"
             
             # 显示成功对话框，并询问是否打开文件夹
