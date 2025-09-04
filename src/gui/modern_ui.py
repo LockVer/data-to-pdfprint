@@ -22,6 +22,7 @@ from pdf.generator import PDFGenerator
 from template.box_label_template import BoxLabelTemplate
 from template.inner_case_template import InnerCaseTemplate
 from template.outer_case_template import OuterCaseTemplate
+from template.set_box_label_template import SetBoxLabelTemplate
 
 class ModernColors:
     """现代化配色方案"""
@@ -230,6 +231,7 @@ class ModernExcelToPDFApp:
         self.box_label_template = BoxLabelTemplate()
         self.inner_case_template = InnerCaseTemplate()
         self.outer_case_template = OuterCaseTemplate()
+        self.set_box_label_template = SetBoxLabelTemplate()
         self.selected_file = None
         self.box_label_data = None
         self.box_config = {
@@ -725,9 +727,9 @@ class ModernExcelToPDFApp:
                 # 计算预览信息
                 total_qty = int(self.box_label_data['F4']) if str(self.box_label_data['F4']).isdigit() else 0
                 if total_qty > 0:
-                    box_count = math.ceil(total_qty / self.box_config['min_box_count'])
-                    inner_count = math.ceil(box_count / self.box_config['box_per_inner_case'])
-                    outer_count = math.ceil(inner_count / self.box_config['inner_case_per_outer_case'])
+                    box_count = math.ceil(total_qty / self.box_config.get('min_box_count', 10))
+                    inner_count = math.ceil(box_count / self.box_config.get('box_per_inner_case', 5))
+                    outer_count = math.ceil(inner_count / self.box_config.get('inner_case_per_outer_case', 4))
                     
                     preview_content += f"📦 {template_name}生成预览:\n"
                     
@@ -735,17 +737,20 @@ class ModernExcelToPDFApp:
                         style = self.template_config.get('regular_style', 'style1')
                         preview_content += f"• 模板样式: {style}\n"
                         preview_content += f"• 盒标数量: {box_count} 个\n"
-                        preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
+                        preview_content += f"• 每盒张数: {self.box_config.get('min_box_count', 10)}\n"
                         preview_content += f"• 序号递增: 每个标签+1\n"
                         preview_content += f"• 内箱标数量: {inner_count} 个\n"
-                        preview_content += f"• 每箱张数: {self.box_config['min_box_count'] * self.box_config['box_per_inner_case']}\n\n"
+                        # 计算每箱张数，考虑参数兼容性
+                        min_sheets = self.box_config.get('min_box_count', 10)
+                        per_inner = self.box_config.get('box_per_inner_case', 5)
+                        preview_content += f"• 每箱张数: {min_sheets * per_inner}\n\n"
                     elif template_type == 'box':
                         preview_content += f"• 分盒标数量: {box_count} 个\n"
-                        preview_content += f"• 每盒张数: {self.box_config['min_box_count']}\n"
+                        preview_content += f"• 每盒张数: {self.box_config.get('min_box_count', 10)}\n"
                         preview_content += f"• 分盒配置: 待开发\n\n"
                     elif template_type == 'case':
                         preview_content += f"• 套盒标数量: {outer_count} 个\n"
-                        preview_content += f"• 每套盒数: {self.box_config['inner_case_per_outer_case']}\n"
+                        preview_content += f"• 每套盒数: {self.box_config.get('inner_case_per_outer_case', 4)}\n"
                         preview_content += f"• 套盒配置: 待开发\n\n"
                 
                 if template_type == 'regular':
@@ -867,13 +872,37 @@ class ModernExcelToPDFApp:
                     output_dir
                 )
             elif template_type == 'case':
-                # 套盒模板（暂时使用常规模板）
-                print("⚠️  套盒模板暂未实现，使用常规模板代替")
-                result = self.box_label_template.generate_labels_pdf(
-                    data_dict, 
-                    self.box_config, 
-                    output_dir
-                )
+                # 套盒模板 - 使用专门的套盒模版
+                print("🎯 使用套盒模板生成标签")
+                try:
+                    # 为套盒模版适配参数格式
+                    set_box_config = self.box_config.copy()
+                    
+                    # 确保套盒模版需要的基础参数都存在
+                    set_box_config.setdefault('boxes_per_set', 3)
+                    set_box_config.setdefault('boxes_per_inner_case', 6) 
+                    set_box_config.setdefault('sets_per_outer_case', 2)
+                    
+                    # 如果没有 min_set_count，从 min_box_count 转换
+                    if 'min_set_count' not in set_box_config and 'min_box_count' in set_box_config:
+                        boxes_per_set = set_box_config['boxes_per_set']
+                        set_box_config['min_set_count'] = set_box_config['min_box_count'] * boxes_per_set
+                        print(f"🔄 参数转换: min_box_count({set_box_config['min_box_count']}) * boxes_per_set({boxes_per_set}) = min_set_count({set_box_config['min_set_count']})")
+                    
+                    result = self.set_box_label_template.generate_set_box_labels_pdf(
+                        data_dict, 
+                        set_box_config, 
+                        output_dir
+                    )
+                except Exception as e:
+                    print(f"❌ 套盒模版调用失败: {e}")
+                    print(f"   回退到使用常规模版")
+                    # 回退方案：使用常规模版
+                    result = self.box_label_template.generate_labels_pdf(
+                        data_dict, 
+                        self.box_config, 
+                        output_dir
+                    )
             else:
                 raise Exception(f"未知的模板类型: {template_type}")
             
@@ -888,8 +917,15 @@ class ModernExcelToPDFApp:
 
 📁 输出文件夹: {result['folder']}
 
-生成的文件:
+生成的文件:"""
+
+            # 根据不同模板类型显示对应的文件信息
+            if 'box_labels' in result:
+                success_msg += f"""
 📦 盒标文件: {Path(result['box_labels']).name}"""
+            elif 'set_box_labels' in result:
+                success_msg += f"""
+📦 套盒标文件: {Path(result['set_box_labels']).name}"""
 
             # 添加内箱标文件信息
             if 'inner_case_labels' in result:
@@ -908,15 +944,36 @@ class ModernExcelToPDFApp:
 • 客户名称 (A4): {data_dict['A4']}
 • 主题 (B4): {data_dict['B4']}
 • 起始编号 (B11): {data_dict['B11']}  
-• 总张数 (F4): {data_dict['F4']}
-• 盒标数量: {math.ceil(int(data_dict['F4']) / self.box_config['min_box_count'])} 个
+• 总张数 (F4): {data_dict['F4']}"""
+
+            # 根据不同模板类型显示对应的数量信息
+            if template_type == 'case':
+                # 套盒模板显示套盒相关信息 - 使用result中的实际数据或计算
+                if 'count' in result:
+                    box_count = result['count']
+                else:
+                    # 备用计算：使用套盒逻辑
+                    min_set_count = self.box_config.get('min_set_count', 
+                                                       self.box_config.get('min_box_count', 10) * 3)
+                    boxes_per_set = self.box_config.get('boxes_per_set', 3)
+                    set_count = math.ceil(int(data_dict['F4']) / min_set_count)
+                    box_count = set_count * boxes_per_set
+                    
+                boxes_per_set = self.box_config.get('boxes_per_set', 3)
+                success_msg += f"""
+• 套盒标数量: {box_count} 个
+• 编号方式: 套号-盒号格式 (每{boxes_per_set}盒为一套)"""
+            else:
+                # 常规模板显示盒标信息
+                success_msg += f"""
+• 盒标数量: {math.ceil(int(data_dict['F4']) / self.box_config.get('min_box_count', 10))} 个
 • 编号方式: 每个标签+1"""
 
             # 如果有内箱标信息，添加内箱标数量
             if 'inner_case_count' in result:
                 success_msg += f"""
 • 内箱标数量: {result['inner_case_count']} 个
-• 每箱张数: {self.box_config['min_box_count'] * self.box_config['box_per_inner_case']}"""
+• 每箱张数: {self.box_config.get('min_box_count', 10) * self.box_config.get('box_per_inner_case', 5)}"""
             
             if template_type != 'regular':
                 success_msg += f"\n\n⚠️  注意: {template_name}正在开发中，当前使用常规模板生成"
@@ -1008,7 +1065,12 @@ class ModernExcelToPDFApp:
         """显示盒标参数配置对话框"""
         try:
             from .box_label_dialog import show_box_label_config_dialog
-            config = show_box_label_config_dialog(self.root, self.box_config)
+            
+            # 根据当前选择的模版类型决定对话框类型
+            template_type = self.template_config.get('template_type', 'regular')
+            dialog_template_type = "set_box" if template_type == "case" else "regular"
+            
+            config = show_box_label_config_dialog(self.root, self.box_config, dialog_template_type)
             if config:
                 self.box_config = config
                 self.update_status("✅ 盒标参数已更新", "配置完成")

@@ -157,16 +157,18 @@ class ModernCard:
 class BoxLabelConfigDialog:
     """盒标配置对话框"""
     
-    def __init__(self, parent, initial_config=None):
+    def __init__(self, parent, initial_config=None, template_type="regular"):
         """
         初始化对话框
         
         Args:
             parent: 父窗口
             initial_config: 初始配置字典
+            template_type: 模版类型 ("regular" 或 "set_box")
         """
         self.parent = parent
         self.result = None
+        self.template_type = template_type  # 保存模版类型
         self.dialog = tk.Toplevel(parent)
         self.setup_dialog()
         self.create_widgets()
@@ -174,10 +176,33 @@ class BoxLabelConfigDialog:
         # 设置初始值
         if initial_config:
             self.set_config(initial_config)
+    
+    def get_template_config(self):
+        """根据模版类型获取参数配置"""
+        if self.template_type == "set_box":
+            return {
+                "title": "套盒标生成参数设置",
+                "params": [
+                    ("最小分盒套数:", "min_set_count", "每套包装的张数", "30"),
+                    ("几盒为一套:", "boxes_per_set", "多少盒组成一套", "3"),
+                    ("几盒入一小箱:", "boxes_per_inner_case", "小箱可以装多少盒", "6"),
+                    ("几套入一大箱:", "sets_per_outer_case", "大箱可以装多少套", "2")
+                ]
+            }
+        else:  # regular 常规模版
+            return {
+                "title": "盒标生成参数设置",
+                "params": [
+                    ("最小分盒张数:", "min_box_count", "每盒包装的最少张数", "10"),
+                    ("盒/小箱比例:", "box_per_inner_case", "每个小箱包装的盒数", "5"),
+                    ("小箱/大箱比例:", "inner_case_per_outer_case", "每个大箱包装的小箱数", "4")
+                ]
+            }
         
     def setup_dialog(self):
         """设置对话框属性"""
-        self.dialog.title("盒标生成参数设置")
+        template_config = self.get_template_config()
+        self.dialog.title(template_config["title"])
         self.dialog.geometry("500x600")  # 进一步增加高度
         self.dialog.configure(bg=ModernColors.SECONDARY)
         self.dialog.resizable(True, True)  # 允许调整大小
@@ -254,32 +279,10 @@ class BoxLabelConfigDialog:
         config_card.pack(fill='both', expand=True, pady=(0, 20))
         content = config_card.get_content_frame()
         
-        # 最小分盒张数设置
-        self.create_input_row(
-            content, 
-            "最小分盒张数:", 
-            "min_box_count",
-            "每盒包装的最少张数",
-            default_value="10"
-        )
-        
-        # 盒/小箱比例
-        self.create_input_row(
-            content, 
-            "盒/小箱比例:", 
-            "box_per_inner_case",
-            "每个小箱包装的盒数",
-            default_value="5"
-        )
-        
-        # 小箱/大箱比例
-        self.create_input_row(
-            content, 
-            "小箱/大箱比例:", 
-            "inner_case_per_outer_case",
-            "每个大箱包装的小箱数",
-            default_value="4"
-        )
+        # 动态创建参数输入框
+        template_config = self.get_template_config()
+        for label, field_name, description, default_value in template_config["params"]:
+            self.create_input_row(content, label, field_name, description, default_value)
         
         # 预览信息区域 - 限制高度
         preview_card = ModernCard(main_frame, "生成预览")
@@ -391,16 +394,18 @@ class BoxLabelConfigDialog:
         
     def bind_input_events(self):
         """绑定输入变化事件"""
-        try:
-            # 尝试使用新的trace_add方法
-            self.min_box_count_var.trace_add('write', self.update_preview)
-            self.box_per_inner_case_var.trace_add('write', self.update_preview)
-            self.inner_case_per_outer_case_var.trace_add('write', self.update_preview)
-        except AttributeError:
-            # 如果trace_add不可用，回退到旧方法
-            self.min_box_count_var.trace('w', self.update_preview)
-            self.box_per_inner_case_var.trace('w', self.update_preview)
-            self.inner_case_per_outer_case_var.trace('w', self.update_preview)
+        # 动态绑定所有参数变量的事件
+        template_config = self.get_template_config()
+        for _, field_name, _, _ in template_config["params"]:
+            var_name = f"{field_name}_var"
+            if hasattr(self, var_name):
+                var = getattr(self, var_name)
+                try:
+                    # 尝试使用新的trace_add方法
+                    var.trace_add('write', self.update_preview)
+                except AttributeError:
+                    # 如果trace_add不可用，回退到旧方法
+                    var.trace('w', self.update_preview)
         
         # 初始预览更新
         self.update_preview()
@@ -408,31 +413,76 @@ class BoxLabelConfigDialog:
     def update_preview(self, *args):
         """更新生成预览"""
         try:
-            # 获取输入值，确保有默认值
-            min_box_str = self.min_box_count_var.get().strip()
-            box_inner_str = self.box_per_inner_case_var.get().strip()
-            inner_outer_str = self.inner_case_per_outer_case_var.get().strip()
+            # 动态获取所有参数值
+            template_config = self.get_template_config()
+            params = {}
             
-            # 调试信息：打印获取的值
-            print(f"调试信息 - 输入值: 最小分盒={min_box_str}, 盒/小箱={box_inner_str}, 小箱/大箱={inner_outer_str}")
-            
-            min_box_count = int(min_box_str) if min_box_str else 10
-            box_per_inner = int(box_inner_str) if box_inner_str else 5
-            inner_per_outer = int(inner_outer_str) if inner_outer_str else 4
-            
-            print(f"调试信息 - 转换后: 最小分盒={min_box_count}, 盒/小箱={box_per_inner}, 小箱/大箱={inner_per_outer}")
+            for label, field_name, _, default_value in template_config["params"]:
+                var_name = f"{field_name}_var"
+                if hasattr(self, var_name):
+                    var = getattr(self, var_name)
+                    value_str = var.get().strip()
+                    value = int(value_str) if value_str else int(default_value)
+                    params[field_name] = value
             
             # 假设总张数为100进行预览计算
             total_quantity = 100
             
             # 计算标签数量
             import math
+            min_box_count = params.get('min_box_count', 10)
             box_count = math.ceil(total_quantity / min_box_count)
-            inner_case_count = math.ceil(box_count / box_per_inner)
-            outer_case_count = math.ceil(inner_case_count / inner_per_outer)
             
-            # 更新预览文本
-            preview_text = f"""📊 生成预览 (假设总数: {total_quantity}张)
+            if self.template_type == "set_box":
+                # 套盒模版计算 - 重新理解逻辑
+                min_set_count = params.get('min_set_count', 30)  # 每套张数
+                boxes_per_set = params.get('boxes_per_set', 3)   # 每套盒数
+                boxes_per_inner = params.get('boxes_per_inner_case', 6)  
+                sets_per_outer = params.get('sets_per_outer_case', 2)
+                
+                # 核心计算：套数 = 总张数 ÷ 每套张数
+                set_count = math.ceil(total_quantity / min_set_count)
+                # 盒标数量 = 套数 × 每套盒数  
+                box_count = set_count * boxes_per_set
+                # 小箱数量 = 盒数 ÷ 每小箱盒数
+                inner_case_count = math.ceil(box_count / boxes_per_inner)
+                # 大箱数量 = 套数 ÷ 每大箱套数
+                outer_case_count = math.ceil(set_count / sets_per_outer)
+                
+                # 套盒预览文本
+                preview_text = f"""📊 生成预览 (假设总数: {total_quantity}张)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 当前参数设置:
+• 每套张数: {min_set_count}
+• 几盒为一套: {boxes_per_set}  
+• 几盒入一小箱: {boxes_per_inner}
+• 几套入一大箱: {sets_per_outer}
+
+📦 套数: {set_count} 套
+    每套包装: {min_set_count} 张
+
+🗂️  盒标数量: {box_count} 个
+    每套包含: {boxes_per_set} 盒
+
+📦 小箱标数量: {inner_case_count} 个  
+    每小箱包装: {boxes_per_inner} 盒
+
+📋 大箱标数量: {outer_case_count} 个
+    每大箱包装: {sets_per_outer} 套
+
+将生成 3 个PDF文件和1个文件夹
+"""
+            else:
+                # 常规模版计算
+                box_per_inner = params.get('box_per_inner_case', 5)
+                inner_per_outer = params.get('inner_case_per_outer_case', 4)
+                
+                inner_case_count = math.ceil(box_count / box_per_inner)
+                outer_case_count = math.ceil(inner_case_count / inner_per_outer)
+                
+                # 常规预览文本
+                preview_text = f"""📊 生成预览 (假设总数: {total_quantity}张)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📋 当前参数设置:
@@ -469,21 +519,41 @@ class BoxLabelConfigDialog:
     
     def set_config(self, config):
         """设置配置值"""
-        if 'min_box_count' in config:
-            self.min_box_count_var.set(str(config['min_box_count']))
-        if 'box_per_inner_case' in config:
-            self.box_per_inner_case_var.set(str(config['box_per_inner_case']))
-        if 'inner_case_per_outer_case' in config:
-            self.inner_case_per_outer_case_var.set(str(config['inner_case_per_outer_case']))
+        # 参数兼容性映射 - 将旧参数名映射到新参数名
+        if self.template_type == "set_box" and config:
+            # 为套盒模版提供兼容性映射
+            if 'box_per_inner_case' in config and 'boxes_per_inner_case' not in config:
+                config['boxes_per_inner_case'] = config['box_per_inner_case']
+            if 'min_box_count' in config and 'min_set_count' not in config:
+                # 假设默认转换：每盒10张 → 每套30张（3盒为一套）
+                config['min_set_count'] = config['min_box_count'] * 3
+        
+        # 动态设置所有参数
+        template_config = self.get_template_config()
+        for _, field_name, _, _ in template_config["params"]:
+            if field_name in config:
+                var_name = f"{field_name}_var"
+                if hasattr(self, var_name):
+                    var = getattr(self, var_name)
+                    var.set(str(config[field_name]))
     
     def get_config(self):
         """获取当前配置"""
         try:
-            return {
-                'min_box_count': int(self.min_box_count_var.get() or 10),
-                'box_per_inner_case': int(self.box_per_inner_case_var.get() or 5),
-                'inner_case_per_outer_case': int(self.inner_case_per_outer_case_var.get() or 4)
-            }
+            config = {}
+            template_config = self.get_template_config()
+            for _, field_name, _, default_value in template_config["params"]:
+                var_name = f"{field_name}_var"
+                if hasattr(self, var_name):
+                    var = getattr(self, var_name)
+                    value = int(var.get() or default_value)
+                    config[field_name] = value
+            
+            # 为了向后兼容，如果是套盒模版，也提供旧参数名
+            if self.template_type == "set_box" and 'boxes_per_inner_case' in config:
+                config['box_per_inner_case'] = config['boxes_per_inner_case']
+                
+            return config
         except ValueError:
             return None
     
@@ -497,8 +567,7 @@ class BoxLabelConfigDialog:
             for key, value in config.items():
                 if value <= 0:
                     return False, f"{key} 必须大于0"
-                if value > 1000:
-                    return False, f"{key} 不能超过1000"
+                # 移除1000限制，允许更大的分盒张数用于套盒模版
             
             return True, ""
         except Exception as e:
@@ -537,16 +606,17 @@ class BoxLabelConfigDialog:
         return self.result
 
 
-def show_box_label_config_dialog(parent, initial_config=None):
+def show_box_label_config_dialog(parent, initial_config=None, template_type="regular"):
     """
     显示盒标配置对话框的便捷函数
     
     Args:
         parent: 父窗口
         initial_config: 初始配置字典
+        template_type: 模版类型 ("regular" 或 "set_box")
     
     Returns:
         dict or None: 配置结果，如果取消则返回None
     """
-    dialog = BoxLabelConfigDialog(parent, initial_config)
+    dialog = BoxLabelConfigDialog(parent, initial_config, template_type)
     return dialog.show()
