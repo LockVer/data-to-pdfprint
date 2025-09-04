@@ -204,12 +204,25 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
         total_small_cases = math.ceil(total_boxes / boxes_per_small_case) if boxes_per_small_case > 0 else 1  # 总小箱数
         
         # 判断序列号级数：
-        # boxes_per_small_case = 1: 单级编号 (JAW01001, JAW01002...)  
+        # 分盒模式：强制使用多级编号 (即使每小箱只有1盒)
         # boxes_per_small_case > 1: 多级编号 (JAW01001-01, JAW01001-02...)
+        # 常规模式且boxes_per_small_case = 1: 单级编号 (JAW01001, JAW01002...)
+        
+        # 计算大箱数量
+        small_cases_per_large_case = additional_inputs.get('small_cases_per_large_case', 2)
+        total_large_cases = math.ceil(total_small_cases / small_cases_per_large_case) if small_cases_per_large_case > 0 else 1
+        
+        # 检查是否是分盒模式 (每小箱盒数=1 但有多个小箱)
+        package_mode = additional_inputs.get('package_mode', 'regular')
+        is_separate_mode = package_mode == 'separate'
+        
         box_info = {
             'total_boxes': total_boxes,
             'total_small_cases': total_small_cases, 
-            'boxes_per_small_case': boxes_per_small_case
+            'total_large_cases': total_large_cases,
+            'boxes_per_small_case': boxes_per_small_case,
+            'small_cases_per_large_case': small_cases_per_large_case,
+            'is_separate_mode': is_separate_mode
         }
     else:
         # -------------------------------------------
@@ -254,26 +267,22 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
         # ===================================================
         pages = []
         # TODO 这里首页显示Game title的中文字段值 + Ticket count空 + Serial空
-        if 'boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1:
+        if ('boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1) or box_info.get('is_separate_mode', False):
             # =====================================================
             # 【游戏+多级】分盒模式：每页显示游戏信息+多级序列号
+            # 盒标按每个盒子逐一生成，多级序列号格式
             # 序列号格式：JAW01001-01, JAW01001-02, JAW01002-01...
             # =====================================================
             page_index = 1
             small_case_num = start_num
             boxes_generated = 0
+            cards_per_box = additional_inputs.get('sheets_per_box', total_cards) if additional_inputs else total_cards
             
-            for case_idx in range(box_info['total_small_cases']):
-                case_serial = f"{serial_prefix}{small_case_num:05d}"  # 小箱编号 JAW01001
-                
-                remaining_boxes = box_info['total_boxes'] - boxes_generated
-                boxes_in_this_case = min(box_info['boxes_per_small_case'], remaining_boxes)
-                
-                for box_idx in range(boxes_in_this_case):
-                    box_serial = f"{case_serial}-{box_idx + 1:02d}"  # 多级序列号 JAW01001-01
-                    
-                    # 获取每盒卡片数
-                    cards_per_box = additional_inputs.get('sheets_per_box', total_cards) if additional_inputs else total_cards
+            if box_info.get('is_separate_mode', False):
+                # 分盒模式：盒标与小箱标一致，每小箱固定1盒，子级编号固定为01
+                for case_idx in range(box_info['total_small_cases']):
+                    case_serial = f"{serial_prefix}{small_case_num:05d}"  # 小箱编号 JAW01001
+                    box_serial = f"{case_serial}-01"  # 多级序列号 JAW01001-01 (固定01)
                     
                     pages.append(Page(index=page_index, elements=[
                         Element(role="game_title", content=f"Game title: {theme}"),        # Game title: JAWS
@@ -282,11 +291,31 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
                     ]))
                     
                     page_index += 1
-                    boxes_generated += 1
-                
-                small_case_num += 1
-                if boxes_generated >= box_info['total_boxes']:
-                    break
+                    small_case_num += 1
+            else:
+                # 常规多级模式：按小箱逐一生成盒标
+                for case_idx in range(box_info['total_small_cases']):
+                    case_serial = f"{serial_prefix}{small_case_num:05d}"  # 小箱编号 JAW01001
+                    
+                    # 计算这个小箱应该有多少个盒子
+                    remaining_boxes = box_info['total_boxes'] - boxes_generated
+                    boxes_in_this_case = min(box_info['boxes_per_small_case'], remaining_boxes)
+                    
+                    for box_idx in range(boxes_in_this_case):
+                        box_serial = f"{case_serial}-{box_idx + 1:02d}"  # 多级序列号 JAW01001-01
+                        
+                        pages.append(Page(index=page_index, elements=[
+                            Element(role="game_title", content=f"Game title: {theme}"),        # Game title: JAWS
+                            Element(role="ticket_count", content=f"Ticket count: {cards_per_box}"), # Ticket count: 3780
+                            Element(role="serial_number", content=f"Serial: {box_serial}")     # Serial: JAW01001-01
+                        ]))
+                        
+                        page_index += 1
+                        boxes_generated += 1
+                    
+                    small_case_num += 1
+                    if boxes_generated >= box_info['total_boxes']:
+                        break
         else:
             # =====================================================
             # 【游戏+单级】常规模式：每页显示游戏信息+单级序列号
@@ -315,24 +344,21 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
             ])
         ]
         
-        if 'boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1:
+        if ('boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1) or box_info.get('is_separate_mode', False):
             # =====================================================
             # 【常规+多级】分盒模式：首页(客户+主题) + 其他页(主题+多级序列号)
+            # 盒标按每个盒子逐一生成，多级序列号格式
             # 序列号格式：JAW01001-01, JAW01001-02, JAW01002-01...
             # =====================================================
             page_index = 1
             small_case_num = start_num
             boxes_generated = 0
             
-            for case_idx in range(box_info['total_small_cases']):
-                case_serial = f"{serial_prefix}{small_case_num:05d}"  # 小箱编号 JAW01001
-                
-                # 计算这个小箱应该有多少个盒子
-                remaining_boxes = box_info['total_boxes'] - boxes_generated
-                boxes_in_this_case = min(box_info['boxes_per_small_case'], remaining_boxes)
-                
-                for box_idx in range(boxes_in_this_case):
-                    box_serial = f"{case_serial}-{box_idx + 1:02d}"  # 多级序列号 JAW01001-01
+            if box_info.get('is_separate_mode', False):
+                # 分盒模式：盒标与小箱标一致，每小箱固定1盒，子级编号固定为01
+                for case_idx in range(box_info['total_small_cases']):
+                    case_serial = f"{serial_prefix}{small_case_num:05d}"  # 小箱编号 JAW01001
+                    box_serial = f"{case_serial}-01"  # 多级序列号 JAW01001-01 (固定01)
                     
                     pages.append(Page(index=page_index, elements=[
                         Element(role="theme_info", content=theme),          # JAWS
@@ -340,13 +366,30 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
                     ]))
                     
                     page_index += 1
-                    boxes_generated += 1
-                
-                small_case_num += 1
-                
-                # 如果已经生成了所有盒子，停止
-                if boxes_generated >= box_info['total_boxes']:
-                    break
+                    small_case_num += 1
+            else:
+                # 常规多级模式：按小箱逐一生成盒标
+                for case_idx in range(box_info['total_small_cases']):
+                    case_serial = f"{serial_prefix}{small_case_num:05d}"  # 小箱编号 JAW01001
+                    
+                    # 计算这个小箱应该有多少个盒子
+                    remaining_boxes = box_info['total_boxes'] - boxes_generated
+                    boxes_in_this_case = min(box_info['boxes_per_small_case'], remaining_boxes)
+                    
+                    for box_idx in range(boxes_in_this_case):
+                        box_serial = f"{case_serial}-{box_idx + 1:02d}"  # 多级序列号 JAW01001-01
+                        
+                        pages.append(Page(index=page_index, elements=[
+                            Element(role="theme_info", content=theme),          # JAWS
+                            Element(role="serial_number", content=box_serial)   # JAW01001-01
+                        ]))
+                        
+                        page_index += 1
+                        boxes_generated += 1
+                    
+                    small_case_num += 1
+                    if boxes_generated >= box_info['total_boxes']:
+                        break
         else:
             # =====================================================
             # 【常规+单级】常规模式：首页(客户+主题) + 其他页(主题+单级序列号)

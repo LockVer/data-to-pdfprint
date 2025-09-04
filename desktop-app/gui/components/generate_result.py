@@ -194,7 +194,8 @@ class GenerateResultStep(BaseStep):
             additional_inputs = {
                 'sheets_per_box': self.app_data.package_params.sheets_per_box,
                 'boxes_per_small_case': self.app_data.package_params.boxes_per_small_case,
-                'small_cases_per_large_case': self.app_data.package_params.small_cases_per_large_case
+                'small_cases_per_large_case': self.app_data.package_params.small_cases_per_large_case,
+                'package_mode': self.app_data.package_mode
             }
             
             template_mode = "game_info" if self.app_data.label_template == "game" else "two_level"
@@ -226,7 +227,8 @@ class GenerateResultStep(BaseStep):
             additional_inputs = {
                 'sheets_per_box': self.app_data.package_params.sheets_per_box,
                 'boxes_per_small_case': self.app_data.package_params.boxes_per_small_case,
-                'small_cases_per_large_case': self.app_data.package_params.small_cases_per_large_case
+                'small_cases_per_large_case': self.app_data.package_params.small_cases_per_large_case,
+                'package_mode': self.app_data.package_mode
             }
             
             # 根据包装模式选择箱标模板

@@ -202,42 +202,63 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
     elif template_mode == "multi_separate":
         # =============================================
         # 多级分盒模式：小箱标(单多级盒) + 大箱标(多多级盒)
+        # 按照新的分盒模式规律生成
         # =============================================
         
-        # 小箱标: 单个多级盒子 (3500PCS, LGM01001-01-LGM01001-01, 1-1)
-        for case_idx in range(total_small_cases):
-            for sub_box in range(boxes_per_small_case):
-                box_num = start_num + case_idx
-                sub_serial = f"{serial_prefix}{box_num:05d}-{sub_box + 1:02d}"
+        # 小箱标: 双层循环，多级格式
+        for large_case_idx in range(total_large_cases):  # 大箱数量循环
+            for small_case_idx in range(small_cases_per_large_case):  # 大箱内小箱数量循环
+                if large_case_idx * small_cases_per_large_case + small_case_idx >= total_small_cases:
+                    break
                 
-                pages.append(CasePage(index=case_idx*boxes_per_small_case + sub_box + 1, elements=[
+                # 父级编号（父级标号与子级编号相同）
+                parent_num = large_case_idx + 1  # 大箱数量-循环递增
+                child_num = small_case_idx + 1   # 小箱数量-循环递增
+                
+                # quantity: 盒张数 * 每小箱盒数（写死1）
+                small_quantity = cards_per_box * 1  # 每小箱盒数写死为1
+                
+                # serial: 开始号和结束号相同，多级格式
+                parent_serial = f"{serial_prefix}{parent_num + start_num - 1:05d}"
+                child_serial = f"{child_num:02d}"
+                multi_serial = f"{parent_serial}-{child_serial}"
+                
+                # carton_no: 双层循环格式
+                carton_no = f"{parent_num}-{child_num}"
+                
+                pages.append(CasePage(index=large_case_idx*small_cases_per_large_case + small_case_idx + 1, elements=[
                     CaseElement(role="item", content="Paper Cards"),
                     CaseElement(role="theme", content=f"{theme} (chip)"),
-                    CaseElement(role="quantity", content=f"{cards_per_box}PCS"),
-                    CaseElement(role="serial_range", content=f"{sub_serial}-{sub_serial}"),
-                    CaseElement(role="carton_no", content=f"{case_idx + 1}-{sub_box + 1}"),
+                    CaseElement(role="quantity", content=f"{small_quantity}PCS"),
+                    CaseElement(role="serial_range", content=f"{multi_serial}-{multi_serial}"),
+                    CaseElement(role="carton_no", content=carton_no),
                     CaseElement(role="remark", content=customer_code)
                 ]))
         
-        # 大箱标: 多个多级盒子范围 (7000PCS, LGM01029-01-LGM01030-02, 29-30)
+        # 大箱标: 跨范围，多级格式
         for large_case_idx in range(total_large_cases):
-            start_case = large_case_idx * small_cases_per_large_case
-            end_case = min(start_case + small_cases_per_large_case - 1, total_small_cases - 1)
+            # quantity: 大箱内小箱数量 * 盒张数 * 每小箱盒数（写死1）
+            large_quantity = small_cases_per_large_case * cards_per_box * 1
             
-            start_box_num = start_num + start_case
-            end_box_num = start_num + end_case
+            # serial: 开始号和结束号不同（跨范围）
+            current_large_case_num = large_case_idx + 1
+            parent_serial = f"{serial_prefix}{current_large_case_num + start_num - 1:05d}"
             
-            start_serial = f"{serial_prefix}{start_box_num:05d}-01"
-            end_serial = f"{serial_prefix}{end_box_num:05d}-{boxes_per_small_case:02d}"
+            # 开始号: 父级编号-子级编号（01固定开始）
+            start_serial = f"{parent_serial}-01"
             
-            large_quantity = (end_case - start_case + 1) * boxes_per_small_case * cards_per_box
+            # 结束号: 父级编号-子级编号（大箱内小箱数量最大值）
+            end_serial = f"{parent_serial}-{small_cases_per_large_case:02d}"
+            
+            # carton_no: 当前大箱数
+            carton_no = f"{current_large_case_num}"
             
             pages.append(CasePage(index=len(pages) + 1, elements=[
                 CaseElement(role="item", content="Paper Cards"),
                 CaseElement(role="theme", content=f"{theme} (chip)"),
                 CaseElement(role="quantity", content=f"{large_quantity}PCS"),
                 CaseElement(role="serial_range", content=f"{start_serial}-{end_serial}"),
-                CaseElement(role="carton_no", content=f"{start_case + 1}-{end_case + 1}"),
+                CaseElement(role="carton_no", content=carton_no),
                 CaseElement(role="remark", content=customer_code)
             ]))
             
