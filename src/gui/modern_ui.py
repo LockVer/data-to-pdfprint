@@ -1114,7 +1114,9 @@ class ModernExcelToPDFApp:
             template_type = self.template_config.get('template_type', 'regular')
             dialog_template_type = "set_box" if template_type == "case" else "regular"
             
-            config = show_box_label_config_dialog(self.root, self.box_config, dialog_template_type)
+            # 检查是否为分盒模版
+            is_division_box = (template_type == "box")
+            config = show_box_label_config_dialog(self.root, self.box_config, dialog_template_type, is_division_box)
             if config:
                 self.box_config = config
                 self.update_status("✅ 盒标参数已更新", "配置完成")

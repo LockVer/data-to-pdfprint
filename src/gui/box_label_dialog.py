@@ -157,7 +157,7 @@ class ModernCard:
 class BoxLabelConfigDialog:
     """盒标配置对话框"""
     
-    def __init__(self, parent, initial_config=None, template_type="regular"):
+    def __init__(self, parent, initial_config=None, template_type="regular", is_division_box=False):
         """
         初始化对话框
         
@@ -169,6 +169,7 @@ class BoxLabelConfigDialog:
         self.parent = parent
         self.result = None
         self.template_type = template_type  # 保存模版类型
+        self.is_division_box = is_division_box  # 是否为分盒模版
         self.dialog = tk.Toplevel(parent)
         self.setup_dialog()
         self.create_widgets()
@@ -339,9 +340,44 @@ class BoxLabelConfigDialog:
         # 绑定输入变化事件
         self.bind_input_events()
         
+        # 如果是分盒模版，禁用盒/小箱比例输入框
+        if getattr(self, 'is_division_box', False):
+            self._disable_division_box_ratio_input()
+        
         # 强制初始预览更新
         self.dialog.after(100, self.update_preview)
         
+    def _disable_division_box_ratio_input(self):
+        """禁用分盒模版的盒/小箱比例输入框"""
+        try:
+            # 找到所有Entry组件
+            for widget in self.dialog.winfo_children():
+                self._find_and_disable_entry(widget, 'box_per_inner_case')
+        except Exception as e:
+            print(f"禁用输入框失败: {e}")
+    
+    def _find_and_disable_entry(self, widget, target_var_name):
+        """递归查找并禁用特定的输入框"""
+        try:
+            # 检查当前组件的子组件
+            for child in widget.winfo_children():
+                # 如果是Entry组件，检查其关联的变量名
+                if isinstance(child, tk.Entry):
+                    # 检查是否是目标变量对应的Entry
+                    entry_var = child.cget('textvariable')
+                    if hasattr(self, f"{target_var_name}_var"):
+                        target_var = getattr(self, f"{target_var_name}_var")
+                        if str(entry_var) == str(target_var):
+                            # 找到了目标Entry，禁用它
+                            child.config(state='disabled', bg=ModernColors.LIGHT_GRAY)
+                            print(f"成功禁用 {target_var_name} 输入框")
+                            return
+                
+                # 递归搜索子组件
+                self._find_and_disable_entry(child, target_var_name)
+        except Exception as e:
+            pass  # 忽略错误，继续搜索
+    
     def create_input_row(self, parent, label_text, var_name, tooltip, default_value=""):
         """
         创建输入行
@@ -527,6 +563,9 @@ class BoxLabelConfigDialog:
             if 'min_box_count' in config and 'min_set_count' not in config:
                 # 假设默认转换：每盒10张 → 每套30张（3盒为一套）
                 config['min_set_count'] = config['min_box_count'] * 3
+        elif getattr(self, 'is_division_box', False) and config:
+            # 为分盒模版强制设置盒/小箱比例为1
+            config['box_per_inner_case'] = 1
         
         # 动态设置所有参数
         template_config = self.get_template_config()
@@ -606,7 +645,7 @@ class BoxLabelConfigDialog:
         return self.result
 
 
-def show_box_label_config_dialog(parent, initial_config=None, template_type="regular"):
+def show_box_label_config_dialog(parent, initial_config=None, template_type="regular", is_division_box=False):
     """
     显示盒标配置对话框的便捷函数
     
@@ -618,5 +657,5 @@ def show_box_label_config_dialog(parent, initial_config=None, template_type="reg
     Returns:
         dict or None: 配置结果，如果取消则返回None
     """
-    dialog = BoxLabelConfigDialog(parent, initial_config, template_type)
+    dialog = BoxLabelConfigDialog(parent, initial_config, template_type, is_division_box)
     return dialog.show()
