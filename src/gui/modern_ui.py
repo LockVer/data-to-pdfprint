@@ -23,6 +23,7 @@ from template.box_label_template import BoxLabelTemplate
 from template.inner_case_template import InnerCaseTemplate
 from template.outer_case_template import OuterCaseTemplate
 from template.set_box_label_template import SetBoxLabelTemplate
+from template.division_box_template import DivisionBoxTemplate
 
 class ModernColors:
     """现代化配色方案"""
@@ -232,6 +233,7 @@ class ModernExcelToPDFApp:
         self.inner_case_template = InnerCaseTemplate()
         self.outer_case_template = OuterCaseTemplate()
         self.set_box_label_template = SetBoxLabelTemplate()
+        self.division_box_template = DivisionBoxTemplate()
         self.selected_file = None
         self.box_label_data = None
         self.box_config = {
@@ -864,13 +866,23 @@ class ModernExcelToPDFApp:
                 )
                 result.update(outer_case_result)
             elif template_type == 'box':
-                # 分盒模板（暂时使用常规模板）
-                print("⚠️  分盒模板暂未实现，使用常规模板代替")
-                result = self.box_label_template.generate_labels_pdf(
-                    data_dict, 
-                    self.box_config, 
-                    output_dir
-                )
+                # 分盒模板 - 使用专门的分盒模版
+                print("🎯 使用分盒模板生成标签")
+                try:
+                    result = self.division_box_template.generate_division_box_labels_pdf(
+                        data_dict, 
+                        self.box_config, 
+                        output_dir
+                    )
+                except Exception as e:
+                    print(f"❌ 分盒模版调用失败: {e}")
+                    print(f"   回退到使用常规模版")
+                    # 回退方案：使用常规模版
+                    result = self.box_label_template.generate_labels_pdf(
+                        data_dict, 
+                        self.box_config, 
+                        output_dir
+                    )
             elif template_type == 'case':
                 # 套盒模板 - 使用专门的套盒模版
                 print("🎯 使用套盒模板生成标签")
@@ -947,7 +959,18 @@ class ModernExcelToPDFApp:
 • 总张数 (F4): {data_dict['F4']}"""
 
             # 根据不同模板类型显示对应的数量信息
-            if template_type == 'case':
+            if template_type == 'box':
+                # 分盒模板显示分盒相关信息
+                if 'count' in result:
+                    box_count = result['count']
+                else:
+                    # 备用计算：使用分盒逻辑
+                    box_count = math.ceil(int(data_dict['F4']) / self.box_config.get('min_box_count', 10))
+                
+                success_msg += f"""
+• 分盒盒标数量: {box_count} 个
+• 编号方式: 大箱号-小箱号格式"""
+            elif template_type == 'case':
                 # 套盒模板显示套盒相关信息 - 使用result中的实际数据或计算
                 if 'count' in result:
                     box_count = result['count']
