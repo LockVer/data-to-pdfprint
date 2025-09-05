@@ -341,6 +341,145 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
         pages=pages
     )
 
+def draw_smart_text(canvas, text, x, y, max_width, max_height, font_name, original_font_size, align="center"):
+    """
+    智能绘制文本：未触发换行时保持原样，触发换行时自动缩小字体适应单元格高度
+    
+    Args:
+        canvas: ReportLab canvas对象
+        text: 要绘制的文本
+        x: 起始x坐标
+        y: 起始y坐标（文本基线位置）
+        max_width: 最大宽度
+        max_height: 最大高度
+        font_name: 字体名称
+        original_font_size: 原始字体大小
+        align: 对齐方式 ("left", "center", "right")
+    
+    Returns:
+        (实际使用的高度, 是否发生了换行)
+    """
+    if not text:
+        return 0, False
+    
+    # 先检查是否需要换行
+    canvas.setFont(font_name, original_font_size)
+    text_width = canvas.stringWidth(text, font_name, original_font_size)
+    
+    # 如果不需要换行，使用表格单元格的居中方式
+    if text_width <= max_width:
+        if align == "center":
+            # 获取表格的右侧单元格区域，完整居中
+            # 假设表格总宽度为245点(90mm减去边距)，左列宽度80点
+            table_margin = 5
+            page_width = 255  # 90mm ≈ 255pt  
+            table_width = page_width - 2 * table_margin  # 245pt
+            label_width = 80
+            content_width = table_width - label_width  # 165pt
+            content_start_x = table_margin + label_width  # 右侧单元格起始位置
+            
+            # 在右侧单元格区域内完全居中
+            text_x = content_start_x + (content_width - text_width) / 2
+        elif align == "right":
+            text_x = x + max_width - text_width
+        else:  # left
+            text_x = x
+        
+        canvas.drawString(text_x, y, text)
+        return original_font_size, False
+    
+    # 需要换行，计算合适的字体大小
+    font_size = original_font_size
+    min_font_size = max(6, original_font_size * 0.6)  # 最小字体不低于6点或原大小的60%
+    
+    while font_size >= min_font_size:
+        canvas.setFont(font_name, font_size)
+        words = text.split()
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_width = canvas.stringWidth(test_line, font_name, font_size)
+            
+            if test_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    # 单个词太长，直接使用
+                    lines.append(word)
+        
+        if current_line:
+            lines.append(current_line)
+        
+        # 检查总高度是否适合
+        line_height = font_size + 1  # 减小行间距
+        total_height = len(lines) * line_height
+        
+        if total_height <= max_height:
+            # 绘制文本
+            current_y = y
+            for i, line in enumerate(lines):
+                line_width = canvas.stringWidth(line, font_name, font_size)
+                
+                if align == "center":
+                    line_x = x + (max_width - line_width) / 2
+                elif align == "right":
+                    line_x = x + max_width - line_width
+                else:  # left
+                    line_x = x
+                
+                canvas.drawString(line_x, current_y, line)
+                current_y -= line_height
+            
+            return total_height, True
+        
+        # 减小字体大小重试
+        font_size -= 0.5
+    
+    # 如果仍然放不下，使用最小字体强制绘制
+    canvas.setFont(font_name, min_font_size)
+    words = text.split()
+    lines = []
+    current_line = ""
+    
+    for word in words:
+        test_line = current_line + (" " if current_line else "") + word
+        test_width = canvas.stringWidth(test_line, font_name, min_font_size)
+        
+        if test_width <= max_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line)
+                current_line = word
+            else:
+                lines.append(word)
+    
+    if current_line:
+        lines.append(current_line)
+    
+    # 绘制文本（可能超出高度）
+    line_height = min_font_size + 1
+    current_y = y
+    for line in lines:
+        line_width = canvas.stringWidth(line, font_name, min_font_size)
+        
+        if align == "center":
+            line_x = x + (max_width - line_width) / 2
+        elif align == "right":
+            line_x = x + max_width - line_width
+        else:
+            line_x = x
+        
+        canvas.drawString(line_x, current_y, line)
+        current_y -= line_height
+    
+    return len(lines) * line_height, True
+
 def render_case_template_to_pdf(template, output_path):
     """
     将箱标模板渲染为PDF
@@ -400,7 +539,7 @@ def render_case_template_to_pdf(template, output_path):
         item_content = elements_dict.get("item", "Paper Cards")
         text_width = c.stringWidth(item_content, "Helvetica-Bold", 10)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[0] - 10) / 2, item_content)
+        c.drawString(content_x, current_y + row_heights[0] / 2 - 2, item_content)  # 垂直居中
         
         # 第2行: Theme
         c.line(table_x, current_y, table_x + table_width, current_y)
@@ -408,11 +547,15 @@ def render_case_template_to_pdf(template, output_path):
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[1])
         c.setFont("Helvetica-Bold", 12)  # 增大左侧标签字体
         c.drawString(table_x + 3, current_y + (row_heights[1] - 12) / 2, "Theme:")
-        c.setFont("Helvetica-Bold", 10)  # 增大右侧内容字体
+        
+        # 使用智能文本绘制主题内容
         theme_content = elements_dict.get("theme", "")
-        text_width = c.stringWidth(theme_content, "Helvetica-Bold", 10)
-        content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[1] - 10) / 2, theme_content)
+        content_area_x = table_x + label_width + 3  # 留3点边距  
+        content_area_width = content_width - 6  # 两边各留3点边距
+        # 计算文本基线位置：单元格垂直中心位置
+        text_baseline_y = current_y + row_heights[1] / 2 - 2  # 单元格中心稍微下移2点作为基线
+        text_height, did_wrap = draw_smart_text(c, theme_content, content_area_x, text_baseline_y, 
+                       content_area_width, row_heights[1] - 6, "Helvetica-Bold", 10, "center")
         
         # 第3-4行: Quantity (占用两行高度的合并单元格)
         c.line(table_x, current_y, table_x + table_width, current_y)
@@ -439,15 +582,17 @@ def render_case_template_to_pdf(template, output_path):
         text_width = c.stringWidth(quantity_content, "Helvetica-Bold", 11)
         content_x = table_x + label_width + (content_width - text_width) / 2
         upper_center_y = mid_y + (content_area_height / 4)  # 上半部分中心
-        c.drawString(content_x, upper_center_y - 5, quantity_content)
+        c.drawString(content_x, upper_center_y - 3, quantity_content)  # 垂直居中调整
         
         # 下半部分：序列号范围
         serial_content = elements_dict.get("serial_range", "")
-        c.setFont("Helvetica-Bold", 9)  # 增大序列号字体，但相对较小
-        text_width = c.stringWidth(serial_content, "Helvetica-Bold", 9)
-        content_x = table_x + label_width + (content_width - text_width) / 2
-        lower_center_y = current_y + (content_area_height / 4)  # 下半部分中心
-        c.drawString(content_x, lower_center_y - 4, serial_content)
+        serial_area_x = table_x + label_width + 3  # 留3点边距
+        serial_area_width = content_width - 6  # 两边各留3点边距
+        serial_area_height = content_area_height / 2 - 3  # 下半部分高度
+        # 计算文本基线位置：下半部分垂直中心
+        serial_baseline_y = current_y + serial_area_height / 2 - 2  # 下半部分中心稍微下移2点作为基线
+        text_height, did_wrap = draw_smart_text(c, serial_content, serial_area_x, serial_baseline_y, 
+                       serial_area_width, serial_area_height, "Helvetica-Bold", 9, "center")
         
         # 第5行: Carton No.
         c.line(table_x, current_y, table_x + table_width, current_y)
@@ -459,7 +604,7 @@ def render_case_template_to_pdf(template, output_path):
         carton_content = elements_dict.get("carton_no", "")
         text_width = c.stringWidth(carton_content, "Helvetica-Bold", 10)
         content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[4] - 10) / 2, carton_content)
+        c.drawString(content_x, current_y + row_heights[4] / 2 - 2, carton_content)  # 垂直居中
         
         # 第6行: Remark
         c.line(table_x, current_y, table_x + table_width, current_y)
@@ -467,11 +612,15 @@ def render_case_template_to_pdf(template, output_path):
         c.line(table_x + label_width, current_y, table_x + label_width, current_y + row_heights[5])
         c.setFont("Helvetica-Bold", 12)  # 增大左侧标签字体
         c.drawString(table_x + 3, current_y + (row_heights[5] - 12) / 2, "Remark:")
-        c.setFont("Helvetica-Bold", 10)  # 增大右侧内容字体
+        
+        # 使用智能文本绘制备注内容
         remark_content = elements_dict.get("remark", "")
-        text_width = c.stringWidth(remark_content, "Helvetica-Bold", 10)
-        content_x = table_x + label_width + (content_width - text_width) / 2
-        c.drawString(content_x, current_y + (row_heights[5] - 10) / 2, remark_content)
+        remark_area_x = table_x + label_width + 3  # 留3点边距
+        remark_area_width = content_width - 6  # 两边各留3点边距
+        # 计算文本基线位置：单元格垂直中心位置
+        remark_baseline_y = current_y + row_heights[5] / 2 - 2  # 单元格中心稍微下移2点作为基线
+        text_height, did_wrap = draw_smart_text(c, remark_content, remark_area_x, remark_baseline_y, 
+                       remark_area_width, row_heights[5] - 6, "Helvetica-Bold", 10, "center")
         
         c.showPage()
     
