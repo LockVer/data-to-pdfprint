@@ -40,61 +40,69 @@ class BoxLabelTemplate:
         # 内箱标模板由GUI统一管理
         
     def _register_chinese_font(self):
-        """注册中文字体 - 寻找最粗的字体"""
+        """注册中文字体 - 优先微软雅黑，避免中文标点乱码"""
         try:
             system = platform.system()
             
             if system == "Darwin":  # macOS
-                # 尝试Helvetica.ttc中的不同字体变体，寻找最粗的
-                helvetica_path = "/System/Library/Fonts/Helvetica.ttc"
-                if os.path.exists(helvetica_path):
-                    print(f"尝试Helvetica.ttc的所有字体变体...")
-                    # Helvetica.ttc通常包含多个变体：Regular, Bold, Light等
-                    # 尝试更多索引，寻找最粗的变体
-                    for index in range(20):  # 扩大搜索范围
-                        try:
-                            font_name = f'HelveticaVariant_{index}'
-                            pdfmetrics.registerFont(TTFont(font_name, helvetica_path, subfontIndex=index))
-                            print(f"✅ 成功注册Helvetica变体 {index}: {font_name}")
-                            # 对于较大的索引值，可能是更粗的变体
-                            if index >= 1:  # 通常索引1或更高是Bold变体
-                                return font_name
-                        except Exception as e:
-                            continue
-                
-                # 备用字体
-                other_fonts = [
-                    "/System/Library/Fonts/Arial.ttf",
-                    "/System/Library/Fonts/STHeiti Medium.ttc"  # 黑体，通常较粗
+                # 中文字体路径（按优先级排序）
+                chinese_fonts = [
+                    ("/System/Library/Fonts/Microsoft YaHei.ttf", "MicrosoftYaHei"),  # 微软雅黑（推荐）
+                    ("/System/Library/Fonts/Supplemental/Microsoft YaHei.ttf", "MicrosoftYaHei"), # 备用路径
+                    ("/System/Library/Fonts/STHeiti Medium.ttc", "STHeiti"),  # 华文黑体
+                    ("/System/Library/Fonts/STHeiti Light.ttc", "STHeitiLight"), # 华文黑体细体
+                    ("/System/Library/Fonts/PingFang.ttc", "PingFang"),  # 苹方
+                    ("/System/Library/Fonts/Arial Unicode MS.ttf", "ArialUnicode")  # Arial Unicode（支持中文）
                 ]
                 
-                for font_path in other_fonts:
-                    try:
-                        if os.path.exists(font_path):
+                for font_path, font_base_name in chinese_fonts:
+                    if os.path.exists(font_path):
+                        print(f"🔍 尝试中文字体: {font_path}")
+                        try:
                             if font_path.endswith('.ttc'):
-                                for index in range(5):
+                                # TTC文件尝试多个索引
+                                for index in range(10):
                                     try:
-                                        font_name = f'ExtraFont_{index}'
+                                        font_name = f'{font_base_name}_{index}'
                                         pdfmetrics.registerFont(TTFont(font_name, font_path, subfontIndex=index))
-                                        print(f"✅ 成功注册额外字体: {font_name}")
+                                        print(f"✅ 成功注册中文字体: {font_name}")
                                         return font_name
-                                    except:
+                                    except Exception as e:
                                         continue
                             else:
-                                font_name = 'ExtraFont'
+                                # TTF文件直接注册
+                                font_name = font_base_name
                                 pdfmetrics.registerFont(TTFont(font_name, font_path))
-                                print(f"✅ 成功注册额外字体: {font_name}")
+                                print(f"✅ 成功注册中文字体: {font_name}")
                                 return font_name
-                    except:
-                        continue
+                        except Exception as e:
+                            print(f"字体注册失败 {font_path}: {e}")
+                            continue
             
-            # 最终备用方案
-            print("⚠️ 使用默认Helvetica-Bold字体")
-            return 'Helvetica-Bold'
+            elif system == "Windows":  # Windows系统
+                windows_fonts = [
+                    ("C:/Windows/Fonts/msyh.ttf", "MicrosoftYaHei"),  # 微软雅黑
+                    ("C:/Windows/Fonts/msyhbd.ttf", "MicrosoftYaHeiBold"),  # 微软雅黑粗体
+                    ("C:/Windows/Fonts/simsun.ttc", "SimSun"),  # 宋体
+                    ("C:/Windows/Fonts/simhei.ttf", "SimHei")  # 黑体
+                ]
+                
+                for font_path, font_name in windows_fonts:
+                    if os.path.exists(font_path):
+                        try:
+                            pdfmetrics.registerFont(TTFont(font_name, font_path))
+                            print(f"✅ 成功注册Windows中文字体: {font_name}")
+                            return font_name
+                        except Exception as e:
+                            continue
+            
+            # 最终备用方案 - 使用支持中文的内置字体
+            print("⚠️ 未找到合适的中文字体，使用内置字体")
+            return 'Helvetica'  # 至少保持基本显示
             
         except Exception as e:
             print(f"字体注册失败: {e}")
-            return 'Helvetica-Bold'
+            return 'Helvetica'
     
     def create_box_label(self, canvas_obj, data, x, y, label_type='box', appearance='v1'):
         """

@@ -19,6 +19,13 @@ import os
 import platform
 import math
 
+# 导入统一的字体工具
+try:
+    from .font_utils import get_chinese_font
+except ImportError:
+    def get_chinese_font():
+        return 'Helvetica' 
+
 class SetBoxLabelTemplate:
     """套盒盒标模板类"""
     
@@ -28,7 +35,7 @@ class SetBoxLabelTemplate:
     
     def __init__(self):
         """初始化模板"""
-        self.chinese_font = self._register_chinese_font()
+        self.chinese_font = get_chinese_font()
         
         # 颜色定义 (CMYK)
         self.colors = {
@@ -36,63 +43,6 @@ class SetBoxLabelTemplate:
             'gray': CMYKColor(0, 0, 0, 60),
             'light_gray': CMYKColor(0, 0, 0, 20)
         }
-        
-    def _register_chinese_font(self):
-        """注册中文字体 - 寻找最粗的字体"""
-        try:
-            system = platform.system()
-            
-            if system == "Darwin":  # macOS
-                # 尝试Helvetica.ttc中的不同字体变体，寻找最粗的
-                helvetica_path = "/System/Library/Fonts/Helvetica.ttc"
-                if os.path.exists(helvetica_path):
-                    print(f"尝试Helvetica.ttc的所有字体变体...")
-                    # Helvetica.ttc通常包含多个变体：Regular, Bold, Light等
-                    # 尝试更多索引，寻找最粗的变体
-                    for index in range(20):  # 扩大搜索范围
-                        try:
-                            font_name = f'HelveticaVariant_{index}'
-                            pdfmetrics.registerFont(TTFont(font_name, helvetica_path, subfontIndex=index))
-                            print(f"✅ 成功注册Helvetica变体 {index}: {font_name}")
-                            # 对于较大的索引值，可能是更粗的变体
-                            if index >= 1:  # 通常索引1或更高是Bold变体
-                                return font_name
-                        except Exception as e:
-                            continue
-                
-                # 备用字体
-                other_fonts = [
-                    "/System/Library/Fonts/Arial.ttf",
-                    "/System/Library/Fonts/STHeiti Medium.ttc"  # 黑体，通常较粗
-                ]
-                
-                for font_path in other_fonts:
-                    try:
-                        if os.path.exists(font_path):
-                            if font_path.endswith('.ttc'):
-                                for index in range(5):
-                                    try:
-                                        font_name = f'ExtraFont_{index}'
-                                        pdfmetrics.registerFont(TTFont(font_name, font_path, subfontIndex=index))
-                                        print(f"✅ 成功注册额外字体: {font_name}")
-                                        return font_name
-                                    except:
-                                        continue
-                            else:
-                                font_name = 'ExtraFont'
-                                pdfmetrics.registerFont(TTFont(font_name, font_path))
-                                print(f"✅ 成功注册额外字体: {font_name}")
-                                return font_name
-                    except:
-                        continue
-            
-            # 最终备用方案
-            print("⚠️ 使用默认Helvetica-Bold字体")
-            return 'Helvetica-Bold'
-            
-        except Exception as e:
-            print(f"字体注册失败: {e}")
-            return 'Helvetica-Bold'
     
     def create_set_box_label(self, canvas_obj, data, x, y):
         """

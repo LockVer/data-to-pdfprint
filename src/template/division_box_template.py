@@ -20,6 +20,15 @@ import os
 import platform
 import math
 
+# 导入统一的字体工具
+try:
+    from .font_utils import get_chinese_font, get_chinese_bold_font
+except ImportError:
+    def get_chinese_font():
+        return 'Helvetica'
+    def get_chinese_bold_font():
+        return 'Helvetica'
+
 class DivisionBoxTemplate:
     """分盒盒标模板类 - 90x50mm格式"""
     
@@ -29,7 +38,8 @@ class DivisionBoxTemplate:
     
     def __init__(self):
         """初始化模板"""
-        self.chinese_font = self._register_chinese_font()
+        self.chinese_font = get_chinese_font()
+        self.chinese_bold_font = get_chinese_bold_font()
         
         # 颜色定义
         self.colors = {
@@ -38,61 +48,6 @@ class DivisionBoxTemplate:
             'light_gray': CMYKColor(0, 0, 0, 20)
         }
         
-    def _register_chinese_font(self):
-        """注册中文字体 - 寻找最粗的字体"""
-        try:
-            system = platform.system()
-            
-            if system == "Darwin":  # macOS
-                # 尝试Helvetica.ttc中的不同字体变体，寻找最粗的
-                helvetica_path = "/System/Library/Fonts/Helvetica.ttc"
-                if os.path.exists(helvetica_path):
-                    print(f"尝试Helvetica.ttc的所有字体变体...")
-                    # Helvetica.ttc通常包含多个变体：Regular, Bold, Light等
-                    for index in range(20):  # 扩大搜索范围
-                        try:
-                            font_name = f'HelveticaVariant_{index}'
-                            pdfmetrics.registerFont(TTFont(font_name, helvetica_path, subfontIndex=index))
-                            print(f"✅ 成功注册Helvetica变体 {index}: {font_name}")
-                            # 对于较大的索引值，可能是更粗的变体
-                            if index >= 1:  # 通常索引1或更高是Bold变体
-                                return font_name
-                        except Exception as e:
-                            continue
-                
-                # 备用字体
-                other_fonts = [
-                    "/System/Library/Fonts/Arial.ttf",
-                    "/System/Library/Fonts/STHeiti Medium.ttc"  # 黑体，通常较粗
-                ]
-                
-                for font_path in other_fonts:
-                    try:
-                        if os.path.exists(font_path):
-                            if font_path.endswith('.ttc'):
-                                for index in range(5):
-                                    try:
-                                        font_name = f'ExtraFont_{index}'
-                                        pdfmetrics.registerFont(TTFont(font_name, font_path, subfontIndex=index))
-                                        print(f"✅ 成功注册额外字体: {font_name}")
-                                        return font_name
-                                    except:
-                                        continue
-                            else:
-                                font_name = 'ExtraFont'
-                                pdfmetrics.registerFont(TTFont(font_name, font_path))
-                                print(f"✅ 成功注册额外字体: {font_name}")
-                                return font_name
-                    except:
-                        continue
-            
-            # 最终备用方案
-            print("⚠️ 使用默认Helvetica-Bold字体")
-            return 'Helvetica-Bold'
-            
-        except Exception as e:
-            print(f"字体注册失败: {e}")
-            return 'Helvetica-Bold'
     
     def create_division_box_label_data(self, excel_data, box_config):
         """
@@ -133,10 +88,8 @@ class DivisionBoxTemplate:
         
         # 基础编号和主题
         base_number = excel_data.get('B11', 'MOP01001')
-        theme_text = excel_data.get('B4', '默认主题')
-        
-        # 提取完整主题（不只是英文部分）
-        full_theme = self._extract_full_theme(theme_text)
+        # 直接使用"标签名称"关键字右边的数据，不做任何处理
+        full_theme = self._search_label_name_data(excel_data)
         
         division_box_labels = []
         
@@ -173,28 +126,282 @@ class DivisionBoxTemplate:
         
         return division_box_labels
     
-    def _extract_full_theme(self, theme_text):
-        """提取完整主题，保持原始格式"""
-        if not theme_text:
-            return 'DEFAULT THEME'
+    def _search_label_name_data(self, excel_data):
+        """
+        搜索Excel数据中"标签名称"关键字右边的数据
+        直接返回找到的数据，不做任何处理
+        """
+        print(f"🔍 开始搜索标签名称关键字...")
+        print(f"📋 Excel数据中所有单元格：")
+        for key, value in sorted(excel_data.items()):
+            if value is not None:
+                print(f"   {key}: {repr(value)}")
         
-        # 去掉开头的"-"符号，但保留其他格式
-        clean_theme = theme_text.lstrip('-').strip()
+        # 遍历所有Excel数据，查找包含"标签名称"的单元格
+        for key, value in excel_data.items():
+            if value and "标签名称" in str(value):
+                print(f"🔍 在单元格 {key} 找到标签名称关键字: {value}")
+                
+                # 尝试找到右边单元格的数据
+                # 假设key格式为字母+数字，如A4, B5等
+                try:
+                    import re
+                    match = re.match(r'([A-Z]+)(\d+)', key)
+                    if match:
+                        col_letters = match.group(1)
+                        row_number = match.group(2)
+                        
+                        # 计算右边一列的单元格
+                        next_col = self._get_next_column(col_letters)
+                        right_cell_key = f"{next_col}{row_number}"
+                        
+                        print(f"🔍 计算右边单元格: {key} -> {right_cell_key}")
+                        
+                        # 获取右边单元格的数据
+                        right_cell_data = excel_data.get(right_cell_key)
+                        if right_cell_data:
+                            print(f"✅ 找到标签名称右边数据 ({right_cell_key}): {right_cell_data}")
+                            return str(right_cell_data).strip()
+                        else:
+                            print(f"⚠️  右边单元格 {right_cell_key} 无数据")
+                            print(f"📋 检查右边单元格周围的数据：")
+                            for check_key, check_value in excel_data.items():
+                                if check_key.endswith(row_number) and check_value:
+                                    print(f"     {check_key}: {repr(check_value)}")
+                except Exception as e:
+                    print(f"❌ 解析单元格位置失败: {e}")
         
-        # 如果主题包含中英文，优先显示英文部分，但保持完整性
-        # 对于 "TAB STREET DRAMA" 这样的主题，直接返回
-        import re
+        # 如果没找到"标签名称"关键字，直接返回B4的数据作为备选
+        fallback_theme = excel_data.get('B4', '默认主题')
+        print(f"⚠️  未找到标签名称关键字，使用B4备选数据: {fallback_theme}")
+        return str(fallback_theme).strip() if fallback_theme else '默认主题'
+    
+    def _get_next_column(self, col_letters):
+        """获取下一列的字母标识"""
+        # 将字母转换为数字，加1，再转回字母
+        result = 0
+        for char in col_letters:
+            result = result * 26 + (ord(char) - ord('A') + 1)
         
-        # 查找英文部分（可能包含空格）
-        english_match = re.search(r'[A-Z][A-Z\s\'!-]*[A-Z!]', clean_theme)
-        if english_match:
-            english_part = english_match.group().strip()
-            # 如果英文部分看起来是完整的主题，就使用它
-            if len(english_part.split()) >= 2:  # 至少两个单词
-                return english_part
+        result += 1  # 下一列
         
-        # 否则返回清理后的原始主题
-        return clean_theme if clean_theme else 'DEFAULT THEME'
+        # 转回字母
+        next_col = ''
+        while result > 0:
+            result -= 1
+            next_col = chr(result % 26 + ord('A')) + next_col
+            result //= 26
+        
+        return next_col
+    
+    def _draw_multiline_text(self, canvas_obj, text, x, y, max_width, max_height, font_name, font_size, align='left'):
+        """
+        绘制支持自动换行的多行文本
+        
+        Args:
+            canvas_obj: ReportLab Canvas对象
+            text: 要绘制的文本
+            x, y: 文本区域左上角坐标
+            max_width: 文本区域最大宽度
+            max_height: 文本区域最大高度
+            font_name: 字体名称
+            font_size: 字体大小
+            align: 对齐方式 ('left', 'center', 'right')
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 分割文本为单词
+        words = text.split()
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if test_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    # 单个单词太长，强制换行
+                    lines.append(word)
+        
+        if current_line:
+            lines.append(current_line)
+        
+        # 计算行高
+        line_height = font_size * 1.2
+        total_text_height = len(lines) * line_height
+        
+        # 禁用自动字体调整，保持设定的大字体效果
+        # 注释掉自动调整逻辑，确保使用原始大字体
+        # if total_text_height > max_height and len(lines) > 1:
+        #     adjusted_font_size = max_height / (len(lines) * 1.2)
+        #     if adjusted_font_size < font_size:
+        #         font_size = max(adjusted_font_size, font_size * 0.6)  # 最小不低于原大小的60%
+        #         c.setFont(font_name, font_size)
+        #         line_height = font_size * 1.2
+        #         total_text_height = len(lines) * line_height
+        
+        # 计算起始Y坐标（从顶部开始）
+        start_y = y - font_size
+        
+        # 绘制每一行
+        for i, line in enumerate(lines):
+            line_y = start_y - (i * line_height)
+            
+            if align == 'center':
+                line_width = c.stringWidth(line, font_name, font_size)
+                line_x = x + (max_width - line_width) / 2
+            elif align == 'right':
+                line_width = c.stringWidth(line, font_name, font_size)
+                line_x = x + max_width - line_width
+            else:  # left
+                line_x = x
+            
+            c.drawString(line_x, line_y, line)
+            print(f"绘制文本行 {i+1}: '{line}' 在位置 ({line_x}, {line_y})")
+    
+    def _draw_bold_multiline_text(self, canvas_obj, text, x, y, max_width, max_height, font_name, font_size, align='left'):
+        """
+        绘制支持自动换行的粗体多行文本（通过重复绘制实现粗体效果）
+        
+        Args:
+            canvas_obj: ReportLab Canvas对象
+            text: 要绘制的文本
+            x, y: 文本区域左上角坐标
+            max_width: 文本区域最大宽度
+            max_height: 文本区域最大高度
+            font_name: 字体名称
+            font_size: 字体大小
+            align: 对齐方式 ('left', 'center', 'right')
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 分割文本为单词
+        words = text.split()
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if test_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    # 单个单词太长，强制换行
+                    lines.append(word)
+        
+        if current_line:
+            lines.append(current_line)
+        
+        # 计算行高
+        line_height = font_size * 1.2
+        total_text_height = len(lines) * line_height
+        
+        # 禁用自动字体调整，保持设定的大字体效果
+        # 注释掉自动调整逻辑，确保使用原始大字体
+        # if total_text_height > max_height and len(lines) > 1:
+        #     adjusted_font_size = max_height / (len(lines) * 1.2)
+        #     if adjusted_font_size < font_size:
+        #         font_size = max(adjusted_font_size, font_size * 0.6)  # 最小不低于原大小的60%
+        #         c.setFont(font_name, font_size)
+        #         line_height = font_size * 1.2
+        #         total_text_height = len(lines) * line_height
+        
+        # 计算起始Y坐标（从顶部开始）
+        start_y = y - font_size
+        
+        # 粗体效果的偏移量 - 多行文本增强3倍
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.9, 0),    # 右偏移，增大3倍
+            (0, 0.9),    # 上偏移，增大3倍
+            (0.9, 0.9),  # 右上偏移，增大3倍
+            (0.45, 0),   # 额外右偏移
+            (0, 0.45),   # 额外上偏移
+            (0.45, 0.45), # 额外右上偏移
+            (0.6, 0.3),  # 更多偏移点
+            (0.3, 0.6),  # 更多偏移点
+            (0.75, 0.15), # 更多偏移点
+            (0.15, 0.75), # 更多偏移点
+        ]
+        
+        # 绘制每一行（多次绘制实现粗体效果）
+        for i, line in enumerate(lines):
+            line_y = start_y - (i * line_height)
+            
+            if align == 'center':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + (max_width - line_width) / 2
+            elif align == 'right':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + max_width - line_width
+            else:  # left
+                base_line_x = x
+            
+            # 多次绘制实现粗体效果
+            for offset_x, offset_y in bold_offsets:
+                c.drawString(base_line_x + offset_x, line_y + offset_y, line)
+            
+            print(f"绘制粗体文本行 {i+1}: '{line}' 在位置 ({base_line_x}, {line_y})")
+    
+    def _draw_bold_single_line(self, canvas_obj, text, x, y, max_width, font_name, font_size, align='left'):
+        """
+        绘制单行粗体文本（通过重复绘制实现粗体效果）
+        
+        Args:
+            canvas_obj: ReportLab Canvas对象
+            text: 要绘制的文本
+            x, y: 文本区域左上角坐标
+            max_width: 文本区域最大宽度
+            font_name: 字体名称
+            font_size: 字体大小
+            align: 对齐方式 ('left', 'center', 'right')
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 计算文本位置
+        text_width = c.stringWidth(text, font_name, font_size)
+        
+        if align == 'center':
+            base_x = x + (max_width - text_width) / 2
+        elif align == 'right':
+            base_x = x + max_width - text_width
+        else:  # left
+            base_x = x
+        
+        # 粗体效果的偏移量 - 单行文本增强3倍
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.9, 0),    # 右偏移，增大3倍
+            (0, 0.9),    # 上偏移，增大3倍
+            (0.9, 0.9),  # 右上偏移，增大3倍
+            (0.45, 0),   # 额外右偏移
+            (0, 0.45),   # 额外上偏移
+            (0.45, 0.45), # 额外右上偏移
+            (0.6, 0.3),  # 更多偏移点
+            (0.3, 0.6),  # 更多偏移点
+            (0.75, 0.15), # 更多偏移点
+            (0.15, 0.75), # 更多偏移点
+        ]
+        
+        # 多次绘制实现粗体效果
+        for offset_x, offset_y in bold_offsets:
+            c.drawString(base_x + offset_x, y + offset_y, text)
+        
+        print(f"绘制粗体单行文本: '{text}' 在位置 ({base_x}, {y})")
     
     def _generate_division_number(self, base_number, outer_case_index, inner_in_outer):
         """
@@ -271,43 +478,48 @@ class DivisionBoxTemplate:
         # c.setLineWidth(0.5)
         # c.rect(label_x, label_y, label_width, label_height)
         
-        # 主题文字 - 上半部分，居中显示
+        # 主题文字 - 上半部分，居中显示，支持自动换行
         theme = label_data.get('theme', 'DEFAULT THEME')
+        theme_text = str(theme) if theme else 'DEFAULT THEME'
         
-        # 设置主题字体和大小
-        theme_font_size = 14  # 主题字体大小
-        c.setFont(self.chinese_font, theme_font_size)
+        # 设置主题字体和大小（使用粗体效果）
+        theme_font_size = 18  # 适中的大字体效果，避免重叠
         
-        # 清理字符串编码
-        clean_theme = str(theme).encode('latin1', 'replace').decode('latin1')
+        # 绘制主题 - 支持自动换行的多行显示
+        # 定义主题文字区域（盒标采用上下分区设计）
+        theme_max_width = label_width - 6 * mm  # 左右各留3mm边距
+        theme_max_height = label_height * 0.6   # 给主题文字更多空间，60%的高度
         
-        # 计算主题文字位置 - 垂直居中在上半部分
-        theme_text_width = c.stringWidth(clean_theme, self.chinese_font, theme_font_size)
-        theme_x = label_x + (label_width - theme_text_width) / 2  # 水平居中
-        theme_y = label_y + label_height * 0.65  # 位于标签上半部分
+        # 主题区域的左上角坐标
+        theme_x = label_x + 3 * mm  # 左边距
+        theme_y = label_y + label_height - 9 * mm  # 从标签顶部向下9mm开始，再往下移动
         
-        # 绘制主题
-        c.drawString(theme_x, theme_y, clean_theme)
-        print(f"绘制主题: '{clean_theme}' 在位置 ({theme_x}, {theme_y})")
+        # 使用多行粗体绘制，支持自动换行和居中对齐
+        self._draw_bold_multiline_text(
+            c, theme_text, theme_x, theme_y,
+            theme_max_width, theme_max_height, 
+            self.chinese_font, theme_font_size,
+            align='center'  # 居中对齐
+        )
         
-        # 编号文字 - 下半部分，居中显示
+        # 编号文字 - 下半部分，居中显示，使用粗体效果
         number = label_data.get('number', 'MOP01001-01')
+        number_text = str(number) if number else 'MOP01001-01'
         
-        # 设置编号字体和大小
-        number_font_size = 12  # 编号字体大小
-        c.setFont(self.chinese_font, number_font_size)
+        # 设置编号字体和大小（使用粗体效果）
+        number_font_size = 18  # 适中的大字体效果，与主题保持一致
         
-        # 清理字符串编码
-        clean_number = str(number).encode('latin1', 'replace').decode('latin1')
+        # 绘制编号（使用粗体效果）
+        number_area_width = label_width * 0.9  # 编号区域宽度
+        number_area_height = label_height * 0.25  # 编号区域高度
+        number_start_x = label_x + (label_width - number_area_width) / 2
+        number_start_y = label_y + label_height * 0.25  # 更靠下的位置，增加与主题的间距
         
-        # 计算编号文字位置 - 垂直居中在下半部分
-        number_text_width = c.stringWidth(clean_number, self.chinese_font, number_font_size)
-        number_x = label_x + (label_width - number_text_width) / 2  # 水平居中
-        number_y = label_y + label_height * 0.25  # 位于标签下半部分
-        
-        # 绘制编号
-        c.drawString(number_x, number_y, clean_number)
-        print(f"绘制编号: '{clean_number}' 在位置 ({number_x}, {number_y})")
+        self._draw_bold_single_line(
+            c, number_text, number_start_x, number_start_y,
+            number_area_width, self.chinese_font, number_font_size,
+            align='center'
+        )
     
     def generate_division_box_labels_pdf(self, excel_data, box_config, output_path):
         """
