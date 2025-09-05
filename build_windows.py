@@ -27,13 +27,25 @@ def build_windows_gui():
         print("ERROR: Cannot find src/gui_app.py")
         return
     
-    # Use Windows-specific configuration file
-    cmd = [
-        "pyinstaller",
-        "DataToPDF_GUI_Windows.spec",
-        "--clean",  # Clear cache
-        "--noconfirm",  # Don't ask for overwrite confirmation
-    ]
+    # Use Windows-specific configuration file if available, otherwise direct build
+    if os.path.exists("DataToPDF_GUI_Windows.spec"):
+        cmd = [
+            "pyinstaller",
+            "DataToPDF_GUI_Windows.spec",
+            "--clean",  # Clear cache
+            "--noconfirm",  # Don't ask for overwrite confirmation
+        ]
+    else:
+        print("WARNING: DataToPDF_GUI_Windows.spec not found, using direct build")
+        cmd = [
+            "pyinstaller",
+            "--onefile",
+            "--windowed",  # No console window
+            "--name=DataToPDF_GUI",
+            "--clean",
+            "--noconfirm",
+            "src/gui_app.py"
+        ]
     
     try:
         # Clean old files
