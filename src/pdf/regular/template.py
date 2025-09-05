@@ -2,8 +2,6 @@
 常规模板 - 标准的多级标签PDF生成
 """
 import math
-import sys
-import os
 from pathlib import Path
 from typing import Dict, Any
 from reportlab.pdfgen import canvas
@@ -11,30 +9,14 @@ from reportlab.lib.colors import CMYKColor
 from reportlab.lib.units import mm
 
 # 导入基础工具类
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "utils"))
-from pdf_base import PDFBaseUtils
-from font_manager import font_manager
-from text_processor import text_processor
-from excel_data_extractor import ExcelDataExtractor
+from src.utils.pdf_base import PDFBaseUtils
+from src.utils.font_manager import font_manager
+from src.utils.text_processor import text_processor
+from src.utils.excel_data_extractor import ExcelDataExtractor
 
 # 导入常规模板专属数据处理器和渲染器
-current_dir = os.path.dirname(__file__)
-sys.path.insert(0, current_dir)
-
-# 使用importlib导入以避免命名冲突
-import importlib.util
-
-# 导入data_processor
-dp_spec = importlib.util.spec_from_file_location("regular_data_processor", os.path.join(current_dir, "data_processor.py"))
-dp_module = importlib.util.module_from_spec(dp_spec)
-dp_spec.loader.exec_module(dp_module)
-regular_data_processor = dp_module.regular_data_processor
-
-# 导入renderer
-renderer_spec = importlib.util.spec_from_file_location("regular_renderer", os.path.join(current_dir, "renderer.py"))
-renderer_module = importlib.util.module_from_spec(renderer_spec)
-renderer_spec.loader.exec_module(renderer_module)
-regular_renderer = renderer_module.regular_renderer
+from src.pdf.regular.data_processor import regular_data_processor
+from src.pdf.regular.renderer import regular_renderer
 
 
 class RegularTemplate(PDFBaseUtils):

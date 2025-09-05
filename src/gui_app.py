@@ -14,12 +14,12 @@ import os
 # 添加src目录到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from pdf.generator import PDFGenerator
-from pdf.regular.ui_dialog import get_regular_ui_dialog
-from pdf.split_box.ui_dialog import get_split_box_ui_dialog
-from pdf.nested_box.ui_dialog import get_nested_box_ui_dialog
-from utils.text_processor import text_processor
-from utils.excel_data_extractor import ExcelDataExtractor
+from src.pdf.generator import PDFGenerator
+from src.pdf.regular.ui_dialog import get_regular_ui_dialog
+from src.pdf.split_box.ui_dialog import get_split_box_ui_dialog
+from src.pdf.nested_box.ui_dialog import get_nested_box_ui_dialog
+from src.utils.text_processor import text_processor
+from src.utils.excel_data_extractor import ExcelDataExtractor
 
 
 class DataToPDFApp:
