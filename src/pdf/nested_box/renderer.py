@@ -104,13 +104,16 @@ class NestedBoxRenderer:
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
         # 行1: Item (第5行，从上往下) - 多次绘制加粗
-        item_y = row_positions[4] + base_row_height/2
+        # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
+        font_size = 10
+        text_offset = font_size / 3
+        item_y = row_positions[4] + base_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
             c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
         
         # 行2: Theme (第4行) - 多次绘制加粗
-        theme_y = row_positions[3] + base_row_height/2
+        theme_y = row_positions[3] + base_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
         
@@ -126,8 +129,11 @@ class NestedBoxRenderer:
             line_height = 10
             # 计算整个文本块的总高度
             total_text_height = (len(theme_lines) - 1) * line_height
-            # 让文本块在单元格中垂直居中
-            start_y = theme_y + total_text_height / 2
+            # 重新计算多行文本的垂直居中位置
+            # 使用单元格的中心位置，然后调整整个文本块的位置
+            cell_center_y = row_positions[3] + base_row_height / 2
+            multi_text_offset = 8 / 3  # 8号字体的偏移
+            start_y = cell_center_y + total_text_height / 2 - multi_text_offset
             for i, line in enumerate(theme_lines):
                 for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                     c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
@@ -137,28 +143,28 @@ class NestedBoxRenderer:
                 c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
         
         # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗
-        quantity_label_y = row_positions[2] + quantity_row_height/2
+        quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
         # 上层：票数（在分隔线上方居中）
-        upper_y = row_positions[2] + quantity_row_height * 3/4
+        upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
         pcs_text = f"{pieces_per_small_box}PCS"
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
         # 下层：序列号范围（在分隔线下方居中）
-        lower_y = row_positions[2] + quantity_row_height/4
+        lower_y = row_positions[2] + quantity_row_height/4 - text_offset
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
         
         # 行4: Carton No (第2行) - 多次绘制加粗
-        carton_y = row_positions[1] + base_row_height/2
+        carton_y = row_positions[1] + base_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
             c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
         
         # 行5: Remark (第1行) - 多次绘制加粗
-        remark_y = row_positions[0] + base_row_height/2
+        remark_y = row_positions[0] + base_row_height/2 - text_offset
         clean_remark_text = text_processor.clean_text_for_font(remark_text)
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
