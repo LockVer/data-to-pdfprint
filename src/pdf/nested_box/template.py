@@ -2,8 +2,6 @@
 Nested Box Template - Multi-level PDF generation with Excel serial number ranges
 """
 import math
-import sys
-import os
 from pathlib import Path
 from typing import Dict, Any
 from reportlab.pdfgen import canvas
@@ -17,23 +15,8 @@ from src.utils.text_processor import text_processor
 from src.utils.excel_data_extractor import ExcelDataExtractor
 
 # 导入套盒模板专属数据处理器和渲染器
-current_dir = os.path.dirname(__file__)
-sys.path.insert(0, current_dir)
-
-# 使用importlib导入以避免命名冲突
-import importlib.util
-
-# 导入data_processor
-dp_spec = importlib.util.spec_from_file_location("nested_box_data_processor", os.path.join(current_dir, "data_processor.py"))
-dp_module = importlib.util.module_from_spec(dp_spec)
-dp_spec.loader.exec_module(dp_module)
-nested_box_data_processor = dp_module.nested_box_data_processor
-
-# 导入renderer
-renderer_spec = importlib.util.spec_from_file_location("nested_box_renderer", os.path.join(current_dir, "renderer.py"))
-renderer_module = importlib.util.module_from_spec(renderer_spec)
-renderer_spec.loader.exec_module(renderer_module)
-nested_box_renderer = renderer_module.nested_box_renderer
+from src.pdf.nested_box.data_processor import nested_box_data_processor
+from src.pdf.nested_box.renderer import nested_box_renderer
 
 
 class NestedBoxTemplate(PDFBaseUtils):

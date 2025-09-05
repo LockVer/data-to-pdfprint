@@ -2,8 +2,6 @@
 Split Box Template - Multi-level PDF generation with special serial number logic
 """
 import math
-import sys
-import os
 from pathlib import Path
 from typing import Dict, Any
 from reportlab.pdfgen import canvas
@@ -12,23 +10,8 @@ from reportlab.lib.colors import CMYKColor
 from src.utils.pdf_base import PDFBaseUtils
 
 # 导入分盒模板专属数据处理器和渲染器
-current_dir = os.path.dirname(__file__)
-sys.path.insert(0, current_dir)
-
-# 使用importlib导入以避免命名冲突
-import importlib.util
-
-# 导入data_processor
-dp_spec = importlib.util.spec_from_file_location("split_box_data_processor", os.path.join(current_dir, "data_processor.py"))
-dp_module = importlib.util.module_from_spec(dp_spec)
-dp_spec.loader.exec_module(dp_module)
-split_box_data_processor = dp_module.split_box_data_processor
-
-# 导入renderer
-renderer_spec = importlib.util.spec_from_file_location("split_box_renderer", os.path.join(current_dir, "renderer.py"))
-renderer_module = importlib.util.module_from_spec(renderer_spec)
-renderer_spec.loader.exec_module(renderer_module)
-split_box_renderer = renderer_module.split_box_renderer
+from src.pdf.split_box.data_processor import split_box_data_processor
+from src.pdf.split_box.renderer import split_box_renderer
 
 
 class SplitBoxTemplate(PDFBaseUtils):

@@ -4,6 +4,6 @@ Split Box Template Package
 """
 
 # 使用直接导入，兼容PyInstaller
-from .template import SplitBoxTemplate
+from src.pdf.split_box.template import SplitBoxTemplate
 
 __all__ = ['SplitBoxTemplate']

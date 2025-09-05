@@ -4,6 +4,6 @@ Regular Template Package
 """
 
 # 使用直接导入，兼容PyInstaller
-from .template import RegularTemplate
+from src.pdf.regular.template import RegularTemplate
 
 __all__ = ['RegularTemplate']
