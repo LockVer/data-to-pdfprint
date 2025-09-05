@@ -306,9 +306,12 @@ class RegularTemplate(PDFBaseUtils):
             else:
                 serial_range = f"BOX{small_box_num:05d}"
 
+            # 计算小箱标Carton No - 格式：当前小箱/总小箱数
+            carton_no = regular_data_processor.calculate_carton_number_for_small_box(small_box_num, total_small_boxes)
+            
             # 绘制小箱标表格
             regular_renderer.draw_small_box_table(c, width, height, theme_text, pieces_per_small_box, 
-                                                 serial_range, str(small_box_num), remark_text)
+                                                 serial_range, carton_no, remark_text)
 
         c.save()
 
@@ -417,9 +420,12 @@ class RegularTemplate(PDFBaseUtils):
             else:
                 serial_range = f"LARGE{large_box_num:05d}"
 
+            # 计算大箱标Carton No - 格式：当前大箱/总大箱数  
+            carton_no = regular_data_processor.calculate_carton_range_for_large_box(large_box_num, total_large_boxes)
+            
             # 绘制大箱标表格
             regular_renderer.draw_large_box_table(c, width, height, theme_text, pieces_per_large_box,
-                                                 serial_range, str(large_box_num), remark_text)
+                                                 serial_range, carton_no, remark_text)
 
         c.save()
 

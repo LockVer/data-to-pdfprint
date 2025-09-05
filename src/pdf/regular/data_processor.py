@@ -187,15 +187,13 @@ class RegularDataProcessor:
         print(f"📝 常规大箱标 #{large_box_num}: 包含小箱{start_small_box}-{end_small_box}, 盒{start_box}-{end_box}, 序列号范围={serial_range}")
         return serial_range
     
-    def calculate_carton_number_for_small_box(self, small_box_num: int) -> str:
-        """计算常规小箱标的Carton No - 与原有逻辑完全一致"""
-        return str(small_box_num)
+    def calculate_carton_number_for_small_box(self, small_box_num: int, total_small_boxes: int) -> str:
+        """计算常规小箱标的Carton No - 格式：第几小箱/总小箱数"""
+        return f"{small_box_num}/{total_small_boxes}"
     
-    def calculate_carton_range_for_large_box(self, large_box_num: int, small_boxes_per_large_box: int) -> str:
-        """计算常规大箱标的Carton No范围 - 与原有逻辑完全一致"""
-        start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
-        end_small_box = start_small_box + small_boxes_per_large_box - 1
-        return f"{start_small_box}-{end_small_box}"
+    def calculate_carton_range_for_large_box(self, large_box_num: int, total_large_boxes: int) -> str:
+        """计算常规大箱标的Carton No - 格式：第几大箱/总大箱数"""
+        return f"{large_box_num}/{total_large_boxes}"
     
     def calculate_pieces_for_small_box(self, small_box_num: int, total_small_boxes: int, 
                                      pieces_per_small_box: int, remaining_pieces: int) -> int:
