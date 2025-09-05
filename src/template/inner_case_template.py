@@ -74,10 +74,9 @@ class InnerCaseTemplate:
             remaining_sheets = total_sheets - (i * sheets_per_inner_case)
             current_sheets = min(sheets_per_inner_case, remaining_sheets)
             
-            # 提取英文主题
-            theme_text = excel_data.get('B4', '默认主题')
-            english_theme = self._extract_english_theme(theme_text)
-            print(f"原始主题: '{theme_text}' -> 提取后: '{english_theme}'")
+            # 直接使用搜索到的主题，不做任何处理
+            theme_text = self._search_label_name_data(excel_data)
+            print(f"搜索到的主题: '{theme_text}'")
             
             # 计算编号范围 - 基于当前内箱的盒数范围
             start_box = i * box_per_inner + 1  # 当前内箱的第一个盒号
@@ -91,27 +90,222 @@ class InnerCaseTemplate:
             number_range = f"{start_number}-{end_number}"  # 始终显示为范围格式，即使相同
             print(f"编号生成: 基础'{base_number}' -> 开始'{start_number}' -> 结束'{end_number}' -> 范围'{number_range}'")
             
-            # 确保字符串是纯ASCII或正确的UTF-8编码
-            clean_theme = str(english_theme).encode('utf-8').decode('utf-8') if english_theme else 'DEFAULT THEME'
-            clean_range = str(number_range).encode('utf-8').decode('utf-8') if number_range else 'DEFAULT001-DEFAULT001'
-            clean_remark = str(excel_data.get('A4', '默认客户')).encode('utf-8').decode('utf-8')
-            
             label_data = {
                 'item': 'Paper Cards',  # 固定值
-                'theme': clean_theme,  # 确保编码正确的主题
+                'theme': theme_text,  # 直接使用搜索到的主题
                 'quantity': f"{current_sheets}PCS",  # 小箱张数
-                'number_range': clean_range,  # 确保编码正确的编号范围
+                'number_range': number_range,  # 编号范围
                 'carton_no': f"{i+1}/{total_inner_cases}",  # 箱号：第几箱/总箱数
-                'remark': clean_remark,  # 确保编码正确的备注
+                'remark': excel_data.get('A4', '默认客户'),  # 直接使用备注
                 'case_index': i + 1,
                 'total_cases': total_inner_cases
             }
             
-            print(f"清理后的数据: theme='{clean_theme}', range='{clean_range}'")
+            print(f"内箱标数据: theme='{theme_text}', range='{number_range}'")
             
             inner_case_labels.append(label_data)
         
         return inner_case_labels
+    
+    def _search_label_name_data(self, excel_data):
+        """
+        搜索Excel数据中"标签名称"关键字右边的数据 - 模糊匹配
+        直接返回找到的数据，不做任何处理
+        """
+        print(f"🔍 开始模糊搜索标签名称关键字...")
+        print(f"📋 Excel数据中所有单元格：")
+        for key, value in sorted(excel_data.items()):
+            if value is not None:
+                print(f"   {key}: {repr(value)}")
+        
+        # 先显示所有包含"标签"或"名称"的单元格数据，帮助调试
+        print("📋 所有包含'标签'或'名称'的单元格：")
+        for key, value in sorted(excel_data.items()):
+            try:
+                if value is not None and ("标签" in str(value) or "名称" in str(value)):
+                    print(f"   {key}: {repr(value)}")
+            except Exception as e:
+                # 跳过有问题的数据
+                continue
+        
+        # 遍历所有Excel数据，模糊查找包含"标签名称"的单元格
+        for key, value in excel_data.items():
+            try:
+                if value is not None and "标签名称" in str(value):
+                    print(f"✅ 在单元格 {key} 找到标签名称关键字: {value}")
+                    
+                    # 尝试找到右边单元格的数据
+                    import re
+                    match = re.match(r'([A-Z]+)(\d+)', key)
+                    if match:
+                        col_letters = match.group(1)
+                        row_number = match.group(2)
+                        
+                        # 计算右边一列的单元格
+                        next_col = self._get_next_column(col_letters)
+                        right_cell_key = f"{next_col}{row_number}"
+                        
+                        print(f"🔍 计算右边单元格: {key} -> {right_cell_key}")
+                        
+                        # 获取右边单元格的数据
+                        right_cell_data = excel_data.get(right_cell_key)
+                        if right_cell_data:
+                            # 不转换为小写，保持原始格式
+                            result = str(right_cell_data).strip()
+                            print(f"✅ 成功提取标签名称右边数据 ({right_cell_key}): {right_cell_data} -> {result}")
+                            return result
+                        else:
+                            print(f"⚠️  右边单元格 {right_cell_key} 无数据")
+                            print(f"📋 检查右边单元格周围的数据：")
+                            for check_key, check_value in excel_data.items():
+                                if check_key.endswith(row_number) and check_value:
+                                    print(f"     {check_key}: {repr(check_value)}")
+            except Exception as e:
+                # 跳过有问题的数据，继续搜索
+                continue
+        
+        # 如果没找到"标签名称"关键字，使用B4备选数据
+        fallback_theme = excel_data.get('B4', '默认主题')
+        print(f"⚠️  未找到标签名称关键字，使用B4备选数据: {fallback_theme}")
+        return str(fallback_theme).strip() if fallback_theme else '默认主题'
+    
+    def _get_next_column(self, col_letters):
+        """获取下一列的字母标识"""
+        result = 0
+        for char in col_letters:
+            result = result * 26 + (ord(char) - ord('A') + 1)
+        
+        result += 1  # 下一列
+        
+        # 转回字母
+        next_col = ''
+        while result > 0:
+            result -= 1
+            next_col = chr(result % 26 + ord('A')) + next_col
+            result //= 26
+        
+        return next_col
+    
+    def _draw_bold_text(self, canvas_obj, text, x, y, font_name, font_size):
+        """
+        绘制粗体文本（通过重复绘制实现粗体效果）
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 粗体效果的偏移量 - 减小偏移量避免重影
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.3, 0),    # 右偏移，减小到0.3
+            (0, 0.3),    # 上偏移，减小到0.3  
+            (0.3, 0.3),  # 右上偏移
+        ]
+        
+        # 多次绘制实现粗体效果
+        for offset_x, offset_y in bold_offsets:
+            c.drawString(x + offset_x, y + offset_y, text)
+    
+    def _draw_multiline_bold_text(self, canvas_obj, text, x, y, max_width, max_height, font_name, font_size, align='center'):
+        """
+        绘制支持自动换行的粗体多行文本
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 分割文本为单词
+        words = text.split()
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if test_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    # 单个单词太长，强制换行
+                    lines.append(word)
+        
+        if current_line:
+            lines.append(current_line)
+        
+        # 计算行高 - 为主题文字使用更紧凑的行距
+        line_height = font_size * 1.0  # 减小行距，让文字更紧凑
+        total_text_height = len(lines) * line_height
+        
+        # 保持固定字体大小，不做自动调整以确保一致性
+        # 如果文本高度超过最大高度，仍保持原字体大小
+        # font_size 保持不变，确保所有主题使用相同大小
+        
+        # 计算起始Y坐标，根据行数决定显示位置
+        text_block_height = len(lines) * line_height
+        
+        if len(lines) == 1:
+            # 单行文本：使用与其他行完全相同的Y坐标计算
+            # max_height = row_height - 2mm，所以实际行高 = max_height + 2mm
+            # 单元格中心应该在 y + (max_height + 2mm) / 2 = y + max_height/2 + 1mm
+            cell_center_y = y + max_height / 2 + 1 * mm
+            start_y = cell_center_y - 1 * mm  # 与其他行一致的偏移
+        else:
+            # 多行文本：从顶部开始，留小边距
+            start_y = y + max_height - line_height * 0.3
+        
+        # 粗体效果的偏移量 - 减小偏移量避免重影
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.3, 0),    # 右偏移，减小到0.3
+            (0, 0.3),    # 上偏移，减小到0.3  
+            (0.3, 0.3),  # 右上偏移
+        ]
+        
+        # 绘制每一行
+        for i, line in enumerate(lines):
+            line_y = start_y - (i * line_height)
+            
+            if align == 'center':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_x = x + (max_width - line_width) / 2
+            elif align == 'right':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_x = x + max_width - line_width
+            else:  # left
+                base_x = x
+            
+            # 多次绘制实现粗体效果
+            for offset_x, offset_y in bold_offsets:
+                c.drawString(base_x + offset_x, line_y + offset_y, line)
+    
+    def _extract_content_after_keyword(self, text, keyword):
+        """
+        从文本中提取关键词后面的内容
+        
+        Args:
+            text: 包含关键词的文本
+            keyword: 要查找的关键词
+        
+        Returns:
+            str: 关键词后面的内容
+        """
+        if not text or not keyword:
+            return text
+        
+        # 查找关键词位置
+        keyword_index = text.find(keyword)
+        if keyword_index == -1:
+            return text
+        
+        # 提取关键词后面的内容
+        content_after = text[keyword_index + len(keyword):].strip()
+        
+        # 去掉可能的冒号或其他分隔符
+        content_after = content_after.lstrip('：: \t')
+        
+        return content_after if content_after else text
     
     def _extract_english_theme(self, theme_text):
         """提取英文主题"""
@@ -328,11 +522,11 @@ class InnerCaseTemplate:
         # 垂直分隔线 - 完整绘制，因为我们只是左列跨行，右列还是分开的
         c.line(col_divider_x, table_y, col_divider_x, table_y + table_height)
         
-        # 设置字体 - 精确匹配参考图片的字体大小
-        font_size_label = 8    # 标签列字体，稍微减小
-        font_size_content = 9  # 内容列基础字体，稍微减小 
-        font_size_theme = 9    # Theme行字体，保持一致
-        font_size_carton = 9   # Carton No.行字体，保持一致
+        # 设置字体 - 与分合模版保持一致
+        font_size_label = 9    # 标签列字体，与分合模版一致
+        font_size_content = 9  # 内容列基础字体，与分合模版一致
+        font_size_theme = 9    # Theme行字体，与分合模版一致
+        font_size_carton = 9   # Carton No.行字体，与分合模版一致
         
         # 表格内容数据 - 改为6行，Quantity分为两行
         table_rows = [
@@ -351,51 +545,59 @@ class InnerCaseTemplate:
             # 第一列 - 标签处理
             if i == 2:  # Quantity第一行，绘制跨两行的"Quantity:"标签
                 c.setFillColor(black)  # 使用ReportLab的black而不是CMYK颜色
-                c.setFont('Helvetica-Bold', font_size_label)
                 label_x = table_x + 2 * mm  # 基于表格位置
                 # Quantity标签垂直居中在第3-4行的中间
                 row3_center = table_y + table_height - (2 + 0.5) * row_height
                 row4_center = table_y + table_height - (3 + 0.5) * row_height
                 quantity_label_y = (row3_center + row4_center) / 2 - 1 * mm
-                c.drawString(label_x, quantity_label_y, label)
+                # 使用粗体绘制方法，保持与右列一致的粗细
+                self._draw_bold_text(c, label, label_x, quantity_label_y, self.chinese_font, font_size_label)
                 print(f"绘制跨行标签 {i}: '{label}' 在位置 ({label_x}, {quantity_label_y})")
             elif i == 3:  # Quantity第二行，左列空（已在上面绘制）
                 pass  # 不绘制左列标签
             else:  # 其他行正常绘制左列标签
                 if label:  # 只有当标签非空时才绘制
                     c.setFillColor(black)  # 使用ReportLab的black
-                    c.setFont('Helvetica-Bold', font_size_label)
                     label_x = table_x + 2 * mm  # 基于表格位置
                     label_y = row_y_center - 1 * mm
-                    c.drawString(label_x, label_y, label)
+                    # 使用粗体绘制方法，保持与右列一致的粗细
+                    self._draw_bold_text(c, label, label_x, label_y, self.chinese_font, font_size_label)
                     print(f"绘制标签 {i}: '{label}' 在位置 ({label_x}, {label_y})")
             
             # 第二列 - 内容
             content_x = col_divider_x + 2 * mm  # 内容列左边距，增加边距
             c.setFillColor(black)  # 使用ReportLab的black而不是CMYK颜色
             
-            # 根据行数设置字体大小
-            if i == 1:  # Theme行
-                c.setFont('Helvetica-Bold', font_size_theme)
+            # 根据行数设置字体大小并使用粗体绘制
+            content_text = str(content) if content else ''
+            
+            if i == 1:  # Theme行 - 使用多行文本自动换行
                 current_size = font_size_theme
-            elif i == 4:  # Carton No.行 (现在是第5行)
-                c.setFont('Helvetica-Bold', font_size_carton)  
-                current_size = font_size_carton
-            else:  # 其他行 (Item, Quantity数量, Quantity编号, Remark)
-                c.setFont('Helvetica-Bold', font_size_content)
-                current_size = font_size_content
-            
-            # 清理字符串编码
-            clean_content = str(content).encode('latin1', 'replace').decode('latin1') if content else ''
-            
-            # 用清理后的字符串计算居中位置
-            text_width = c.stringWidth(clean_content, 'Helvetica-Bold', current_size)
-            centered_x = content_x + (col2_width - text_width) / 2 - 2 * mm
-            
-            # 不自动换行，保持单行显示
-            # 如果文本太长，可以考虑减小字体或截断，但先尝试单行显示
-            c.drawString(centered_x, row_y_center - 1 * mm, clean_content)
-            print(f"绘制内容 {i}: 原始'{content}' -> 清理后'{clean_content}' 在位置 ({centered_x}, {row_y_center - 1 * mm})")
+                
+                # 使用多行粗体文本绘制，支持自动换行
+                max_width = col2_width - 4 * mm  # 减去左右边距
+                max_height = row_height - 2 * mm  # 减去上下边距
+                
+                # 绘制多行粗体文本，支持自动换行
+                # 传入单元格底部坐标，让多行文本方法内部处理定位
+                cell_bottom_y = row_y_center - row_height/2
+                self._draw_multiline_bold_text(c, content_text, content_x, cell_bottom_y, 
+                                              max_width, max_height, self.chinese_font, current_size, 'center')
+                print(f"绘制粗体多行主题: '{content_text}' 字体大小={current_size}pt，自动换行")
+                
+            else:  # 其他行 - 使用单行粗体文本
+                if i == 4:  # Carton No.行
+                    current_size = font_size_carton
+                else:  # 其他行 (Item, Quantity数量, Quantity编号, Remark)
+                    current_size = font_size_content
+                
+                # 计算居中位置
+                text_width = c.stringWidth(content_text, self.chinese_font, current_size)
+                centered_x = content_x + (col2_width - text_width) / 2 - 2 * mm
+                
+                # 绘制单行粗体文本
+                self._draw_bold_text(c, content_text, centered_x, row_y_center - 1 * mm, self.chinese_font, current_size)
+                print(f"绘制粗体内容 {i}: '{content_text}' 在位置 ({centered_x}, {row_y_center - 1 * mm})")
     
     def generate_inner_case_labels_pdf(self, excel_data, box_config, output_path):
         """

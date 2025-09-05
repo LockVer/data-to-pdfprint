@@ -131,59 +131,53 @@ class BoxLabelTemplate:
         center_x = x + self.LABEL_WIDTH / 2
         center_y = y + self.LABEL_HEIGHT / 2
         
-        # 上方：主题文字 - 只提取英文部分
-        raw_title = data.get('subject', data.get('B4', 'DEX\'S SIDEKICK'))
-        
-        # 智能提取英文部分
-        if raw_title:
-            import re
-            # 先去掉开头的"-"符号（如果有）
-            clean_title = raw_title.lstrip('-').strip()
-            
-            # 查找英文部分 - 匹配连续的英文字母、空格、撇号、感叹号等
-            english_patterns = [
-                r'[A-Z][A-Z\s\'!]*[A-Z!]',           # 大写字母开头结尾的英文短语
-                r'[A-Z]+\'[A-Z\s]+[A-Z!]',           # 带撇号的英文 (如 DEX'S SIDEKICK)
-                r'[A-Z]+[A-Z\s!]*',                  # 任何大写字母组合
-                r'[A-Za-z][A-Za-z\s\'!]*[A-Za-z!]'  # 任何英文字母组合
-            ]
-            
-            for pattern in english_patterns:
-                match = re.search(pattern, clean_title)
-                if match:
-                    main_title = match.group().strip()
-                    break
-            else:
-                # 如果没有匹配到，使用清理后的原标题
-                main_title = clean_title if clean_title else 'TAG! YOU\'RE IT!'
+        # 上方：主题文字 - 使用新的搜索方式获取主题
+        # 如果data中包含excel_data，则使用搜索方式，否则使用原有方式
+        if 'excel_data' in data:
+            main_title = self._search_label_name_data(data['excel_data'])
         else:
-            main_title = 'TAG! YOU\'RE IT!'
+            # 原有的主题提取方式（保持向后兼容）
+            raw_title = data.get('subject', data.get('B4', 'DEX\'S SIDEKICK'))
+            main_title = self._extract_english_theme(raw_title)
         
         # 调试输出
-        print(f"原始标题: '{raw_title}' -> 处理后标题: '{main_title}'")
+        print(f"盒标主题: '{main_title}'")
             
         # 重置绘制设置，确保文字正常渲染
         c.setFillColor(self.colors['black'])
         # 不设置描边，只使用填充模式绘制文字
         
-        # 主题文字 - 强制使用简单内置字体避免渲染问题
-        title_font_size = 18
-        c.setFont('Helvetica-Bold', title_font_size)  # 直接使用内置字体，不用注册的复杂字体
+        # 主题文字 - 使用粗体绘制方法，与分合模版保持一致
+        title_font_size = 18  # 与分合模版保持一致
         
-        title_width = c.stringWidth(main_title, 'Helvetica-Bold', title_font_size)
-        title_x = center_x - title_width / 2
-        title_y = center_y + 18  # 向上移动更多，增加与编号的间距
-        c.drawString(title_x, title_y, main_title)
+        # 主题区域设置
+        theme_max_width = self.LABEL_WIDTH - 6 * mm  # 左右各留3mm边距
+        theme_max_height = self.LABEL_HEIGHT * 0.6   # 给主题文字更多空间，60%的高度
+        theme_x = x + 3 * mm  # 左边距
+        theme_y = y + self.LABEL_HEIGHT - 9 * mm  # 从标签顶部向下9mm开始
         
-        # 编号文字 - 同样使用简单内置字体
+        # 使用多行粗体绘制，支持自动换行和居中对齐
+        self._draw_bold_multiline_text(
+            c, main_title, theme_x, theme_y,
+            theme_max_width, theme_max_height, 
+            self.chinese_font, title_font_size,
+            align='center'  # 居中对齐
+        )
+        
+        # 编号文字 - 使用粗体绘制方法，与分合模版保持一致
         product_code = data.get('start_number', data.get('B11', 'DSK01001'))
-        code_font_size = 20  # 稍大于主题，匹配目标样式比例
-        c.setFont('Helvetica-Bold', code_font_size)  # 直接使用内置字体
+        code_font_size = 18  # 与主题保持一致，统一为18pt
         
-        code_width = c.stringWidth(product_code, 'Helvetica-Bold', code_font_size)
-        code_x = center_x - code_width / 2
-        code_y = center_y - 18  # 向下移动更多，增加与主题的间距
-        c.drawString(code_x, code_y, product_code)
+        # 编号区域设置
+        number_area_width = self.LABEL_WIDTH * 0.9  # 编号区域宽度
+        number_start_x = x + (self.LABEL_WIDTH - number_area_width) / 2
+        number_start_y = y + self.LABEL_HEIGHT * 0.25  # 更靠下的位置，增加与主题的间距
+        
+        self._draw_bold_single_line(
+            c, product_code, number_start_x, number_start_y,
+            number_area_width, self.chinese_font, code_font_size,
+            align='center'
+        )
     
     def create_box_label_v2(self, canvas_obj, data, x, y):
         """
@@ -199,9 +193,13 @@ class BoxLabelTemplate:
         center_y = y + self.LABEL_HEIGHT / 2
         
         # 提取数据并进行数据映射
-        # B4 -> Game title (提取英文部分)
-        raw_theme = data.get('subject', data.get('B4', 'Lab forest'))
-        game_title = self._extract_english_theme_v2(raw_theme)
+        # 使用新的搜索方式获取主题
+        if 'excel_data' in data:
+            game_title = self._search_label_name_data(data['excel_data'])
+        else:
+            # 原有的主题提取方式（保持向后兼容）
+            raw_theme = data.get('subject', data.get('B4', 'Lab forest'))
+            game_title = self._extract_english_theme_v2(raw_theme)
         
         # Ticket count = 每盒张数 (不是总张数F4)
         ticket_count = data.get('min_box_count', data.get('box_count', 10))
@@ -212,8 +210,8 @@ class BoxLabelTemplate:
         # 重置绘制设置
         c.setFillColor(self.colors['black'])
         
-        # 字体设置 - 更大更粗的字体
-        font_size = 18  # 增大字体大小
+        # 字体设置 - 与分合模版保持一致
+        font_size = 18  # 与分合模版保持一致
         
         # 根据标准图片精确定位三行文本
         # 精细调整：第一行稍向下，第二三行更紧密且更靠下
@@ -225,29 +223,17 @@ class BoxLabelTemplate:
         left_margin = x + 4 * mm   # 左边距
         right_margin = 4 * mm      # 右边距（用于检查文本宽度）
         
-        # 使用紧凑字符间距确保长文本能完整显示
-        def draw_text_with_tight_spacing(canvas, x, y, text, font_size):
-            """绘制紧凑间距的文本"""
-            canvas.setFont('Helvetica-Bold', font_size)
-            
-            # 通过逐个字符绘制来控制间距
-            current_x = x
-            for char in text:
-                canvas.drawString(current_x, y, char)
-                char_width = canvas.stringWidth(char, 'Helvetica-Bold', font_size)
-                current_x += char_width * 0.94  # 使用94%的间距，确保文本能完整显示
-        
-        # 第一行: Game title - 使用紧凑间距确保长文本显示完整
+        # 第一行: Game title - 使用粗体绘制方法
         title_text = f"Game title: {game_title}"
-        draw_text_with_tight_spacing(c, left_margin, title_y, title_text, font_size)
+        self._draw_bold_text(c, title_text, left_margin, title_y, self.chinese_font, font_size)
         
-        # 第二行: Ticket count - 使用紧凑间距
+        # 第二行: Ticket count - 使用粗体绘制方法
         count_text = f"Ticket count: {ticket_count}"
-        draw_text_with_tight_spacing(c, left_margin, count_y, count_text, font_size)
+        self._draw_bold_text(c, count_text, left_margin, count_y, self.chinese_font, font_size)
         
-        # 第三行: Serial - 使用紧凑间距
+        # 第三行: Serial - 使用粗体绘制方法
         serial_text = f"Serial: {serial}"
-        draw_text_with_tight_spacing(c, left_margin, serial_y, serial_text, font_size)
+        self._draw_bold_text(c, serial_text, left_margin, serial_y, self.chinese_font, font_size)
         
         print(f"绘制外观2标签: Game='{game_title}', Ticket='{ticket_count}', Serial='{serial}'")
     
@@ -274,6 +260,217 @@ class BoxLabelTemplate:
                 return match.group().strip()
         
         return clean_theme if clean_theme else 'Lab forest'
+    
+    def _search_label_name_data(self, excel_data):
+        """
+        搜索Excel数据中"标签名称"关键字右边的数据 - 模糊匹配
+        直接返回找到的数据，不做任何处理
+        """
+        print(f"🔍 开始模糊搜索标签名称关键字...")
+        print(f"📋 Excel数据中所有单元格：")
+        for key, value in sorted(excel_data.items()):
+            if value is not None:
+                print(f"   {key}: {repr(value)}")
+        
+        # 先显示所有包含"标签"或"名称"的单元格数据，帮助调试
+        print("📋 所有包含'标签'或'名称'的单元格：")
+        for key, value in sorted(excel_data.items()):
+            try:
+                if value is not None and ("标签" in str(value) or "名称" in str(value)):
+                    print(f"   {key}: {repr(value)}")
+            except Exception as e:
+                # 跳过有问题的数据
+                continue
+        
+        # 遍历所有Excel数据，模糊查找包含"标签名称"的单元格
+        for key, value in excel_data.items():
+            try:
+                if value is not None and "标签名称" in str(value):
+                    print(f"✅ 在单元格 {key} 找到标签名称关键字: {value}")
+                    
+                    # 尝试找到右边单元格的数据
+                    import re
+                    match = re.match(r'([A-Z]+)(\d+)', key)
+                    if match:
+                        col_letters = match.group(1)
+                        row_number = match.group(2)
+                        
+                        # 计算右边一列的单元格
+                        next_col = self._get_next_column(col_letters)
+                        right_cell_key = f"{next_col}{row_number}"
+                        
+                        print(f"🔍 计算右边单元格: {key} -> {right_cell_key}")
+                        
+                        # 获取右边单元格的数据
+                        right_cell_data = excel_data.get(right_cell_key)
+                        if right_cell_data:
+                            # 不转换为小写，保持原始格式
+                            result = str(right_cell_data).strip()
+                            print(f"✅ 成功提取标签名称右边数据 ({right_cell_key}): {right_cell_data} -> {result}")
+                            return result
+                        else:
+                            print(f"⚠️  右边单元格 {right_cell_key} 无数据")
+                            print(f"📋 检查右边单元格周围的数据：")
+                            for check_key, check_value in excel_data.items():
+                                if check_key.endswith(row_number) and check_value:
+                                    print(f"     {check_key}: {repr(check_value)}")
+            except Exception as e:
+                # 跳过有问题的数据，继续搜索
+                continue
+        
+        # 如果没找到"标签名称"关键字，使用B4备选数据
+        fallback_theme = excel_data.get('B4', '默认主题')
+        print(f"⚠️  未找到标签名称关键字，使用B4备选数据: {fallback_theme}")
+        return str(fallback_theme).strip() if fallback_theme else '默认主题'
+    
+    def _get_next_column(self, col_letters):
+        """获取下一列的字母标识"""
+        result = 0
+        for char in col_letters:
+            result = result * 26 + (ord(char) - ord('A') + 1)
+        
+        result += 1  # 下一列
+        
+        # 转回字母
+        next_col = ''
+        while result > 0:
+            result -= 1
+            next_col = chr(result % 26 + ord('A')) + next_col
+            result //= 26
+        
+        return next_col
+    
+    def _extract_english_theme(self, theme_text):
+        """提取英文主题 - 原有方式，保持向后兼容"""
+        if not theme_text:
+            return 'DEX\'S SIDEKICK'
+        
+        import re
+        # 先去掉开头的"-"符号（如果有）
+        clean_title = theme_text.lstrip('-').strip()
+        
+        # 查找英文部分 - 匹配连续的英文字母、空格、撇号、感叹号等
+        english_patterns = [
+            r'[A-Z][A-Z\s\'!]*[A-Z!]',           # 大写字母开头结尾的英文短语
+            r'[A-Z]+\'[A-Z\s]+[A-Z!]',           # 带撇号的英文 (如 DEX'S SIDEKICK)
+            r'[A-Z]+[A-Z\s!]*',                  # 任何大写字母组合
+            r'[A-Za-z][A-Za-z\s\'!]*[A-Za-z!]'  # 任何英文字母组合
+        ]
+        
+        for pattern in english_patterns:
+            match = re.search(pattern, clean_title)
+            if match:
+                return match.group().strip()
+        
+        # 如果没有匹配到，使用清理后的原标题
+        return clean_title if clean_title else 'TAG! YOU\'RE IT!'
+    
+    def _draw_bold_text(self, canvas_obj, text, x, y, font_name, font_size):
+        """
+        绘制粗体文本（通过重复绘制实现粗体效果）
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 粗体效果的偏移量 - 减小偏移量避免重影
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.3, 0),    # 右偏移，减小到0.3
+            (0, 0.3),    # 上偏移，减小到0.3  
+            (0.3, 0.3),  # 右上偏移
+        ]
+        
+        # 多次绘制实现粗体效果
+        for offset_x, offset_y in bold_offsets:
+            c.drawString(x + offset_x, y + offset_y, text)
+    
+    def _draw_bold_multiline_text(self, canvas_obj, text, x, y, max_width, max_height, font_name, font_size, align='left'):
+        """
+        绘制支持自动换行的粗体多行文本（通过重复绘制实现粗体效果）
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 分割文本为单词
+        words = text.split()
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if test_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    # 单个单词太长，强制换行
+                    lines.append(word)
+        
+        if current_line:
+            lines.append(current_line)
+        
+        line_height = font_size * 1.2
+        
+        # 禁用自动字体调整，保持设定的大字体效果
+        start_y = y - font_size
+        
+        # 粗体效果的偏移量 - 减小偏移量避免重影
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.3, 0),    # 右偏移
+            (0, 0.3),    # 上偏移  
+            (0.3, 0.3),  # 右上偏移
+        ]
+        
+        # 绘制每一行（多次绘制实现粗体效果）
+        for i, line in enumerate(lines):
+            line_y = start_y - (i * line_height)
+            
+            if align == 'center':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + (max_width - line_width) / 2
+            elif align == 'right':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + max_width - line_width
+            else:  # left
+                base_line_x = x
+            
+            # 多次绘制实现粗体效果
+            for offset_x, offset_y in bold_offsets:
+                c.drawString(base_line_x + offset_x, line_y + offset_y, line)
+    
+    def _draw_bold_single_line(self, canvas_obj, text, x, y, max_width, font_name, font_size, align='left'):
+        """
+        绘制单行粗体文本（通过重复绘制实现粗体效果）
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 计算文本位置
+        text_width = c.stringWidth(text, font_name, font_size)
+        
+        if align == 'center':
+            base_x = x + (max_width - text_width) / 2
+        elif align == 'right':
+            base_x = x + max_width - text_width
+        else:  # left
+            base_x = x
+        
+        # 粗体效果的偏移量 - 减小偏移量避免重影
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.3, 0),    # 右偏移
+            (0, 0.3),    # 上偏移  
+            (0.3, 0.3),  # 右上偏移
+        ]
+        
+        # 多次绘制实现粗体效果
+        for offset_x, offset_y in bold_offsets:
+            c.drawString(base_x + offset_x, y + offset_y, text)
     
     def generate_labels_pdf(self, data_dict, quantities, output_path, label_prefix="", appearance='v1'):
         """
