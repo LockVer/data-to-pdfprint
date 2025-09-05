@@ -84,6 +84,89 @@ class Style:
         self.x_align = x_align
         self.y_top_pt = y_top_pt
 
+def draw_wrapped_text(canvas, text, x, y, max_width, font_name, font_size, align="center", adjust_spacing=True):
+    """
+    绘制自动换行的文本，支持动态间距调整
+    
+    Args:
+        canvas: ReportLab canvas对象
+        text: 要绘制的文本
+        x: 起始x坐标
+        y: 起始y坐标（第一行的y坐标）
+        max_width: 最大宽度
+        font_name: 字体名称
+        font_size: 字体大小
+        align: 对齐方式 ("left", "center", "right")
+        adjust_spacing: 是否在换行时调整间距
+    
+    Returns:
+        (实际使用的高度, 是否发生了换行)
+    """
+    if not text:
+        return 0, False
+    
+    canvas.setFont(font_name, font_size)
+    text_width = canvas.stringWidth(text, font_name, font_size)
+    
+    # 如果不需要换行，直接绘制
+    if text_width <= max_width:
+        if align == "center":
+            text_x = x + (max_width - text_width) / 2
+        elif align == "right":
+            text_x = x + max_width - text_width
+        else:  # left
+            text_x = x
+        
+        canvas.drawString(text_x, y, text)
+        return font_size, False
+    
+    # 需要换行
+    words = text.split()
+    lines = []
+    current_line = ""
+    
+    for word in words:
+        test_line = current_line + (" " if current_line else "") + word
+        test_width = canvas.stringWidth(test_line, font_name, font_size)
+        
+        if test_width <= max_width:
+            current_line = test_line
+        else:
+            if current_line:
+                lines.append(current_line)
+                current_line = word
+            else:
+                # 单个词太长，直接使用
+                lines.append(word)
+    
+    if current_line:
+        lines.append(current_line)
+    
+    # 根据是否换行调整行高
+    if adjust_spacing and len(lines) > 1:
+        # 换行时使用更紧凑的间距
+        line_height = font_size + max(1, font_size * 0.1)  # 行间距为字体大小的10%，最少1点
+    else:
+        # 单行时使用正常间距
+        line_height = font_size + 2
+    
+    # 绘制每一行
+    current_y = y
+    for i, line in enumerate(lines):
+        line_width = canvas.stringWidth(line, font_name, font_size)
+        
+        if align == "center":
+            line_x = x + (max_width - line_width) / 2
+        elif align == "right":
+            line_x = x + max_width - line_width
+        else:  # left
+            line_x = x
+        
+        canvas.drawString(line_x, current_y, line)
+        current_y -= line_height
+    
+    return len(lines) * line_height, len(lines) > 1
+
 def render_pdf(template, style_set, output_filename):
     # 盒标使用90mm×50mm尺寸 (1mm = 2.834646 points)
     width_mm = 90
@@ -104,15 +187,67 @@ def render_pdf(template, style_set, output_filename):
 
 def render_page(c, page, style_set, index=None):
     page_height = c._pagesize[1]
-    # 先绘制内容，再绘制序列号
+    page_width = c._pagesize[0]
+    
+    # 先分析所有元素的内容长度，计算是否需要调整布局
+    elements_info = []
+    total_wrapped_elements = 0
+    
     for element in sorted(page.elements, key=lambda e: e.role, reverse=True):
         style = style_set[element.role]
         content = element.content
         if element.seq and element.content_template:
             seq_num = str(index).zfill(element.seq.pad)
-            # 支持不同的序列号占位符
             content = element.content_template.replace("{seq3}", seq_num)
             content = content.replace("{seq5}", seq_num)
+        
+        # 检查内容是否会换行
+        c.setFont(style.font_family, style.font_size_pt)
+        
+        if ":" in content and style.x_align == "left" and element.role in ["game_title", "ticket_count", "serial_number"]:
+            # 游戏模式的标签:值格式
+            parts = content.split(":", 1)
+            if len(parts) == 2:
+                value = parts[1].strip()
+                label = parts[0] + ":"
+                label_width = c.stringWidth(label, style.font_family, style.font_size_pt)
+                available_width = page_width - 10 - label_width - 20 - 5  # 左边距-标签宽度-右边距-间距
+                value_width = c.stringWidth(value, style.font_family, style.font_size_pt)
+                will_wrap = value_width > available_width
+            else:
+                will_wrap = False
+        else:
+            # 常规内容
+            available_width = page_width - 20  # 左右边距
+            content_width = c.stringWidth(content, style.font_family, style.font_size_pt)
+            will_wrap = content_width > available_width
+        
+        elements_info.append({
+            'element': element,
+            'content': content,
+            'will_wrap': will_wrap,
+            'style': style
+        })
+        
+        if will_wrap:
+            total_wrapped_elements += 1
+    
+    # 根据换行元素数量调整垂直间距
+    if total_wrapped_elements > 0:
+        # 有换行元素时，使用更紧凑的布局
+        spacing_adjustment = max(0.7, 1 - (total_wrapped_elements * 0.1))  # 最小70%间距
+    else:
+        spacing_adjustment = 1.0  # 正常间距
+    
+    # 绘制所有元素
+    for elem_info in elements_info:
+        element = elem_info['element']
+        content = elem_info['content'] 
+        style = elem_info['style']
+        will_wrap = elem_info['will_wrap']
+        
+        # 根据间距调整计算实际的y位置
+        adjusted_y = style.y_top_pt * spacing_adjustment
 
         # 设置字体
         c.setFont(style.font_family, style.font_size_pt)
@@ -128,27 +263,30 @@ def render_page(c, page, style_set, index=None):
                 # 绘制左对齐的标签
                 label_width = c.stringWidth(label, style.font_family, style.font_size_pt)
                 label_x = calculate_x_position("left", label_width, c._pagesize[0])
-                y_position = style.y_top_pt
-                c.drawString(label_x, y_position, label)
+                c.drawString(label_x, adjusted_y, label)
                 
-                # 绘制右对齐的值（右边距是左边距的两倍）
-                value_width = c.stringWidth(value, style.font_family, style.font_size_pt)
+                # 绘制右对齐的值（使用自动换行）
                 right_margin = 20  # 右边距为20点，是左边距10点的两倍
-                value_x = c._pagesize[0] - value_width - right_margin
-                c.drawString(value_x, y_position, value)
+                value_area_width = c._pagesize[0] - label_x - label_width - right_margin - 5  # 5点间距
+                value_x = label_x + label_width + 5
+                text_height, is_wrapped = draw_wrapped_text(c, value, value_x, adjusted_y, value_area_width, 
+                                style.font_family, style.font_size_pt, "left", True)
             else:
                 # 如果分离失败，按原方式绘制
                 text_width = c.stringWidth(content, style.font_family, style.font_size_pt)
                 x_position = calculate_x_position(style.x_align, text_width, c._pagesize[0])
-                y_position = style.y_top_pt
-                c.drawString(x_position, y_position, content)
+                c.drawString(x_position, adjusted_y, content)
         else:
-            # 常规模式或不包含冒号的内容，按原方式绘制
-            text_width = c.stringWidth(content, style.font_family, style.font_size_pt)
-            x_position = calculate_x_position(style.x_align, text_width, c._pagesize[0])
-            y_position = style.y_top_pt
-            c.drawString(x_position, y_position, content)
-        
+            # 常规模式或不包含冒号的内容，使用自动换行绘制
+            left_margin = 10
+            right_margin = 10
+            available_width = c._pagesize[0] - left_margin - right_margin
+            
+            text_x = left_margin
+            text_height, is_wrapped = draw_wrapped_text(c, content, text_x, adjusted_y, available_width,
+                            style.font_family, style.font_size_pt, 
+                            style.x_align if style.x_align in ["left", "center", "right"] else "center", True)
+    
     c.showPage()
 
 def calculate_x_position(x_align, text_width, page_width):
@@ -523,16 +661,16 @@ def generate_pdf_from_excel(excel_path, output_path, additional_inputs=None, tem
             "theme_info": Style(
                 font_family="Helvetica-Bold",  # 使用粗黑体字体匹配第二张图效果
                 font_weight="bold", 
-                font_size_pt=22,  # 增大到22pt匹配示例数据的效果
+                font_size_pt=20,  # 适度减小字体避免重叠
                 x_align="center", 
-                y_top_pt=85   # 中上位置，与序列号保持足够间距
+                y_top_pt=95   # 调整到更高位置
             ),
             "serial_number": Style(
                 font_family="Helvetica-Bold", 
                 font_weight="bold", 
-                font_size_pt=18,  # 增大序列号字体以更好填满空间
+                font_size_pt=16,  # 适度减小字体
                 x_align="center", 
-                y_top_pt=50   # 中下位置，与主题保持更大空隙
+                y_top_pt=40   # 调整到更低位置，增加与主题的间距
             )
         }
     
