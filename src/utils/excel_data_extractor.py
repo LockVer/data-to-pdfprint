@@ -216,7 +216,7 @@ class ExcelDataExtractor:
         extracted_data = self.extract_data_by_keywords(keyword_config)
         
         # 提取总张数（使用专门的逻辑）
-        from text_processor import text_processor
+        from src.utils.text_processor import text_processor
         total_count = text_processor.extract_total_count_by_keyword(self.df)
         extracted_data['总张数'] = total_count
         

@@ -3,16 +3,13 @@
 负责分盒模板的所有PDF绘制和渲染逻辑
 """
 
-import sys
-import os
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import CMYKColor
 from reportlab.lib.units import mm
 
 # 导入工具类
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "utils"))
-from font_manager import font_manager
-from text_processor import text_processor
+from src.utils.font_manager import font_manager
+from src.utils.text_processor import text_processor
 
 
 class SplitBoxRenderer:

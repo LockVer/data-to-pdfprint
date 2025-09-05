@@ -4,45 +4,23 @@ PDF生成器 - 重构版本
 """
 
 from typing import Dict, Any
-import importlib.util
-import sys
-import os
-
-
-def _import_template_class(template_dir: str, class_name: str):
-    """使用importlib安全导入模板类"""
-    template_path = os.path.join(os.path.dirname(__file__), template_dir, "template.py")
-    
-    spec = importlib.util.spec_from_file_location(f"{template_dir}_template", template_path)
-    if spec is None:
-        raise ImportError(f"无法加载模板: {template_path}")
-    
-    module = importlib.util.module_from_spec(spec)
-    
-    # 添加路径到sys.modules以支持模板内的相对导入
-    sys.modules[f"{template_dir}_template"] = module
-    
-    spec.loader.exec_module(module)
-    return getattr(module, class_name)
-
-
-# 模板类将在需要时延迟导入
-_template_classes = {}
+from src.pdf.regular.template import RegularTemplate
+from src.pdf.split_box.template import SplitBoxTemplate
+from src.pdf.nested_box.template import NestedBoxTemplate
 
 
 def _get_template_class(template_name: str):
-    """延迟导入模板类"""
-    if template_name not in _template_classes:
-        if template_name == "regular":
-            _template_classes[template_name] = _import_template_class("regular", "RegularTemplate")
-        elif template_name == "split_box":
-            _template_classes[template_name] = _import_template_class("split_box", "SplitBoxTemplate")
-        elif template_name == "nested_box":
-            _template_classes[template_name] = _import_template_class("nested_box", "NestedBoxTemplate")
-        else:
-            raise ValueError(f"未知的模板类型: {template_name}")
+    """获取模板类"""
+    template_classes = {
+        "regular": RegularTemplate,
+        "split_box": SplitBoxTemplate,
+        "nested_box": NestedBoxTemplate
+    }
     
-    return _template_classes[template_name]
+    if template_name not in template_classes:
+        raise ValueError(f"未知的模板类型: {template_name}")
+    
+    return template_classes[template_name]
 
 
 class PDFGenerator:

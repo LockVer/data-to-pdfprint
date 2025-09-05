@@ -7,12 +7,9 @@ import pandas as pd
 import re
 import math
 from typing import Dict, Any
-import sys
-import os
 
 # 导入现有的通用Excel工具，确保功能一致性
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "utils"))
-from excel_data_extractor import ExcelDataExtractor
+from src.utils.excel_data_extractor import ExcelDataExtractor
 
 
 class SplitBoxDataProcessor:

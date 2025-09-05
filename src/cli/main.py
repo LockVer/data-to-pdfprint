@@ -94,7 +94,7 @@ def main(
             import sys
             import os
 
-            sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+            # 项目根目录已在setup.py中配置，直接导入即可
 
             from src.pdf.generator import PDFGenerator
             import pandas as pd
