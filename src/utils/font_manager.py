@@ -4,6 +4,7 @@
 """
 
 import os
+import sys
 import platform
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -29,67 +30,80 @@ class FontManager:
             return True
             
         try:
-            # 根据系统平台选择字体路径
-            system = platform.system()
-            font_paths = self._get_font_paths_by_system(system)
+            # 获取项目字体路径
+            font_paths = self._get_font_paths()
 
             # 尝试注册第一个可用的字体
             for font_path in font_paths:
                 if os.path.exists(font_path):
                     try:
                         pdfmetrics.registerFont(TTFont(self.font_name, font_path))
-                        print(f"✅ 成功注册中文字体: {font_path}")
+                        print(f"[OK] 成功注册中文字体: {font_path}")
                         self.font_registered = True
                         return True
                     except Exception as e:
-                        print(f"⚠️ 字体注册失败 {font_path}: {str(e)}")
+                        print(f"[WARNING] 字体注册失败 {font_path}: {str(e)}")
                         continue
 
             # 如果没有找到合适的字体，使用Helvetica作为fallback
-            print("⚠️ 未找到中文字体，将使用默认字体")
+            print("[WARNING] 未找到中文字体，将使用默认字体")
             self.font_name = "Helvetica"
             self.chinese_font_name = "Helvetica"
             return False
 
         except Exception as e:
-            print(f"⚠️ 字体注册过程出错: {str(e)}")
+            print(f"[WARNING] 字体注册过程出错: {str(e)}")
             self.font_name = "Helvetica"
             self.chinese_font_name = "Helvetica"
             return False
     
-    def _get_font_paths_by_system(self, system: str) -> list:
+    def _get_font_paths(self) -> list:
         """
-        根据系统平台获取字体路径列表
+        获取项目fonts目录下的字体路径列表
+        考虑打包后的路径兼容性
         
-        Args:
-            system: 系统平台名称
-            
         Returns:
             list: 字体路径列表
         """
-        if system == "Darwin":  # macOS
-            return [
-                "/System/Library/Fonts/PingFang.ttc",
-                "/Library/Fonts/Microsoft/Microsoft YaHei.ttf",
-                "/System/Library/Fonts/STHeiti Light.ttc",
-                "/System/Library/Fonts/STHeiti Medium.ttc",
-                "/System/Library/Fonts/Hiragino Sans GB.ttc"
-            ]
-        elif system == "Windows":
-            return [
-                "C:/Windows/Fonts/msyh.ttc",
-                "C:/Windows/Fonts/msyhbd.ttc",
-                "C:/Windows/Fonts/simhei.ttf",
-                "C:/Windows/Fonts/simsun.ttc"
-            ]
-        elif system == "Linux":
-            return [
-                "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-                "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-                "/usr/share/fonts/truetype/arphic/uming.ttc"
-            ]
-        else:
-            return []
+        font_paths = []
+        
+        # 方法1: PyInstaller打包环境 - 从临时目录读取
+        try:
+            if getattr(sys, 'frozen', False):
+                # PyInstaller打包后，字体文件在临时目录中
+                base_path = sys._MEIPASS
+                font_path = os.path.join(base_path, "fonts", "msyh.ttf")
+                font_paths.append(font_path)
+                print(f"[INFO] PyInstaller模式，字体路径: {font_path}")
+        except Exception as e:
+            print(f"[WARNING] PyInstaller路径查找失败: {e}")
+        
+        # 方法2: 开发环境 - 基于当前文件路径
+        try:
+            src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            fonts_dir = os.path.join(src_dir, "fonts")
+            font_path = os.path.join(fonts_dir, "msyh.ttf")
+            font_paths.append(font_path)
+            print(f"[INFO] 开发环境，字体路径: {font_path}")
+        except Exception as e:
+            print(f"[WARNING] 开发环境路径查找失败: {e}")
+        
+        # 方法3: 相对于当前工作目录
+        try:
+            font_path = os.path.join("src", "fonts", "msyh.ttf")
+            font_paths.append(font_path)
+            print(f"[INFO] 相对路径，字体路径: {font_path}")
+        except Exception as e:
+            print(f"[WARNING] 相对路径查找失败: {e}")
+            
+        # 去重并返回
+        unique_paths = []
+        for path in font_paths:
+            if path not in unique_paths:
+                unique_paths.append(path)
+                
+        print(f"[INFO] 所有可能的字体路径: {unique_paths}")
+        return unique_paths
     
     def set_best_font(self, canvas_obj, font_size: int, bold: bool = True):
         """

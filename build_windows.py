@@ -27,6 +27,21 @@ def build_windows_gui():
         print("ERROR: Cannot find src/gui_app.py")
         return
     
+    # Check font file
+    font_file = "src/fonts/msyh.ttf"
+    if os.path.exists(font_file):
+        file_size = os.path.getsize(font_file) / (1024 * 1024)  # MB
+        print(f"[OK] Font file found: {font_file} ({file_size:.1f}MB)")
+    else:
+        print(f"[ERROR] Font file not found: {font_file}")
+        print("Available files in src/fonts:")
+        if os.path.exists("src/fonts"):
+            for f in os.listdir("src/fonts"):
+                print(f"  - {f}")
+        else:
+            print("  fonts directory does not exist!")
+        return
+    
     # Use Windows-specific configuration file if available, otherwise direct build
     if os.path.exists("DataToPDF_GUI_Windows.spec"):
         cmd = [
@@ -44,6 +59,7 @@ def build_windows_gui():
             "--name=DataToPDF_GUI",
             "--clean",
             "--noconfirm",
+            "--add-data", f"{font_file};fonts",  # 直接添加字体文件
             "src/gui_app.py"
         ]
     
@@ -61,7 +77,20 @@ def build_windows_gui():
         
         if result.returncode == 0:
             print("SUCCESS: Windows GUI application built successfully!")
-            print("Generated file: dist/DataToPDF_GUI.exe")
+            exe_path = "dist/DataToPDF_GUI.exe"
+            print(f"Generated file: {exe_path}")
+            
+            # 检查文件大小
+            if os.path.exists(exe_path):
+                file_size_mb = os.path.getsize(exe_path) / (1024 * 1024)
+                print(f"File size: {file_size_mb:.1f}MB")
+                
+                # 如果文件大小明显增加，说明字体被打包了
+                if file_size_mb > 60:  # 预期包含字体后会超过60MB
+                    print("[OK] Font file appears to be included (large file size)")
+                else:
+                    print("[WARNING] Font file may not be included (small file size)")
+            
             print()
             print("Windows Usage Instructions:")
             print("  - Double-click DataToPDF_GUI.exe to launch GUI")
@@ -78,7 +107,7 @@ def build_windows_gui():
             print("Distribution Notes:")
             print("  - Can directly copy DataToPDF_GUI.exe to other users")
             print("  - Recommend packaging as ZIP file for distribution")
-            print("  - File size approximately 35-50MB")
+            print(f"  - File size: {file_size_mb:.1f}MB (includes Microsoft YaHei font)")
             
         else:
             print("ERROR: Build failed:")
