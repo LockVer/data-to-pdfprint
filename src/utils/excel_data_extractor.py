@@ -38,7 +38,7 @@ class ExcelDataExtractor:
         查找关键字在Excel中的位置
         
         Args:
-            keyword: 要查找的关键字
+            keyword: 要查找的关键字 
             
         Returns:
             包含位置信息的字典列表
@@ -184,6 +184,58 @@ class ExcelDataExtractor:
             else:
                 print(f"❌ {field_name}: 未找到关键字 '{keyword}'")
                 extracted_data[field_name] = None
+        
+        return extracted_data
+    
+    def extract_common_data(self) -> Dict[str, Any]:
+        """
+        提取所有模板都需要的公共数据：客户编码、标签名称、开始号、总张数
+        
+        Returns:
+            包含公共数据的字典
+        """
+        print("🔍 提取公共数据字段...")
+        
+        # 定义公共数据的关键字配置
+        keyword_config = {
+            '标签名称': {
+                'keyword': '标签名称',
+                'direction': 'right'
+            },
+            '开始号': {
+                'keyword': '开始号', 
+                'direction': 'down'
+            },
+            '客户编码': {
+                'keyword': '客户名称编码',
+                'direction': 'down'
+            }
+        }
+        
+        # 使用关键字提取数据
+        extracted_data = self.extract_data_by_keywords(keyword_config)
+        
+        # 提取总张数（使用专门的逻辑）
+        from text_processor import text_processor
+        total_count = text_processor.extract_total_count_by_keyword(self.df)
+        extracted_data['总张数'] = total_count
+        
+        # 提取其他基础数据（兼容现有逻辑）
+        try:
+            if not extracted_data.get('客户编码'):
+                # 备用：从固定位置提取客户编码
+                extracted_data['客户编码'] = str(self.df.iloc[3, 0]) if pd.notna(self.df.iloc[3, 0]) else 'Unknown Client'
+                
+            if not extracted_data.get('标签名称'):
+                # 备用：从固定位置提取主题作为标签名称
+                extracted_data['标签名称'] = str(self.df.iloc[3, 1]) if pd.notna(self.df.iloc[3, 1]) else 'Unknown Title'
+                
+        except Exception as e:
+            print(f"⚠️ 备用数据提取失败: {e}")
+        
+        print(f"✅ 公共数据提取完成:")
+        for key, value in extracted_data.items():
+            print(f"   {key}: {value}")
         
         return extracted_data
 

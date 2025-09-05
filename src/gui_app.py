@@ -14,7 +14,12 @@ import os
 # 添加src目录到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.pdf.generator import PDFGenerator
+from pdf.generator import PDFGenerator
+from pdf.regular.ui_dialog import get_regular_ui_dialog
+from pdf.split_box.ui_dialog import get_split_box_ui_dialog
+from pdf.nested_box.ui_dialog import get_nested_box_ui_dialog
+from utils.text_processor import text_processor
+from utils.excel_data_extractor import ExcelDataExtractor
 
 
 class DataToPDFApp:
@@ -111,49 +116,6 @@ class DataToPDFApp:
         self.current_data = None
         self.packaging_params = None
 
-    def _extract_total_count_by_keyword(self, df):
-        """通过关键字搜索提取总张数"""
-        try:
-            # 搜索包含"总张数"的单元格
-            for i in range(df.shape[0]):
-                for j in range(df.shape[1]):
-                    cell_value = df.iloc[i, j]
-                    if pd.notna(cell_value) and "总张数" in str(cell_value):
-                        print(f"✅ 找到总张数关键字: 位置({i+1},{j+1}) = '{cell_value}'")
-                        
-                        # 尝试从下方单元格获取数值
-                        if i + 1 < df.shape[0]:
-                            total_value = df.iloc[i + 1, j]
-                            if pd.notna(total_value):
-                                print(f"✅ 从下方提取总张数: {total_value}")
-                                return int(float(total_value))
-                        
-                        # 如果下方没有数据，尝试同行右侧
-                        if j + 1 < df.shape[1]:
-                            total_value = df.iloc[i, j + 1]
-                            if pd.notna(total_value):
-                                print(f"✅ 从右侧提取总张数: {total_value}")
-                                return int(float(total_value))
-                        
-                        # 最后尝试同行后几列
-                        for k in range(j + 1, min(j + 5, df.shape[1])):
-                            total_value = df.iloc[i, k]
-                            if pd.notna(total_value) and str(total_value).replace('.', '').replace('-', '').isdigit():
-                                print(f"✅ 从右侧第{k-j}列提取总张数: {total_value}")
-                                return int(float(total_value))
-            
-            # 如果没找到关键字，使用默认位置
-            print("⚠️ 未找到总张数关键字，使用默认位置(4,6)")
-            default_value = df.iloc[3, 5]
-            if pd.notna(default_value):
-                return int(float(default_value))
-            else:
-                print("❌ 默认位置也无数据，返回0")
-                return 0
-                
-        except Exception as e:
-            print(f"❌ 提取总张数失败: {e}")
-            return 0
 
     def center_window(self):
         """窗口居中显示"""
@@ -198,19 +160,21 @@ class DataToPDFApp:
                 self.status_var.set("❌ 文件格式错误")
                 return
 
-            # 读取Excel文件
+            # 使用统一的Excel数据提取器
+            extractor = ExcelDataExtractor(file_path)
+            common_data = extractor.extract_common_data()
+            
+            # 读取额外的固定位置数据
             df = pd.read_excel(file_path, header=None)
-
-            # 使用关键字搜索提取总张数
-            total_count = self._extract_total_count_by_keyword(df)
-
+            
             self.current_data = {
-                "客户编码": str(df.iloc[3, 0]),
-                "主题": str(df.iloc[3, 1]),
-                "排列要求": str(df.iloc[3, 2]),
-                "订单数量": str(df.iloc[3, 3]),
-                "张/盒": str(df.iloc[3, 4]),
-                "总张数": str(total_count),
+                "客户编码": common_data.get('客户编码') or str(df.iloc[3, 0]),
+                "主题": common_data.get('标签名称') or str(df.iloc[3, 1]),
+                "排列要求": str(df.iloc[3, 2]) if pd.notna(df.iloc[3, 2]) else "",
+                "订单数量": str(df.iloc[3, 3]) if pd.notna(df.iloc[3, 3]) else "",
+                "张/盒": str(df.iloc[3, 4]) if pd.notna(df.iloc[3, 4]) else "",
+                "总张数": str(common_data.get('总张数', 0)),
+                "开始号": common_data.get('开始号', ''),
             }
 
             # 显示提取的信息
@@ -226,6 +190,7 @@ class DataToPDFApp:
 
             self.current_file = file_path
             self.generate_btn.config(state="normal")
+            total_count = self.current_data["总张数"]
             self.status_var.set(f"✅ 文件处理完成 - 总张数: {total_count}")
 
             # 更新选择区域显示
@@ -241,492 +206,62 @@ class DataToPDFApp:
             self.status_var.set("❌ 处理失败")
             self.info_text.insert(tk.END, f"\n错误: {error_msg}\n")
 
-    def show_parameters_dialog(self):
-        """显示参数设置对话框"""
-        if not self.current_data:
-            messagebox.showwarning("警告", "请先选择Excel文件")
-            return
 
-        # 创建对话框
-        dialog = tk.Toplevel(self.root)
-        dialog.title("包装参数设置")
-        dialog.geometry("500x450")
-        dialog.transient(self.root)
-        dialog.grab_set()
 
-        # 居中显示
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (450 // 2)
-        dialog.geometry(f"500x450+{x}+{y}")
 
-        # 创建滚动框架
-        canvas = tk.Canvas(dialog)
-        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        # 绑定鼠标滚轮
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        canvas.bind("<MouseWheel>", _on_mousewheel)
-        
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # 主框架在可滚动区域内
-        main_frame = ttk.Frame(scrollable_frame, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # 标题
-        title_label = ttk.Label(
-            main_frame, text="设置包装参数", font=("Arial", 14, "bold")
-        )
-        title_label.pack(pady=(0, 20))
-
-        # 参数输入框架
-        params_frame = ttk.LabelFrame(main_frame, text="包装参数", padding="15")
-        params_frame.pack(fill=tk.X, pady=(0, 20))
-
-        # 张/盒输入
-        ttk.Label(params_frame, text="张/盒:").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
-        self.pieces_per_box_var = tk.StringVar(value="2850")
-        pieces_per_box_entry = ttk.Entry(
-            params_frame, textvariable=self.pieces_per_box_var, width=15
-        )
-        pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-
-        # 盒/小箱输入
-        ttk.Label(params_frame, text="盒/小箱:").grid(
-            row=1, column=0, sticky=tk.W, pady=5
-        )
-        self.boxes_per_small_box_var = tk.StringVar(value="1")
-        boxes_per_small_box_entry = ttk.Entry(
-            params_frame, textvariable=self.boxes_per_small_box_var, width=15
-        )
-        boxes_per_small_box_entry.grid(
-            row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5
-        )
-
-        # 小箱/大箱输入
-        ttk.Label(params_frame, text="小箱/大箱:").grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )
-        self.small_boxes_per_large_box_var = tk.StringVar(value="2")
-        small_boxes_entry = ttk.Entry(
-            params_frame, textvariable=self.small_boxes_per_large_box_var, width=15
-        )
-        small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-
-        # 外观选择框架
-        appearance_frame = ttk.LabelFrame(main_frame, text="盒标外观选择", padding="15")
-        appearance_frame.pack(fill=tk.X, pady=(0, 20))
-
-        self.appearance_var = tk.StringVar(value="外观一")
-        appearance_radio1 = ttk.Radiobutton(
-            appearance_frame,
-            text="外观一",
-            variable=self.appearance_var,
-            value="外观一",
-        )
-        appearance_radio1.pack(side=tk.LEFT, padx=(0, 20))
-
-        appearance_radio2 = ttk.Radiobutton(
-            appearance_frame,
-            text="外观二",
-            variable=self.appearance_var,
-            value="外观二",
-        )
-        appearance_radio2.pack(side=tk.LEFT)
-
-        # 当前数据显示
-        info_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
-        info_frame.pack(fill=tk.X, pady=(0, 20))
-
-        info_text = f"客户编码: {self.current_data['客户编码']}\n"
-        info_text += f"主题: {self.current_data['主题']}\n"
-        info_text += f"总张数: {self.current_data['总张数']}"
-
-        info_label = ttk.Label(info_frame, text=info_text, font=("Consolas", 10))
-        info_label.pack(anchor=tk.W)
-
-        # 按钮框架
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(pady=(10, 0))
-
-        # 确认按钮
-        confirm_btn = ttk.Button(
-            button_frame,
-            text="确认生成",
-            command=lambda: self.confirm_parameters(dialog),
-        )
-        confirm_btn.pack(side=tk.LEFT, padx=(0, 10))
-
-        # 取消按钮
-        cancel_btn = ttk.Button(button_frame, text="取消", command=dialog.destroy)
-        cancel_btn.pack(side=tk.LEFT)
-
-        # 设置焦点
-        pieces_per_box_entry.focus()
-
-    def show_fenhe_parameters_dialog(self):
-        """显示分盒模板的参数设置对话框（无外观选择）"""
-        if not self.current_data:
-            messagebox.showwarning("警告", "请先选择Excel文件")
-            return
-
-        # 创建对话框
-        dialog = tk.Toplevel(self.root)
-        dialog.title("分盒模板 - 包装参数设置")
-        dialog.geometry("500x400")
-        dialog.transient(self.root)
-        dialog.grab_set()
-
-        # 居中显示
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
-        dialog.geometry(f"500x400+{x}+{y}")
-
-        # 创建滚动框架
-        canvas = tk.Canvas(dialog)
-        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        # 绑定鼠标滚轮
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        canvas.bind("<MouseWheel>", _on_mousewheel)
-        
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # 主框架在可滚动区域内
-        main_frame = ttk.Frame(scrollable_frame, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        # 标题
-        title_label = ttk.Label(
-            main_frame, text="分盒模板参数设置", font=("Arial", 14, "bold")
-        )
-        title_label.pack(pady=(0, 20))
-
-        # 参数输入框架
-        params_frame = ttk.LabelFrame(main_frame, text="包装参数", padding="15")
-        params_frame.pack(fill=tk.X, pady=(0, 20))
-
-        # 张/盒输入
-        ttk.Label(params_frame, text="张/盒:").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
-        self.pieces_per_box_var = tk.StringVar(value="2850")
-        pieces_per_box_entry = ttk.Entry(
-            params_frame, textvariable=self.pieces_per_box_var, width=15
-        )
-        pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-
-        # 盒/小箱输入
-        ttk.Label(params_frame, text="盒/小箱:").grid(
-            row=1, column=0, sticky=tk.W, pady=5
-        )
-        self.boxes_per_small_box_var = tk.StringVar(value="1")
-        boxes_per_small_box_entry = ttk.Entry(
-            params_frame, textvariable=self.boxes_per_small_box_var, width=15
-        )
-        boxes_per_small_box_entry.grid(
-            row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5
-        )
-
-        # 小箱/大箱输入
-        ttk.Label(params_frame, text="小箱/大箱:").grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )
-        self.small_boxes_per_large_box_var = tk.StringVar(value="2")
-        small_boxes_entry = ttk.Entry(
-            params_frame, textvariable=self.small_boxes_per_large_box_var, width=15
-        )
-        small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-
-        # 提示信息框架
-        info_frame = ttk.LabelFrame(main_frame, text="分盒模板说明", padding="15")
-        info_frame.pack(fill=tk.X, pady=(0, 20))
-
-        info_text = "分盒模板使用特殊的序列号生成规则：\n"
-        info_text += "• 从小箱/大箱参数控制副号满几进一\n"
-        info_text += "• 序列号格式：前缀+数字-后缀\n"
-        info_text += "• 示例：MOP01001-01, MOP01001-02, MOP01002-01...\n"
-        info_text += "• 说明：小箱标序列号只取决于小箱/大箱参数，盒/小箱参数建议设为1"
-
-        info_label = ttk.Label(info_frame, text=info_text, font=("Consolas", 9))
-        info_label.pack(anchor=tk.W)
-
-        # 当前数据显示
-        data_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
-        data_frame.pack(fill=tk.X, pady=(0, 20))
-
-        data_text = f"客户编码: {self.current_data['客户编码']}\n"
-        data_text += f"主题: {self.current_data['主题']}\n"
-        data_text += f"总张数: {self.current_data['总张数']}"
-
-        data_label = ttk.Label(data_frame, text=data_text, font=("Consolas", 10))
-        data_label.pack(anchor=tk.W)
-
-        # 按钮框架
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(pady=(10, 0))
-
-        # 确认按钮
-        confirm_btn = ttk.Button(
-            button_frame,
-            text="确认生成",
-            command=lambda: self.confirm_fenhe_parameters(dialog),
-        )
-        confirm_btn.pack(side=tk.LEFT, padx=(0, 10))
-
-        # 取消按钮
-        cancel_btn = ttk.Button(button_frame, text="取消", command=dialog.destroy)
-        cancel_btn.pack(side=tk.LEFT)
-
-        # 设置焦点
-        pieces_per_box_entry.focus()
-
-    def confirm_fenhe_parameters(self, dialog):
-        """确认分盒模板参数并生成PDF"""
+    def _auto_resize_and_center_dialog(self, dialog, content_frame):
+        """自动调整对话框大小并居中显示，完全基于内容自适应"""
         try:
-            # 验证三个参数
-            pieces_per_box = int(self.pieces_per_box_var.get())
-            boxes_per_small_box = int(self.boxes_per_small_box_var.get())
-            small_boxes_per_large_box = int(self.small_boxes_per_large_box_var.get())
-
-            if (
-                pieces_per_box <= 0
-                or boxes_per_small_box <= 0
-                or small_boxes_per_large_box <= 0
-            ):
-                messagebox.showerror("参数错误", "所有参数必须为正整数")
-                return
-
-            # 分盒模板不需要外观选择，使用默认外观一
-            self.packaging_params = {
-                "张/盒": pieces_per_box,
-                "盒/小箱": boxes_per_small_box,
-                "小箱/大箱": small_boxes_per_large_box,
-                "选择外观": "外观一",  # 分盒模板固定使用外观一
-            }
-
-            dialog.destroy()
-            self.generate_multi_level_pdfs()
-
-        except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的数字")
-
-    def show_taohebox_parameters_dialog(self):
-        """显示套盒模板的参数设置对话框（无外观选择）"""
-        if not self.current_data:
-            messagebox.showwarning("警告", "请先选择Excel文件")
-            return
-
-        # 创建对话框
-        dialog = tk.Toplevel(self.root)
-        dialog.title("套盒模板 - 包装参数设置")
-        dialog.geometry("500x400")
-        dialog.transient(self.root)
-        dialog.grab_set()
-
-        # 居中显示
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
-        dialog.geometry(f"500x400+{x}+{y}")
-
-        # 创建滚动框架
-        canvas = tk.Canvas(dialog)
-        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        # 绑定鼠标滚轮
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        canvas.bind("<MouseWheel>", _on_mousewheel)
-        
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # 主框架在可滚动区域内
-        main_frame = ttk.Frame(scrollable_frame, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        # 标题
-        title_label = ttk.Label(
-            main_frame, text="套盒模板参数设置", font=("Arial", 14, "bold")
-        )
-        title_label.pack(pady=(0, 20))
-
-        # 参数输入框架
-        params_frame = ttk.LabelFrame(main_frame, text="包装参数", padding="15")
-        params_frame.pack(fill=tk.X, pady=(0, 20))
-
-        # 张/盒输入
-        ttk.Label(params_frame, text="张/盒:").grid(
-            row=0, column=0, sticky=tk.W, pady=5
-        )
-        self.pieces_per_box_var = tk.StringVar(value="2850")
-        pieces_per_box_entry = ttk.Entry(
-            params_frame, textvariable=self.pieces_per_box_var, width=15
-        )
-        pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-
-        # 盒/小箱输入
-        ttk.Label(params_frame, text="盒/小箱:").grid(
-            row=1, column=0, sticky=tk.W, pady=5
-        )
-        self.boxes_per_small_box_var = tk.StringVar(value="1")
-        boxes_per_small_box_entry = ttk.Entry(
-            params_frame, textvariable=self.boxes_per_small_box_var, width=15
-        )
-        boxes_per_small_box_entry.grid(
-            row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5
-        )
-
-        # 小箱/大箱输入
-        ttk.Label(params_frame, text="小箱/大箱:").grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )
-        self.small_boxes_per_large_box_var = tk.StringVar(value="2")
-        small_boxes_entry = ttk.Entry(
-            params_frame, textvariable=self.small_boxes_per_large_box_var, width=15
-        )
-        small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
-
-        # 提示信息框架
-        info_frame = ttk.LabelFrame(main_frame, text="套盒模板说明", padding="15")
-        info_frame.pack(fill=tk.X, pady=(0, 20))
-
-        info_text = "套盒模板使用Excel文件中的开始号和结束号：\\n"
-        info_text += "• 第二个参数(盒/小箱)用于控制结束号范围\\n"
-        info_text += "• 序列号格式基于Excel文件中的开始号和结束号\\n"
-        info_text += "• 示例：开始号JAW01001-01，结束号JAW01001-06\\n"
-        info_text += "• 说明：套盒模板无外观选择，使用固定外观"
-
-        info_label = ttk.Label(info_frame, text=info_text, font=("Consolas", 9))
-        info_label.pack(anchor=tk.W)
-
-        # 当前数据显示
-        data_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
-        data_frame.pack(fill=tk.X, pady=(0, 20))
-
-        data_text = f"客户编码: {self.current_data['客户编码']}\\n"
-        data_text += f"主题: {self.current_data['主题']}\\n"
-        data_text += f"总张数: {self.current_data['总张数']}"
-
-        data_label = ttk.Label(data_frame, text=data_text, font=("Consolas", 10))
-        data_label.pack(anchor=tk.W)
-
-        # 按钮框架
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(pady=(10, 0))
-
-        # 确认按钮
-        confirm_btn = ttk.Button(
-            button_frame,
-            text="确认生成",
-            command=lambda: self.confirm_taohebox_parameters(dialog),
-        )
-        confirm_btn.pack(side=tk.LEFT, padx=(0, 10))
-
-        # 取消按钮
-        cancel_btn = ttk.Button(button_frame, text="取消", command=dialog.destroy)
-        cancel_btn.pack(side=tk.LEFT)
-
-        # 设置焦点
-        pieces_per_box_entry.focus()
-
-    def confirm_taohebox_parameters(self, dialog):
-        """确认套盒模板参数并生成PDF"""
-        try:
-            # 验证三个参数
-            pieces_per_box = int(self.pieces_per_box_var.get())
-            boxes_per_small_box = int(self.boxes_per_small_box_var.get())
-            small_boxes_per_large_box = int(self.small_boxes_per_large_box_var.get())
-
-            if (
-                pieces_per_box <= 0
-                or boxes_per_small_box <= 0
-                or small_boxes_per_large_box <= 0
-            ):
-                messagebox.showerror("参数错误", "所有参数必须为正整数")
-                return
-
-            # 套盒模板不需要外观选择，使用默认外观
-            self.packaging_params = {
-                "张/盒": pieces_per_box,
-                "盒/小箱": boxes_per_small_box,
-                "小箱/大箱": small_boxes_per_large_box,
-                "选择外观": "外观一",  # 套盒模板固定使用外观一，但实际不使用
-            }
-
-            dialog.destroy()
-            self.generate_multi_level_pdfs()
-
-        except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的数字")
-
-    def confirm_parameters(self, dialog):
-        """确认参数并生成PDF"""
-        try:
-            # 验证三个参数
-            pieces_per_box = int(self.pieces_per_box_var.get())
-            boxes_per_small_box = int(self.boxes_per_small_box_var.get())
-            small_boxes_per_large_box = int(self.small_boxes_per_large_box_var.get())
-
-            if (
-                pieces_per_box <= 0
-                or boxes_per_small_box <= 0
-                or small_boxes_per_large_box <= 0
-            ):
-                messagebox.showerror("参数错误", "所有参数必须为正整数")
-                return
-
-            # 获取选择的外观
-            selected_appearance = self.appearance_var.get()
-
-            self.packaging_params = {
-                "张/盒": pieces_per_box,
-                "盒/小箱": boxes_per_small_box,
-                "小箱/大箱": small_boxes_per_large_box,
-                "选择外观": selected_appearance,
-            }
-
-            dialog.destroy()
-            self.generate_multi_level_pdfs()
-
-        except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的数字")
+            # 多次更新确保所有组件都已完全渲染
+            for _ in range(3):
+                dialog.update_idletasks()
+                content_frame.update_idletasks()
+            
+            # 获取内容的实际所需尺寸
+            content_width = content_frame.winfo_reqwidth()
+            content_height = content_frame.winfo_reqheight()
+            
+            # 添加必要的边距：滚动条、对话框边框、标题栏等
+            padding_width = 60   # 减少左右边距
+            padding_height = 80   # 减少上下边距，让对话框更紧凑
+            
+            # 计算对话框所需的实际尺寸
+            required_width = content_width + padding_width
+            required_height = content_height + padding_height
+            
+            # 获取屏幕尺寸，确保不会超出屏幕
+            screen_width = dialog.winfo_screenwidth()
+            screen_height = dialog.winfo_screenheight()
+            
+            # 最终尺寸：完全基于内容，但不超过屏幕90%
+            final_width = min(required_width, int(screen_width * 0.9))
+            final_height = min(required_height, int(screen_height * 0.9))
+            
+            # 计算居中位置
+            x = (screen_width - final_width) // 2
+            y = (screen_height - final_height) // 2
+            
+            # 设置对话框几何形状
+            dialog.geometry(f"{final_width}x{final_height}+{x}+{y}")
+            
+            print(f"✅ 完全自适应调整: {final_width}x{final_height}")
+            print(f"   内容尺寸: {content_width}x{content_height}")
+            print(f"   边距: {padding_width}x{padding_height}")
+            
+        except Exception as e:
+            print(f"⚠️ 自适应调整失败: {e}")
+            # 备用方案：让系统自动计算
+            dialog.update_idletasks()
+            dialog.geometry("")  # 清空几何设置，让Tkinter自动调整
+            dialog.update_idletasks()
+            
+            # 获取自动调整后的尺寸并居中
+            width = dialog.winfo_width()
+            height = dialog.winfo_height()
+            x = (dialog.winfo_screenwidth() - width) // 2
+            y = (dialog.winfo_screenheight() - height) // 2
+            dialog.geometry(f"{width}x{height}+{x}+{y}")
 
     def show_template_selection_dialog(self):
         """显示模板选择对话框"""
@@ -818,11 +353,11 @@ class DataToPDFApp:
     def show_parameters_dialog_for_template(self, template_type):
         """根据模板类型显示对应的参数设置对话框"""
         if template_type == "常规":
-            self.show_parameters_dialog()
-        elif template_type == "分盒":
-            self.show_fenhe_parameters_dialog()  # 分盒模板专用对话框
+            get_regular_ui_dialog(self).show_parameters_dialog()
+        elif template_type == "分盒": 
+            get_split_box_ui_dialog(self).show_parameters_dialog()
         elif template_type == "套盒":
-            self.show_taohebox_parameters_dialog()  # 套盒模板专用对话框
+            get_nested_box_ui_dialog(self).show_parameters_dialog()
 
     def generate_multi_level_pdfs(self):
         """生成多级标签PDF"""
@@ -853,11 +388,11 @@ class DataToPDFApp:
                         self.current_data, self.packaging_params, output_dir, self.current_file
                     )
                 elif template_choice == "分盒":
-                    generated_files = generator.create_fenhe_multi_level_pdfs(
+                    generated_files = generator.create_split_box_multi_level_pdfs(
                         self.current_data, self.packaging_params, output_dir, self.current_file
                     )
                 elif template_choice == "套盒":
-                    generated_files = generator.create_taohebox_multi_level_pdfs(
+                    generated_files = generator.create_nested_box_multi_level_pdfs(
                         self.current_data, self.packaging_params, output_dir, self.current_file
                     )
 
@@ -868,9 +403,9 @@ class DataToPDFApp:
                 for label_type, file_path in generated_files.items():
                     result_text += f"  - {label_type}: {Path(file_path).name}\n"
 
-                folder_name = (
-                    f"{self.current_data['客户编码']}+{self.current_data['主题']}+标签"
-                )
+                # 使用和模板中完全相同的主题清理逻辑
+                clean_theme = self.current_data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+                folder_name = f"{self.current_data['客户编码']}+{clean_theme}+标签"
                 result_text += (
                     f"\n📁 保存目录: {os.path.join(output_dir, folder_name)}\n"
                 )
@@ -886,10 +421,17 @@ class DataToPDFApp:
                     import platform
 
                     folder_path = os.path.join(output_dir, folder_name)
-                    if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", folder_path])
-                    elif platform.system() == "Windows":  # Windows
-                        os.startfile(folder_path)
+                    try:
+                        if platform.system() == "Darwin":  # macOS
+                            result = subprocess.run(["open", folder_path], capture_output=True, text=True)
+                            if result.returncode != 0:
+                                messagebox.showerror("错误", f"无法打开文件夹: {result.stderr}")
+                        elif platform.system() == "Windows":  # Windows
+                            os.startfile(folder_path)
+                        else:
+                            messagebox.showinfo("提示", f"请手动打开文件夹: {folder_path}")
+                    except Exception as e:
+                        messagebox.showerror("错误", f"打开文件夹失败: {str(e)}")
 
             else:
                 self.status_var.set("📋 PDF生成已取消")
