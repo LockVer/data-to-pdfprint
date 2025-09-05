@@ -67,37 +67,43 @@ class FontManager:
         """
         font_paths = []
         
-        # 方法1: 开发环境 - 基于当前文件路径
+        # 方法1: PyInstaller打包环境 - 从临时目录读取
+        try:
+            if getattr(sys, 'frozen', False):
+                # PyInstaller打包后，字体文件在临时目录中
+                base_path = sys._MEIPASS
+                font_path = os.path.join(base_path, "fonts", "msyh.ttf")
+                font_paths.append(font_path)
+                print(f"🔍 PyInstaller模式，字体路径: {font_path}")
+        except Exception as e:
+            print(f"⚠️ PyInstaller路径查找失败: {e}")
+        
+        # 方法2: 开发环境 - 基于当前文件路径
         try:
             src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             fonts_dir = os.path.join(src_dir, "fonts")
             font_path = os.path.join(fonts_dir, "msyh.ttf")
             font_paths.append(font_path)
-        except:
-            pass
-        
-        # 方法2: 打包环境 - 基于可执行文件路径
-        try:
-            if getattr(sys, 'frozen', False):
-                # PyInstaller打包后的情况
-                base_path = sys._MEIPASS
-            else:
-                # 开发环境
-                base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            
-            font_path = os.path.join(base_path, "fonts", "msyh.ttf")
-            font_paths.append(font_path)
-        except:
-            pass
+            print(f"🔍 开发环境，字体路径: {font_path}")
+        except Exception as e:
+            print(f"⚠️ 开发环境路径查找失败: {e}")
         
         # 方法3: 相对于当前工作目录
         try:
             font_path = os.path.join("src", "fonts", "msyh.ttf")
             font_paths.append(font_path)
-        except:
-            pass
+            print(f"🔍 相对路径，字体路径: {font_path}")
+        except Exception as e:
+            print(f"⚠️ 相对路径查找失败: {e}")
             
-        return font_paths
+        # 去重并返回
+        unique_paths = []
+        for path in font_paths:
+            if path not in unique_paths:
+                unique_paths.append(path)
+                
+        print(f"🔍 所有可能的字体路径: {unique_paths}")
+        return unique_paths
     
     def set_best_font(self, canvas_obj, font_size: int, bold: bool = True):
         """
