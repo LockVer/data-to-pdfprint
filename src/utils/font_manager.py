@@ -38,21 +38,21 @@ class FontManager:
                 if os.path.exists(font_path):
                     try:
                         pdfmetrics.registerFont(TTFont(self.font_name, font_path))
-                        print(f"✅ 成功注册中文字体: {font_path}")
+                        print(f"[OK] 成功注册中文字体: {font_path}")
                         self.font_registered = True
                         return True
                     except Exception as e:
-                        print(f"⚠️ 字体注册失败 {font_path}: {str(e)}")
+                        print(f"[WARNING] 字体注册失败 {font_path}: {str(e)}")
                         continue
 
             # 如果没有找到合适的字体，使用Helvetica作为fallback
-            print("⚠️ 未找到中文字体，将使用默认字体")
+            print("[WARNING] 未找到中文字体，将使用默认字体")
             self.font_name = "Helvetica"
             self.chinese_font_name = "Helvetica"
             return False
 
         except Exception as e:
-            print(f"⚠️ 字体注册过程出错: {str(e)}")
+            print(f"[WARNING] 字体注册过程出错: {str(e)}")
             self.font_name = "Helvetica"
             self.chinese_font_name = "Helvetica"
             return False
@@ -74,9 +74,9 @@ class FontManager:
                 base_path = sys._MEIPASS
                 font_path = os.path.join(base_path, "fonts", "msyh.ttf")
                 font_paths.append(font_path)
-                print(f"🔍 PyInstaller模式，字体路径: {font_path}")
+                print(f"[INFO] PyInstaller模式，字体路径: {font_path}")
         except Exception as e:
-            print(f"⚠️ PyInstaller路径查找失败: {e}")
+            print(f"[WARNING] PyInstaller路径查找失败: {e}")
         
         # 方法2: 开发环境 - 基于当前文件路径
         try:
@@ -84,17 +84,17 @@ class FontManager:
             fonts_dir = os.path.join(src_dir, "fonts")
             font_path = os.path.join(fonts_dir, "msyh.ttf")
             font_paths.append(font_path)
-            print(f"🔍 开发环境，字体路径: {font_path}")
+            print(f"[INFO] 开发环境，字体路径: {font_path}")
         except Exception as e:
-            print(f"⚠️ 开发环境路径查找失败: {e}")
+            print(f"[WARNING] 开发环境路径查找失败: {e}")
         
         # 方法3: 相对于当前工作目录
         try:
             font_path = os.path.join("src", "fonts", "msyh.ttf")
             font_paths.append(font_path)
-            print(f"🔍 相对路径，字体路径: {font_path}")
+            print(f"[INFO] 相对路径，字体路径: {font_path}")
         except Exception as e:
-            print(f"⚠️ 相对路径查找失败: {e}")
+            print(f"[WARNING] 相对路径查找失败: {e}")
             
         # 去重并返回
         unique_paths = []
@@ -102,7 +102,7 @@ class FontManager:
             if path not in unique_paths:
                 unique_paths.append(path)
                 
-        print(f"🔍 所有可能的字体路径: {unique_paths}")
+        print(f"[INFO] 所有可能的字体路径: {unique_paths}")
         return unique_paths
     
     def set_best_font(self, canvas_obj, font_size: int, bold: bool = True):

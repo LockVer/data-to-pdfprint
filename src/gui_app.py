@@ -23,12 +23,12 @@ from src.utils.excel_data_extractor import ExcelDataExtractor
 from src.utils.font_manager import font_manager
 
 # 在应用启动时初始化字体管理器
-print("🔧 初始化字体管理器...")
+print("[INFO] 初始化字体管理器...")
 font_success = font_manager.register_chinese_font()
 if font_success:
-    print("✅ 字体管理器初始化成功")
+    print("[OK] 字体管理器初始化成功")
 else:
-    print("⚠️ 字体管理器初始化失败，将使用默认字体")
+    print("[WARNING] 字体管理器初始化失败，将使用默认字体")
 
 
 class DataToPDFApp:

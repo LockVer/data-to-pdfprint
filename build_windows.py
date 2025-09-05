@@ -31,9 +31,9 @@ def build_windows_gui():
     font_file = "src/fonts/msyh.ttf"
     if os.path.exists(font_file):
         file_size = os.path.getsize(font_file) / (1024 * 1024)  # MB
-        print(f"✅ Font file found: {font_file} ({file_size:.1f}MB)")
+        print(f"[OK] Font file found: {font_file} ({file_size:.1f}MB)")
     else:
-        print(f"❌ ERROR: Font file not found: {font_file}")
+        print(f"[ERROR] Font file not found: {font_file}")
         print("Available files in src/fonts:")
         if os.path.exists("src/fonts"):
             for f in os.listdir("src/fonts"):
@@ -87,9 +87,9 @@ def build_windows_gui():
                 
                 # 如果文件大小明显增加，说明字体被打包了
                 if file_size_mb > 60:  # 预期包含字体后会超过60MB
-                    print("✅ Font file appears to be included (large file size)")
+                    print("[OK] Font file appears to be included (large file size)")
                 else:
-                    print("⚠️ Font file may not be included (small file size)")
+                    print("[WARNING] Font file may not be included (small file size)")
             
             print()
             print("Windows Usage Instructions:")
