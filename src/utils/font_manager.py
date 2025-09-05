@@ -4,6 +4,7 @@
 """
 
 import os
+import sys
 import platform
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -29,9 +30,8 @@ class FontManager:
             return True
             
         try:
-            # 根据系统平台选择字体路径
-            system = platform.system()
-            font_paths = self._get_font_paths_by_system(system)
+            # 获取项目字体路径
+            font_paths = self._get_font_paths()
 
             # 尝试注册第一个可用的字体
             for font_path in font_paths:
@@ -57,39 +57,47 @@ class FontManager:
             self.chinese_font_name = "Helvetica"
             return False
     
-    def _get_font_paths_by_system(self, system: str) -> list:
+    def _get_font_paths(self) -> list:
         """
-        根据系统平台获取字体路径列表
+        获取项目fonts目录下的字体路径列表
+        考虑打包后的路径兼容性
         
-        Args:
-            system: 系统平台名称
-            
         Returns:
             list: 字体路径列表
         """
-        if system == "Darwin":  # macOS
-            return [
-                "/System/Library/Fonts/PingFang.ttc",
-                "/Library/Fonts/Microsoft/Microsoft YaHei.ttf",
-                "/System/Library/Fonts/STHeiti Light.ttc",
-                "/System/Library/Fonts/STHeiti Medium.ttc",
-                "/System/Library/Fonts/Hiragino Sans GB.ttc"
-            ]
-        elif system == "Windows":
-            return [
-                "C:/Windows/Fonts/msyh.ttc",
-                "C:/Windows/Fonts/msyhbd.ttc",
-                "C:/Windows/Fonts/simhei.ttf",
-                "C:/Windows/Fonts/simsun.ttc"
-            ]
-        elif system == "Linux":
-            return [
-                "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-                "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-                "/usr/share/fonts/truetype/arphic/uming.ttc"
-            ]
-        else:
-            return []
+        font_paths = []
+        
+        # 方法1: 开发环境 - 基于当前文件路径
+        try:
+            src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            fonts_dir = os.path.join(src_dir, "fonts")
+            font_path = os.path.join(fonts_dir, "msyh.ttf")
+            font_paths.append(font_path)
+        except:
+            pass
+        
+        # 方法2: 打包环境 - 基于可执行文件路径
+        try:
+            if getattr(sys, 'frozen', False):
+                # PyInstaller打包后的情况
+                base_path = sys._MEIPASS
+            else:
+                # 开发环境
+                base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+            font_path = os.path.join(base_path, "fonts", "msyh.ttf")
+            font_paths.append(font_path)
+        except:
+            pass
+        
+        # 方法3: 相对于当前工作目录
+        try:
+            font_path = os.path.join("src", "fonts", "msyh.ttf")
+            font_paths.append(font_path)
+        except:
+            pass
+            
+        return font_paths
     
     def set_best_font(self, canvas_obj, font_size: int, bold: bool = True):
         """
