@@ -90,7 +90,7 @@ class RegularTemplate(PDFBaseUtils):
             full_output_dir / f"{data['客户编码']}+{clean_theme}+小箱标.pdf"
         )
         self._create_small_box_label(
-            data, params, str(small_box_path), total_small_boxes, remainder_info, excel_file_path
+            data, params, str(small_box_path), total_small_boxes, remainder_info, total_boxes, excel_file_path
         )
         generated_files["小箱标"] = str(small_box_path)
 
@@ -99,7 +99,7 @@ class RegularTemplate(PDFBaseUtils):
             full_output_dir / f"{data['客户编码']}+{clean_theme}+大箱标.pdf"
         )
         self._create_large_box_label(
-            data, params, str(large_box_path), total_large_boxes, total_small_boxes, remainder_info, excel_file_path
+            data, params, str(large_box_path), total_large_boxes, total_small_boxes, remainder_info, total_boxes, excel_file_path
         )
         generated_files["大箱标"] = str(large_box_path)
 
@@ -213,6 +213,7 @@ class RegularTemplate(PDFBaseUtils):
         output_path: str,
         total_small_boxes: int,
         remainder_info: Dict[str, Any],
+        total_boxes: int,
         excel_file_path: str = None,
     ):
         """创建小箱标"""
@@ -252,7 +253,7 @@ class RegularTemplate(PDFBaseUtils):
                 data, params, str(current_output_path),
                 small_boxes_processed + 1, small_boxes_processed + small_boxes_in_current_file,
                 theme_text, base_number, remark_text, pieces_per_small_box, 
-                boxes_per_small_box, total_small_boxes
+                boxes_per_small_box, total_small_boxes, total_boxes
             )
             
             small_boxes_processed += small_boxes_in_current_file
@@ -262,7 +263,7 @@ class RegularTemplate(PDFBaseUtils):
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
         start_small_box: int, end_small_box: int, theme_text: str, base_number: str,
         remark_text: str, pieces_per_small_box: int, boxes_per_small_box: int, 
-        total_small_boxes: int
+        total_small_boxes: int, total_boxes: int
     ):
         """创建单个小箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
@@ -284,33 +285,24 @@ class RegularTemplate(PDFBaseUtils):
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 计算序列号范围
-            import re
-            match = re.search(r'(\d+)', base_number)
-            if match:
-                # 获取数字前的前缀和基础数字
-                digit_start = match.start()
-                prefix = base_number[:digit_start]
-                base_num = int(match.group(1))
-                
-                # 计算当前小箱的序列号范围
-                start_box_num = (small_box_num - 1) * boxes_per_small_box + 1
-                end_box_num = small_box_num * boxes_per_small_box
-                
-                start_serial_num = base_num + (start_box_num - 1)
-                end_serial_num = base_num + (end_box_num - 1)
-                
-                start_serial = f"{prefix}{start_serial_num:05d}"
-                end_serial = f"{prefix}{end_serial_num:05d}"
-                serial_range = f"{start_serial}-{end_serial}"
-            else:
-                serial_range = f"BOX{small_box_num:05d}"
+            # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
+            serial_range = regular_data_processor.generate_regular_small_box_serial_range(
+                base_number, small_box_num, boxes_per_small_box, total_boxes
+            )
+
+            # 🔧 计算当前小箱的实际张数（考虑最后一小箱的边界情况）
+            pieces_per_box = int(params["张/盒"])
+            # 计算当前小箱实际包含的盒数
+            start_box = (small_box_num - 1) * boxes_per_small_box + 1
+            end_box = min(start_box + boxes_per_small_box - 1, total_boxes)
+            actual_boxes_in_small_box = end_box - start_box + 1
+            actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
 
             # 计算小箱标Carton No - 格式：当前小箱/总小箱数
             carton_no = regular_data_processor.calculate_carton_number_for_small_box(small_box_num, total_small_boxes)
             
-            # 绘制小箱标表格
-            regular_renderer.draw_small_box_table(c, width, height, theme_text, pieces_per_small_box, 
+            # 绘制小箱标表格（使用实际张数）
+            regular_renderer.draw_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
                                                  serial_range, carton_no, remark_text)
 
         c.save()
@@ -324,6 +316,7 @@ class RegularTemplate(PDFBaseUtils):
         total_large_boxes: int,
         total_small_boxes: int,
         remainder_info: Dict[str, Any],
+        total_boxes: int,
         excel_file_path: str = None,
     ):
         """创建大箱标"""
@@ -365,7 +358,7 @@ class RegularTemplate(PDFBaseUtils):
                 data, params, str(current_output_path),
                 large_boxes_processed + 1, large_boxes_processed + large_boxes_in_current_file,
                 theme_text, base_number, remark_text, pieces_per_large_box, 
-                boxes_per_small_box, small_boxes_per_large_box, total_large_boxes
+                boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, total_boxes
             )
             
             large_boxes_processed += large_boxes_in_current_file
@@ -375,7 +368,7 @@ class RegularTemplate(PDFBaseUtils):
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
         start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
         remark_text: str, pieces_per_large_box: int, boxes_per_small_box: int, 
-        small_boxes_per_large_box: int, total_large_boxes: int
+        small_boxes_per_large_box: int, total_large_boxes: int, total_boxes: int
     ):
         """创建单个大箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
@@ -397,34 +390,25 @@ class RegularTemplate(PDFBaseUtils):
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 计算序列号范围
-            import re
-            match = re.search(r'(\d+)', base_number)
-            if match:
-                # 获取数字前的前缀和基础数字
-                digit_start = match.start()
-                prefix = base_number[:digit_start]
-                base_num = int(match.group(1))
-                
-                # 计算当前大箱包含的盒标范围
-                boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
-                start_box_num = (large_box_num - 1) * boxes_per_large_box + 1
-                end_box_num = large_box_num * boxes_per_large_box
-                
-                start_serial_num = base_num + (start_box_num - 1)
-                end_serial_num = base_num + (end_box_num - 1)
-                
-                start_serial = f"{prefix}{start_serial_num:05d}"
-                end_serial = f"{prefix}{end_serial_num:05d}"
-                serial_range = f"{start_serial}-{end_serial}"
-            else:
-                serial_range = f"LARGE{large_box_num:05d}"
+            # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
+            serial_range = regular_data_processor.generate_regular_large_box_serial_range(
+                base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
+            )
+
+            # 🔧 计算当前大箱的实际张数（考虑最后一大箱的边界情况）
+            pieces_per_box = int(params["张/盒"])
+            # 计算当前大箱实际包含的盒数
+            boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+            start_box = (large_box_num - 1) * boxes_per_large_box + 1
+            end_box = min(start_box + boxes_per_large_box - 1, total_boxes)
+            actual_boxes_in_large_box = end_box - start_box + 1
+            actual_pieces_in_large_box = actual_boxes_in_large_box * pieces_per_box
 
             # 计算大箱标Carton No - 格式：当前大箱/总大箱数  
             carton_no = regular_data_processor.calculate_carton_range_for_large_box(large_box_num, total_large_boxes)
             
-            # 绘制大箱标表格
-            regular_renderer.draw_large_box_table(c, width, height, theme_text, pieces_per_large_box,
+            # 绘制大箱标表格（使用实际张数）
+            regular_renderer.draw_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box,
                                                  serial_range, carton_no, remark_text)
 
         c.save()

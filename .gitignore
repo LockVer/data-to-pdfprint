@@ -118,3 +118,6 @@ output/
 *.pdf
 config.json
 .DS_Store
+
+# 个人配置文件
+*.claude-personal.md

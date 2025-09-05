@@ -113,16 +113,21 @@ class SplitBoxDataProcessor:
         return current_number
     
     def generate_split_small_box_serial_range(self, base_number: str, small_box_num: int, 
-                                            boxes_per_small_box: int, group_size: int) -> str:
+                                            boxes_per_small_box: int, group_size: int, total_boxes: int = None) -> str:
         """
-        生成分盒小箱标的序列号范围 - 与原有逻辑完全一致
+        生成分盒小箱标的序列号范围 - 修复边界计算问题
         对应原来 _create_split_small_box_label 中的序列号范围计算逻辑
+        添加total_boxes边界检查，确保序列号不超出实际盒数
         """
         serial_info = self.parse_serial_number_format(base_number)
         
         # 计算当前小箱包含的盒子范围
         start_box = (small_box_num - 1) * boxes_per_small_box + 1
         end_box = start_box + boxes_per_small_box - 1
+        
+        # 🔧 边界检查：确保end_box不超过总盒数
+        if total_boxes is not None:
+            end_box = min(end_box, total_boxes)
         
         # 计算范围内第一个盒子的序列号
         first_box_index = start_box - 1
@@ -149,10 +154,11 @@ class SplitBoxDataProcessor:
     
     def generate_split_large_box_serial_range(self, base_number: str, large_box_num: int,
                                             small_boxes_per_large_box: int, boxes_per_small_box: int, 
-                                            group_size: int) -> str:
+                                            group_size: int, total_boxes: int = None) -> str:
         """
-        生成分盒大箱标的序列号范围 - 与原有逻辑完全一致
+        生成分盒大箱标的序列号范围 - 修复边界计算问题
         对应原来 _create_split_large_box_label 中的序列号范围计算逻辑
+        添加total_boxes边界检查，确保序列号不超出实际盒数
         """
         serial_info = self.parse_serial_number_format(base_number)
         
@@ -163,6 +169,10 @@ class SplitBoxDataProcessor:
         # 计算当前大箱包含的总盒子范围
         start_box = (start_small_box - 1) * boxes_per_small_box + 1
         end_box = end_small_box * boxes_per_small_box
+        
+        # 🔧 边界检查：确保end_box不超过总盒数
+        if total_boxes is not None:
+            end_box = min(end_box, total_boxes)
         
         # 计算范围内第一个盒子的序列号
         first_box_index = start_box - 1

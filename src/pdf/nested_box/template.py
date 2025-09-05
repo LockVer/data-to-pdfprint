@@ -217,43 +217,23 @@ class NestedBoxTemplate(PDFBaseUtils):
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 计算套盒模板的序列号范围 - 简化逻辑
-            import re
-            match = re.search(r'(\d+)', base_number)
-            if match:
-                # 获取第一个数字（主号）的起始位置
-                digit_start = match.start()
-                # 截取主号前面的所有字符作为前缀
-                prefix_part = base_number[:digit_start]
-                base_main_num = int(match.group(1))  # 主号
-                
-                # 套盒模板小箱标的简化逻辑：
-                # 每个小箱标对应一个主号，包含连续的boxes_per_small_box个副号
-                # 第1个小箱：主号base_main_num，副号01-06
-                # 第2个小箱：主号base_main_num+1，副号01-06
-                # 第3个小箱：主号base_main_num+2，副号01-06
-                
-                current_main_number = base_main_num + (small_box_num - 1)  # 当前小箱对应的主号
-                
-                # 副号始终从01开始，到boxes_per_small_box结束
-                start_suffix = 1
-                end_suffix = boxes_per_small_box
-                
-                start_serial = f"{prefix_part}{current_main_number:05d}-{start_suffix:02d}"
-                end_serial = f"{prefix_part}{current_main_number:05d}-{end_suffix:02d}"
-                
-                # 套盒小箱标显示序列号范围
-                serial_range = f"{start_serial}-{end_serial}"
-            else:
-                serial_range = f"DSK{small_box_num:05d}-DSK{small_box_num:05d}"
+            # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
+            serial_range = nested_box_data_processor.generate_small_box_serial_range(
+                base_number, small_box_num, boxes_per_small_box, total_boxes
+            )
 
-            print(f"📝 小箱标 #{small_box_num}: 主号{current_main_number}, 副号{start_suffix}-{end_suffix} = {serial_range}")
+            # 🔧 计算当前小箱的实际张数（考虑最后一小箱的边界情况）
+            # 计算当前小箱实际包含的盒数
+            start_box = (small_box_num - 1) * boxes_per_small_box + 1
+            end_box = min(start_box + boxes_per_small_box - 1, total_boxes)
+            actual_boxes_in_small_box = end_box - start_box + 1
+            actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
 
             # 计算套盒小箱标的Carton No（简单的小箱编号）
             carton_no = str(small_box_num)
 
-            # 绘制套盒小箱标表格
-            nested_box_renderer.draw_nested_small_box_table(c, width, height, theme_text, pieces_per_small_box, 
+            # 绘制套盒小箱标表格（使用实际张数）
+            nested_box_renderer.draw_nested_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
                                                              serial_range, carton_no, remark_text)
 
         c.save()
@@ -309,40 +289,26 @@ class NestedBoxTemplate(PDFBaseUtils):
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 计算当前大箱包含的小箱范围
-            start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
-            end_small_box = start_small_box + small_boxes_per_large_box - 1
-            
-            # 计算序列号范围 - 从第一个小箱的起始号到最后一个小箱的结束号
-            import re
-            match = re.search(r'(\d+)', base_number)
-            if match:
-                # 获取第一个数字（主号）的起始位置
-                digit_start = match.start()
-                # 截取主号前面的所有字符作为前缀
-                prefix_part = base_number[:digit_start]
-                base_main_num = int(match.group(1))  # 主号
-                
-                # 第一个小箱的序列号范围
-                first_main_number = base_main_num + (start_small_box - 1)
-                first_start_serial = f"{prefix_part}{first_main_number:05d}-01"
-                
-                # 最后一个小箱的序列号范围
-                last_main_number = base_main_num + (end_small_box - 1)
-                last_end_serial = f"{prefix_part}{last_main_number:05d}-{boxes_per_small_box:02d}"
-                
-                # 大箱标显示完整序列号范围
-                serial_range = f"{first_start_serial}-{last_end_serial}"
-            else:
-                serial_range = f"DSK{large_box_num:05d}-DSK{large_box_num:05d}"
+            # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
+            serial_range = nested_box_data_processor.generate_large_box_serial_range(
+                base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
+            )
 
-            print(f"📝 大箱标 #{large_box_num}: 包含小箱{start_small_box}-{end_small_box}, 序列号范围={serial_range}")
+            # 🔧 计算当前大箱的实际张数（考虑最后一大箱的边界情况）
+            # 计算当前大箱实际包含的盒数
+            boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+            start_box = (large_box_num - 1) * boxes_per_large_box + 1
+            end_box = min(start_box + boxes_per_large_box - 1, total_boxes)
+            actual_boxes_in_large_box = end_box - start_box + 1
+            actual_pieces_in_large_box = actual_boxes_in_large_box * pieces_per_box
 
             # 计算套盒大箱标的Carton No（小箱范围格式）
+            start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
+            end_small_box = start_small_box + small_boxes_per_large_box - 1
             carton_range = f"{start_small_box}-{end_small_box}"
 
-            # 绘制套盒大箱标表格
-            nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, pieces_per_large_box, 
+            # 绘制套盒大箱标表格（使用实际张数）
+            nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box, 
                                                              serial_range, carton_range, remark_text)
 
         c.save()

@@ -200,17 +200,20 @@ class SplitBoxTemplate(PDFBaseUtils):
         boxes_per_small_box = int(params["盒/小箱"])
         pieces_per_small_box = pieces_per_box * boxes_per_small_box
         
+        # 从remainder_info获取total_boxes
+        total_boxes = remainder_info.get("total_boxes", 0)
+        
         # 直接创建单个PDF文件，包含所有小箱标
         self._create_single_split_box_small_box_label_file(
             data, params, output_path, 1, total_small_boxes,
             theme_text, base_number, remark_text, pieces_per_small_box, 
-            boxes_per_small_box, total_small_boxes, group_size
+            boxes_per_small_box, total_small_boxes, group_size, total_boxes
         )
 
     def _create_single_split_box_small_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_small_box: int, end_small_box: int, theme_text: str, base_number: str,
                                                  remark_text: str, pieces_per_small_box: int, boxes_per_small_box: int, 
-                                                 total_small_boxes: int, group_size: int):
+                                                 total_small_boxes: int, group_size: int, total_boxes: int):
         """创建单个分盒小箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
         width, height = self.page_size
@@ -231,46 +234,26 @@ class SplitBoxTemplate(PDFBaseUtils):
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 计算分盒模板的序列号范围
-            import re
-            match = re.search(r'(\d+)', base_number)
-            if match:
-                # 获取第一个数字（主号）的起始位置
-                digit_start = match.start()
-                # 截取主号前面的所有字符作为前缀
-                prefix_part = base_number[:digit_start]
-                base_main_num = int(match.group(1))  # 主号
-                
-                # 分盒模板小箱标的特殊逻辑：
-                # 每个小箱标包含boxes_per_small_box个盒标的序列号范围
-                # 计算当前小箱标包含的盒标范围
-                start_box_index = (small_box_num - 1) * boxes_per_small_box  # 起始盒标索引(0基数)
-                end_box_index = start_box_index + boxes_per_small_box - 1    # 结束盒标索引(0基数)
-                
-                # 计算起始盒标的序列号
-                start_main_offset = start_box_index // group_size
-                start_suffix = (start_box_index % group_size) + 1
-                start_main_number = base_main_num + start_main_offset
-                start_serial = f"{prefix_part}{start_main_number:05d}-{start_suffix:02d}"
-                
-                # 计算结束盒标的序列号
-                end_main_offset = end_box_index // group_size
-                end_suffix = (end_box_index % group_size) + 1
-                end_main_number = base_main_num + end_main_offset
-                end_serial = f"{prefix_part}{end_main_number:05d}-{end_suffix:02d}"
-                
-                # 分盒小箱标显示序列号范围
-                serial_range = f"{start_serial}-{end_serial}"
-            else:
-                serial_range = f"DSK{small_box_num:05d}-DSK{small_box_num:05d}"
+            # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
+            serial_range = split_box_data_processor.generate_split_small_box_serial_range(
+                base_number, small_box_num, boxes_per_small_box, group_size, total_boxes
+            )
+
+            # 🔧 计算当前小箱的实际张数（考虑最后一小箱的边界情况）
+            pieces_per_box = int(params["张/盒"])
+            # 计算当前小箱实际包含的盒数
+            start_box = (small_box_num - 1) * boxes_per_small_box + 1
+            end_box = min(start_box + boxes_per_small_box - 1, total_boxes)
+            actual_boxes_in_small_box = end_box - start_box + 1
+            actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
 
             # 计算分盒小箱标的Carton No（主箱号-副箱号格式）
             main_box_num = ((small_box_num - 1) // group_size) + 1  # 主箱号
             sub_box_num = ((small_box_num - 1) % group_size) + 1    # 副箱号
             carton_no = f"{main_box_num}-{sub_box_num}"
 
-            # 绘制分盒小箱标表格
-            split_box_renderer.draw_split_box_small_box_table(c, width, height, theme_text, pieces_per_small_box, 
+            # 绘制分盒小箱标表格（使用实际张数）
+            split_box_renderer.draw_split_box_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
                                            serial_range, carton_no, remark_text)
 
         c.save()
