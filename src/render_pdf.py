@@ -267,7 +267,14 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
         # ===================================================
         pages = []
         # TODO 这里首页显示Game title的中文字段值 + Ticket count空 + Serial空
-        if ('boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1) or box_info.get('is_separate_mode', False):
+        # 检查是否应该使用多级编号
+        package_mode = additional_inputs.get('package_mode', 'regular') if additional_inputs else 'regular'
+        should_use_multi_level = (
+            package_mode != 'regular' and  # 常规模式强制使用单级编号
+            (('boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1) or box_info.get('is_separate_mode', False))
+        )
+        
+        if should_use_multi_level:
             # =====================================================
             # 【游戏+多级】分盒模式：每页显示游戏信息+多级序列号
             # 盒标按每个盒子逐一生成，多级序列号格式
@@ -320,6 +327,7 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
             # =====================================================
             # 【游戏+单级】常规模式：每页显示游戏信息+单级序列号
             # 序列号格式：JAW01001, JAW01002, JAW01003...
+            # 常规模式始终使用单级编号，无论每小箱盒数是多少
             # =====================================================
             cards_per_box = additional_inputs.get('sheets_per_box', total_cards) if additional_inputs else total_cards
             
@@ -344,7 +352,14 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
             ])
         ]
         
-        if ('boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1) or box_info.get('is_separate_mode', False):
+        # 检查是否应该使用多级编号
+        package_mode = additional_inputs.get('package_mode', 'regular') if additional_inputs else 'regular'
+        should_use_multi_level = (
+            package_mode != 'regular' and  # 常规模式强制使用单级编号
+            (('boxes_per_small_case' in box_info and box_info.get('boxes_per_small_case', 1) > 1) or box_info.get('is_separate_mode', False))
+        )
+        
+        if should_use_multi_level:
             # =====================================================
             # 【常规+多级】分盒模式：首页(客户+主题) + 其他页(主题+多级序列号)
             # 盒标按每个盒子逐一生成，多级序列号格式
@@ -394,7 +409,7 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
             # =====================================================
             # 【常规+单级】常规模式：首页(客户+主题) + 其他页(主题+单级序列号)
             # 序列号格式：JAW01001, JAW01002, JAW01003...
-            # 使用index_range和content_template实现批量生成
+            # 常规模式始终使用单级编号，无论每小箱盒数是多少
             # =====================================================
             end_num = start_num + box_info['total_boxes'] - 1
             pages.append(Page(index_range=[start_num, end_num], elements=[

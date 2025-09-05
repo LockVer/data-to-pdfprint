@@ -144,7 +144,7 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
         total_large_cases = math.ceil(total_sets / sets_per_large_case) if sets_per_large_case > 0 else 0
         total_boxes = total_sets * boxes_per_set  # 总盒数
     else:
-        # 其他模式：按原逻辑
+        # 其他模式（包括常规模式）：使用用户输入的每小箱盒数参数
         cards_per_box = sheets_per_box
         total_boxes = math.ceil(total_cards / cards_per_box)
         total_small_cases = math.ceil(total_boxes / boxes_per_small_case)
@@ -166,29 +166,49 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
         # 单级常规模式：小箱标(单盒) + 大箱标(多盒)
         # =============================================
         
-        # 小箱标: 单个盒子 (2850PCS, LAN01001-LAN01001, 1/20)
+        # 小箱标: 根据每小箱盒数生成
         for case_idx in range(total_small_cases):
-            box_num = start_num + case_idx
-            box_serial = f"{serial_prefix}{box_num:05d}"
+            # 计算该小箱包含的盒子范围
+            start_box_idx = case_idx * boxes_per_small_case
+            end_box_idx = min(start_box_idx + boxes_per_small_case - 1, total_boxes - 1)
+            
+            start_box_num = start_num + start_box_idx
+            end_box_num = start_num + end_box_idx
+            
+            # 小箱数量 = 每小箱盒数 * 每盒张数
+            small_case_quantity = (end_box_idx - start_box_idx + 1) * cards_per_box
+            
+            # 序列号范围
+            if start_box_num == end_box_num:
+                # 每小箱只有1盒的情况
+                serial_range = f"{serial_prefix}{start_box_num:05d}-{serial_prefix}{start_box_num:05d}"
+            else:
+                # 每小箱有多盒的情况  
+                serial_range = f"{serial_prefix}{start_box_num:05d}-{serial_prefix}{end_box_num:05d}"
             
             pages.append(CasePage(index=case_idx*2 + 1, elements=[
                 CaseElement(role="item", content="Paper Cards"),
                 CaseElement(role="theme", content=theme),
-                CaseElement(role="quantity", content=f"{cards_per_box}PCS"),
-                CaseElement(role="serial_range", content=f"{box_serial}-{box_serial}"),
+                CaseElement(role="quantity", content=f"{small_case_quantity}PCS"),
+                CaseElement(role="serial_range", content=serial_range),
                 CaseElement(role="carton_no", content=f"{case_idx + 1}/{total_small_cases}"),
                 CaseElement(role="remark", content=customer_code)
             ]))
         
-        # 大箱标: 多个盒子范围 (5700PCS, LAN01017-LAN01018, 9/10)
+        # 大箱标: 多个小箱范围
         for large_case_idx in range(total_large_cases):
             start_small_case = large_case_idx * small_cases_per_large_case
             end_small_case = min(start_small_case + small_cases_per_large_case - 1, total_small_cases - 1)
             
-            start_box_num = start_num + start_small_case
-            end_box_num = start_num + end_small_case
+            # 计算大箱内包含的盒子范围  
+            start_box_idx = start_small_case * boxes_per_small_case
+            end_box_idx = min((end_small_case + 1) * boxes_per_small_case - 1, total_boxes - 1)
             
-            large_quantity = (end_small_case - start_small_case + 1) * cards_per_box
+            start_box_num = start_num + start_box_idx
+            end_box_num = start_num + end_box_idx
+            
+            # 大箱数量 = 大箱内包含的盒数 * 每盒张数
+            large_quantity = (end_box_idx - start_box_idx + 1) * cards_per_box
             
             pages.append(CasePage(index=large_case_idx*2 + 2, elements=[
                 CaseElement(role="item", content="Paper Cards"),

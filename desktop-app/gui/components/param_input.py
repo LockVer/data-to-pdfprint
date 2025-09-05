@@ -175,11 +175,16 @@ class ParamInputStep(BaseStep):
         """根据包装模式更新高级参数可见性"""
         if hasattr(self, 'advanced_frame') and self.app_data.package_mode:
             if self.app_data.package_mode == 'regular':
-                # 常规模式：隐藏"每小箱盒数"，显示"每大箱小箱数"
-                self.boxes_container.pack_forget()
+                # 常规模式：显示"每小箱盒数"和"每大箱小箱数"，允许用户输入每小箱盒数
+                self.boxes_container.pack(fill=tk.X, pady=10)
                 self.cases_container.pack(fill=tk.X, pady=10)
-                # 自动设置默认值
-                self.boxes_per_small_case_var.set(1)  # 常规模式固定为1
+                # 常规模式：恢复输入框为可编辑状态
+                if hasattr(self, 'boxes_entry'):
+                    self.boxes_entry.config(state='normal', bg='white')
+                    self.boxes_help_label.config(text="每个小箱包含的盒子数量", foreground='#666666')
+                # 设置默认值
+                if self.boxes_per_small_case_var.get() <= 1:
+                    self.boxes_per_small_case_var.set(1)  # 常规模式默认为1，但用户可以修改
                 if self.small_cases_per_large_case_var.get() <= 1:
                     self.small_cases_per_large_case_var.set(2)  # 默认2个小箱一大箱
             elif self.app_data.package_mode == 'set':
@@ -261,7 +266,8 @@ class ParamInputStep(BaseStep):
                     preview_text += f"  每盒张数: {sheets_per_box:,} 张\n"
                 
                 if self.app_data.package_mode == 'regular':
-                    # 常规模式：只显示每大箱小箱数
+                    # 常规模式：显示每小箱盒数和每大箱小箱数
+                    preview_text += f"  每小箱盒数: {boxes_per_small_case} 盒\n"
                     preview_text += f"  每大箱小箱数: {small_cases_per_large_case} 小箱\n\n"
                 elif self.app_data.package_mode == 'set':
                     # 套盒模式：显示用户输入的每套盒数和每大箱套数
@@ -355,8 +361,17 @@ class ParamInputStep(BaseStep):
                 self.show_error("每大箱小箱数不能超过50")
                 return False
             
-            # 分盒/套盒模式需要额外验证"每小箱盒数"参数
-            if self.app_data.package_mode == 'separate':
+            # 常规/分盒/套盒模式需要额外验证"每小箱盒数"参数
+            if self.app_data.package_mode == 'regular':
+                # 常规模式：验证每小箱盒数参数
+                if boxes_per_small_case <= 0:
+                    self.show_error("每小箱盒数必须大于0")
+                    return False
+                
+                if boxes_per_small_case > 100:
+                    self.show_error("每小箱盒数不能超过100")
+                    return False
+            elif self.app_data.package_mode == 'separate':
                 # 分盒模式：每小箱盒数固定为1，不需要验证
                 if boxes_per_small_case != 1:
                     self.boxes_per_small_case_var.set(1)  # 强制设为1
