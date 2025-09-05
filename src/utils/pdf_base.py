@@ -6,7 +6,7 @@ PDF生成基础工具类
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import CMYKColor
 from reportlab.lib.units import mm
-from font_manager import font_manager
+from src.utils.font_manager import font_manager
 
 
 class PDFBaseUtils:

@@ -9,8 +9,7 @@ from typing import Dict, Any
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import CMYKColor
 # 导入基础工具类
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "utils"))
-from pdf_base import PDFBaseUtils
+from src.utils.pdf_base import PDFBaseUtils
 
 # 导入分盒模板专属数据处理器和渲染器
 current_dir = os.path.dirname(__file__)
