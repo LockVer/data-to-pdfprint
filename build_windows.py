@@ -45,7 +45,7 @@ def build_windows_gui():
             shutil.rmtree("build")
         
         print("🔄 正在运行PyInstaller...")
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='ignore')
         
         if result.returncode == 0:
             print("✅ Windows GUI应用构建成功!")
