@@ -59,36 +59,14 @@ class SetBoxLabelTemplate:
         center_x = x + self.LABEL_WIDTH / 2
         center_y = y + self.LABEL_HEIGHT / 2
         
-        # 上方：主题文字 - 只提取英文部分
-        raw_title = data.get('subject', data.get('B4', 'TAB STREET DRAMA'))
-        
-        # 智能提取英文部分
-        if raw_title:
-            import re
-            # 先去掉开头的"-"符号（如果有）
-            clean_title = raw_title.lstrip('-').strip()
-            
-            # 查找英文部分 - 匹配连续的英文字母、空格、撇号、感叹号等
-            english_patterns = [
-                r'[A-Z][A-Z\s\'!]*[A-Z!]',           # 大写字母开头结尾的英文短语
-                r'[A-Z]+\'[A-Z\s]+[A-Z!]',           # 带撇号的英文 (如 TAB STREET DRAMA)
-                r'[A-Z]+[A-Z\s!]*',                  # 任何大写字母组合
-                r'[A-Za-z][A-Za-z\s\'!]*[A-Za-z!]'  # 任何英文字母组合
-            ]
-            
-            for pattern in english_patterns:
-                match = re.search(pattern, clean_title)
-                if match:
-                    main_title = match.group().strip()
-                    break
-            else:
-                # 如果没有匹配到，使用清理后的原标题
-                main_title = clean_title if clean_title else 'TAB STREET DRAMA'
-        else:
-            main_title = 'TAB STREET DRAMA'
+        # 上方：主题文字 - 使用和分盒模板相同的搜索逻辑
+        main_title = self._search_label_name_data(data)
+        if not main_title:
+            # 备选方案：使用B4数据
+            main_title = data.get('subject', data.get('B4', 'TAB STREET DRAMA'))
         
         # 调试输出
-        print(f"原始标题: '{raw_title}' -> 处理后标题: '{main_title}'")
+        print(f"套盒模板主题获取结果: '{main_title}'")
             
         # 重置绘制设置，确保文字正常渲染
         c.setFillColor(self.colors['black'])
@@ -100,7 +78,8 @@ class SetBoxLabelTemplate:
         title_width = c.stringWidth(main_title, 'Helvetica-Bold', title_font_size)
         title_x = center_x - title_width / 2
         title_y = center_y + 18  # 向上移动更多，增加与编号的间距
-        c.drawString(title_x, title_y, main_title)
+        # 使用粗体绘制方法绘制主题
+        self._draw_bold_text(c, main_title, title_x, title_y, 'Helvetica-Bold', title_font_size)
         
         # 套盒编号文字 - 使用箱号-盒号格式
         set_box_code = data.get('set_box_number', 'MOP01001-01')
@@ -110,8 +89,97 @@ class SetBoxLabelTemplate:
         code_width = c.stringWidth(set_box_code, 'Helvetica-Bold', code_font_size)
         code_x = center_x - code_width / 2
         code_y = center_y - 18  # 向下移动更多，增加与主题的间距
-        c.drawString(code_x, code_y, set_box_code)
+        # 使用粗体绘制方法绘制编号
+        self._draw_bold_text(c, set_box_code, code_x, code_y, 'Helvetica-Bold', code_font_size)
     
+    def _draw_bold_text(self, canvas_obj, text, x, y, font_name, font_size):
+        """
+        绘制粗体文本（通过重复绘制实现粗体效果）
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 粗体效果的偏移量 - 增加偏移量使字体更粗
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.5, 0),    # 右偏移，增加到0.5
+            (0, 0.5),    # 上偏移，增加到0.5  
+            (0.5, 0.5),  # 右上偏移
+            (0.25, 0),   # 额外的右偏移
+            (0, 0.25),   # 额外的上偏移
+        ]
+        
+        # 多次绘制实现粗体效果
+        for offset_x, offset_y in bold_offsets:
+            c.drawString(x + offset_x, y + offset_y, text)
+    
+    def _search_label_name_data(self, excel_data):
+        """
+        搜索Excel数据中"标签名称"关键字右边的数据
+        直接返回找到的数据，不做任何处理
+        """
+        print(f"🔍 开始搜索标签名称关键字...")
+        print(f"📋 Excel数据中所有单元格：")
+        for key, value in sorted(excel_data.items()):
+            if value is not None:
+                print(f"   {key}: {repr(value)}")
+        
+        # 遍历所有Excel数据，查找包含"标签名称"的单元格
+        for key, value in excel_data.items():
+            if value and "标签名称" in str(value):
+                print(f"🔍 在单元格 {key} 找到标签名称关键字: {value}")
+                
+                # 尝试找到右边单元格的数据
+                # 假设key格式为字母+数字，如A4, B5等
+                try:
+                    import re
+                    match = re.match(r'([A-Z]+)(\d+)', key)
+                    if match:
+                        col_letters = match.group(1)
+                        row_number = match.group(2)
+                        
+                        # 计算右边一列的单元格
+                        next_col = self._get_next_column(col_letters)
+                        right_cell_key = f"{next_col}{row_number}"
+                        
+                        print(f"🔍 计算右边单元格: {key} -> {right_cell_key}")
+                        
+                        # 获取右边单元格的数据
+                        right_cell_data = excel_data.get(right_cell_key)
+                        if right_cell_data:
+                            print(f"✅ 找到标签名称右边数据 ({right_cell_key}): {right_cell_data}")
+                            return str(right_cell_data).strip()
+                        else:
+                            print(f"⚠️  右边单元格 {right_cell_key} 无数据")
+                            print(f"📋 检查右边单元格周围的数据：")
+                            for check_key, check_value in excel_data.items():
+                                if check_key.endswith(row_number) and check_value:
+                                    print(f"     {check_key}: {repr(check_value)}")
+                except Exception as e:
+                    print(f"❌ 解析单元格位置失败: {e}")
+        
+        # 如果没找到"标签名称"关键字，返回None
+        print(f"⚠️  未找到标签名称关键字")
+        return None
+    
+    def _get_next_column(self, col_letters):
+        """获取下一列的字母标识"""
+        # 将字母转换为数字，加1，再转回字母
+        result = 0
+        for char in col_letters:
+            result = result * 26 + (ord(char) - ord('A') + 1)
+        
+        result += 1  # 下一列
+        
+        # 转回字母
+        next_col = ''
+        while result > 0:
+            result -= 1
+            next_col = chr(result % 26 + ord('A')) + next_col
+            result //= 26
+        
+        return next_col
+
     def _generate_set_box_number(self, base_number, box_index, boxes_per_set):
         """
         生成套盒编号 - 套号-盒号格式
@@ -254,8 +322,9 @@ class SetBoxLabelTemplate:
             else:
                 raise Exception(f"创建文件夹失败: {e}\n路径: {label_folder}")
         
-        # 准备标签数据 - 套盒模版数据
-        label_data = {
+        # 准备标签数据 - 套盒模版数据，包含完整的Excel数据用于搜索
+        label_data = data_dict.copy()  # 保留完整的Excel数据
+        label_data.update({
             'customer_name': customer_name,  # A4
             'subject': theme,                # B4 - 主题
             'start_number': data_dict.get('B11', 'MOP01001'),  # B11 - 起始编号
@@ -267,7 +336,7 @@ class SetBoxLabelTemplate:
             'boxes_per_set': boxes_per_set,  # 几盒为一套
             'boxes_per_inner_case': boxes_per_inner_case,  # 几盒入一小箱
             'sets_per_outer_case': sets_per_outer_case  # 几套入一大箱
-        }
+        })
         
         # 生成套盒盒标
         set_box_label_path = label_folder / f"{customer_name}+{theme}+套盒盒标.pdf"
