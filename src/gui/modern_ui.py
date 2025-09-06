@@ -751,16 +751,50 @@ class ModernExcelToPDFApp:
                         per_inner = self.box_config.get('box_per_inner_case', 5)
                         preview_content += f"• 每箱张数: {min_sheets * per_inner}\n\n"
                     elif template_type == 'box':
-                        preview_content += f"• 分盒标数量: {box_count} 个\n"
-                        preview_content += f"• 每盒张数: {self.box_config.get('min_box_count', 10)}\n"
-                        preview_content += f"• 分盒配置: 待开发\n\n"
+                        # 分合小箱标的具体计算
+                        min_box_count = self.box_config.get('min_box_count', 10)
+                        box_per_inner = 1  # 分盒模版固定为1
+                        inner_case_per_outer = self.box_config.get('inner_case_per_outer_case', 2)
+                        
+                        # 计算总盒数和内箱数
+                        total_boxes = math.ceil(total_qty / min_box_count)
+                        total_inner_cases = math.ceil(total_boxes / box_per_inner)
+                        
+                        # 分合小箱标的数量计算：盒张数 * 每小箱盒数
+                        sheets_per_inner_case = min_box_count * box_per_inner
+                        
+                        preview_content += f"🔢 分合小箱标生成预览:\n"
+                        preview_content += f"• 分盒标数量: {total_boxes} 个\n"
+                        preview_content += f"• 每盒张数: {min_box_count}\n"
+                        preview_content += f"• 小箱标数量: {total_inner_cases} 个\n"
+                        preview_content += f"• 每小箱盒数: {box_per_inner} (固定为1)\n"
+                        preview_content += f"• 每小箱张数: {sheets_per_inner_case}\n"
+                        preview_content += f"• 分盒配置: 已开发 ✅\n\n"
                     elif template_type == 'case':
-                        preview_content += f"• 套盒标数量: {outer_count} 个\n"
-                        preview_content += f"• 每套盒数: {self.box_config.get('inner_case_per_outer_case', 4)}\n"
-                        preview_content += f"• 套盒配置: 待开发\n\n"
+                        # 套盒大箱标的具体计算
+                        boxes_per_set = self.box_config.get('boxes_per_set', 3)
+                        sets_per_outer_case = self.box_config.get('sets_per_outer_case', 2)
+                        min_set_count = self.box_config.get('min_set_count', 30)
+                        
+                        # 计算套数和大箱数
+                        set_count = math.ceil(total_qty / min_set_count)
+                        total_outer_cases = math.ceil(set_count / sets_per_outer_case)
+                        total_boxes_in_sets = set_count * boxes_per_set
+                        
+                        preview_content += f"🔢 套盒大箱标生成预览:\n"
+                        preview_content += f"• 套盒标数量: {set_count} 个\n"
+                        preview_content += f"• 每套张数: {min_set_count}\n"
+                        preview_content += f"• 每套盒数: {boxes_per_set}\n"
+                        preview_content += f"• 大箱标数量: {total_outer_cases} 个\n"
+                        preview_content += f"• 每大箱套数: {sets_per_outer_case}\n"
+                        preview_content += f"• 套盒配置: 已开发 ✅\n\n"
                 
                 if template_type == 'regular':
                     preview_content += "✅ 常规模板数据已准备就绪，可以生成PDF"
+                elif template_type == 'box':
+                    preview_content += "✅ 分合模板数据已准备就绪，可以生成PDF"
+                elif template_type == 'case':
+                    preview_content += "✅ 套盒模板数据已准备就绪，可以生成PDF"
                 else:
                     preview_content += f"⚠️  {template_name}正在开发中，暂时使用常规模板生成"
                     
