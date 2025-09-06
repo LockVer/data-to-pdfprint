@@ -87,16 +87,21 @@ class DivisionInnerCaseTemplate:
             current_boxes_in_case = min(box_per_inner, total_boxes - i * box_per_inner)  # 当前内箱实际包含的盒数
             end_box = start_box + current_boxes_in_case - 1  # 当前内箱的最后一个盒号
             
-            # 分合小箱标的特殊编号格式：LGM01001-01-LGM01001-01
-            # 表示第一大箱中的第一小箱
+            # 分合小箱标的编号格式：符合开始号结束号相同的规则
+            # 父级编号（包含大箱递增） - 子级编号（小箱递增）
             base_number = excel_data.get('B11', 'DEFAULT001')
-            outer_case_index = i // inner_case_per_outer + 1  # 大箱序号
-            inner_case_index = i % inner_case_per_outer + 1   # 大箱内的小箱序号
+            outer_case_index = i // inner_case_per_outer + 1  # 大箱序号（循环递增）
+            inner_case_index = i % inner_case_per_outer + 1   # 大箱内的小箱序号（循环递增）
             
-            # 生成特殊格式的编号：基础编号-小箱序号-基础编号-小箱序号
-            division_number = f"{base_number}-{inner_case_index:02d}-{base_number}-{inner_case_index:02d}"
-            number_range = division_number
-            print(f"分合编号生成: 基础'{base_number}' -> 大箱{outer_case_index}/小箱{inner_case_index} -> '{number_range}'")
+            # 生成父级编号：基础编号 + 大箱序号递增
+            parent_number = self._generate_parent_number_with_outer_case(base_number, outer_case_index - 1)
+            
+            # 生成子级编号：父级编号 + 小箱序号
+            child_number = f"{parent_number}-{inner_case_index:02d}"
+            
+            # 开始号和结束号相同（因为每个小箱只有一个编号）
+            number_range = f"{child_number}-{child_number}"
+            print(f"分合编号生成: 基础'{base_number}' -> 父级'{parent_number}' -> 子级'{child_number}' -> 范围'{number_range}'")
             
             # 箱号格式：简单的大箱-小箱格式（如：1-1）
             carton_no = f"{outer_case_index}-{inner_case_index}"
@@ -121,6 +126,52 @@ class DivisionInnerCaseTemplate:
             inner_case_labels.append(label_data)
         
         return inner_case_labels
+    
+    def _generate_parent_number_with_outer_case(self, base_number, outer_case_index):
+        """
+        生成包含大箱序号的父级编号
+        
+        Args:
+            base_number: 基础编号 (如: LGM01001)
+            outer_case_index: 大箱索引 (从0开始)
+        
+        Returns:
+            str: 父级编号 (如: LGM01002 表示第2个大箱)
+        """
+        try:
+            # 清理基础编号
+            clean_base_number = str(base_number).strip()
+            if '-' in clean_base_number:
+                clean_base_number = clean_base_number.split('-')[0]
+            
+            # 解析基础编号：前缀 + 数字
+            prefix_part = ''
+            number_part = ''
+            
+            for j in range(len(clean_base_number)-1, -1, -1):
+                if clean_base_number[j].isdigit():
+                    number_part = clean_base_number[j] + number_part
+                else:
+                    prefix_part = clean_base_number[:j+1]
+                    break
+            
+            if number_part:
+                start_num = int(number_part)
+                # 父级编号：基础编号 + 大箱序号递增
+                parent_num = start_num + outer_case_index
+                # 保持原数字部分的位数
+                width = len(number_part)
+                result = f"{prefix_part}{parent_num:0{width}d}"
+                
+                print(f"父级编号生成: 基础'{base_number}' + 大箱索引{outer_case_index} -> '{result}'")
+                return result
+            else:
+                # 如果无法解析数字，使用简单格式
+                return f"{base_number}_{outer_case_index+1:03d}"
+                
+        except Exception as e:
+            print(f"父级编号生成失败: {e}")
+            return f"{base_number}_{outer_case_index+1:03d}"
     
     def _generate_division_number_by_index(self, base_number, index):
         """
