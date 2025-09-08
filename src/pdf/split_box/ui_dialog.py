@@ -79,7 +79,7 @@ class SplitBoxUIDialog:
         ttk.Label(params_frame, text="张/盒:").grid(
             row=0, column=0, sticky=tk.W, pady=5
         )
-        self.main_app.pieces_per_box_var = tk.StringVar(value="2850")
+        self.main_app.pieces_per_box_var = tk.StringVar()
         pieces_per_box_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.pieces_per_box_var, width=15
         )
@@ -101,24 +101,12 @@ class SplitBoxUIDialog:
         ttk.Label(params_frame, text="小箱/大箱:").grid(
             row=2, column=0, sticky=tk.W, pady=5
         )
-        self.main_app.small_boxes_per_large_box_var = tk.StringVar(value="2")
+        self.main_app.small_boxes_per_large_box_var = tk.StringVar()
         small_boxes_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.small_boxes_per_large_box_var, width=15
         )
         small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
-        # 提示信息框架
-        info_frame = ttk.LabelFrame(main_frame, text="分盒模板说明", padding="15")
-        info_frame.pack(fill=tk.X, pady=(0, 20))
-
-        info_text = "分盒模板使用特殊的序列号生成规则：\n"
-        info_text += "• 从小箱/大箱参数控制副号满几进一\n"
-        info_text += "• 序列号格式：前缀+数字-后缀\n"
-        info_text += "• 示例：MOP01001-01, MOP01001-02, MOP01002-01...\n"
-        info_text += "• 说明：小箱标序列号只取决于小箱/大箱参数，盒/小箱参数建议设为1"
-
-        info_label = ttk.Label(info_frame, text=info_text, font=("Consolas", 9))
-        info_label.pack(anchor=tk.W)
 
         # 当前数据显示
         data_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
@@ -155,30 +143,45 @@ class SplitBoxUIDialog:
 
     def confirm_parameters(self, dialog):
         """确认分盒模板参数并生成PDF"""
+        # 获取参数值（第二个参数保持固定为1）
+        pieces_per_box_str = self.main_app.pieces_per_box_var.get().strip()
+        small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
+        
+        # 检查空值
+        if not pieces_per_box_str:
+            messagebox.showerror("参数错误", "请输入“张/盒”参数")
+            return
+        if not small_boxes_per_large_box_str:
+            messagebox.showerror("参数错误", "请输入“小箱/大箱”参数")
+            return
+        
         try:
-            # 验证三个参数
-            pieces_per_box = int(self.main_app.pieces_per_box_var.get())
-            boxes_per_small_box = int(self.main_app.boxes_per_small_box_var.get())
-            small_boxes_per_large_box = int(self.main_app.small_boxes_per_large_box_var.get())
-
-            # 验证参数有效性
-            if pieces_per_box <= 0 or boxes_per_small_box <= 0 or small_boxes_per_large_box <= 0:
-                messagebox.showerror("参数错误", "所有参数必须大于0")
-                return
-
-            # 分盒模板不需要外观选择，使用默认外观一
-            self.main_app.packaging_params = {
-                "张/盒": pieces_per_box,
-                "盒/小箱": boxes_per_small_box,
-                "小箱/大箱": small_boxes_per_large_box,
-                "选择外观": "外观一",  # 分盒模板固定使用外观一
-            }
-
-            dialog.destroy()
-            self.main_app.generate_multi_level_pdfs()
-
+            # 尝试转换为数字（第二个参数固定为1）
+            pieces_per_box = int(pieces_per_box_str)
+            boxes_per_small_box = 1  # 分盒模板固定为1
+            small_boxes_per_large_box = int(small_boxes_per_large_box_str)
         except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的数字")
+            messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、2")
+            return
+        
+        # 检查负数和0
+        if pieces_per_box <= 0:
+            messagebox.showerror("参数错误", "“张/盒”必须为正整数\n\n当前值：{}".format(pieces_per_box))
+            return
+        if small_boxes_per_large_box <= 0:
+            messagebox.showerror("参数错误", "“小箱/大箱”必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
+            return
+        
+        # 参数验证通过，设置参数
+        self.main_app.packaging_params = {
+            "张/盒": pieces_per_box,
+            "盒/小箱": boxes_per_small_box,
+            "小箱/大箱": small_boxes_per_large_box,
+            "选择外观": "外观一",  # 分盒模板固定使用外观一
+        }
+
+        dialog.destroy()
+        self.main_app.generate_multi_level_pdfs()
 
 
 # 创建全局实例供split_box模板使用

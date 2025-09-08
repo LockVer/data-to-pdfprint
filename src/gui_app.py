@@ -6,7 +6,6 @@ GUI应用程序
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-import pandas as pd
 from pathlib import Path
 import sys
 import os
@@ -169,21 +168,16 @@ class DataToPDFApp:
                 self.status_var.set("❌ 文件格式错误")
                 return
 
-            # 使用统一的Excel数据提取器
+            # 使用统一的Excel数据提取器 - 只显示四个核心字段
             extractor = ExcelDataExtractor(file_path)
             common_data = extractor.extract_common_data()
             
-            # 读取额外的固定位置数据
-            df = pd.read_excel(file_path, header=None)
-            
+            # 只保留四个核心字段
             self.current_data = {
-                "客户编码": common_data.get('客户编码') or str(df.iloc[3, 0]),
-                "主题": common_data.get('标签名称') or str(df.iloc[3, 1]),
-                "排列要求": str(df.iloc[3, 2]) if pd.notna(df.iloc[3, 2]) else "",
-                "订单数量": str(df.iloc[3, 3]) if pd.notna(df.iloc[3, 3]) else "",
-                "张/盒": str(df.iloc[3, 4]) if pd.notna(df.iloc[3, 4]) else "",
-                "总张数": str(common_data.get('总张数', 0)),
+                "客户编码": common_data.get('客户编码', ''),
+                "主题": common_data.get('标签名称', ''),
                 "开始号": common_data.get('开始号', ''),
+                "总张数": str(common_data.get('总张数', 0)),
             }
 
             # 显示提取的信息
@@ -199,12 +193,11 @@ class DataToPDFApp:
 
             self.current_file = file_path
             self.generate_btn.config(state="normal")
-            total_count = self.current_data["总张数"]
-            self.status_var.set(f"✅ 文件处理完成 - 总张数: {total_count}")
+            self.status_var.set("✅ 文件处理完成")
 
-            # 更新选择区域显示
+            # 更新选择区域显示 - 不再显示总张数（避免重复）
             display_text = (
-                f"✅ 已选择文件: {Path(file_path).name}\n总张数: {total_count}"
+                f"✅ 已选择文件: {Path(file_path).name}"
                 f"\n\n点击生成多级标签PDF按钮继续"
             )
             self.select_label.config(text=display_text, fg="green")

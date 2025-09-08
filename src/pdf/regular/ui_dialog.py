@@ -106,7 +106,7 @@ class RegularUIDialog:
         ttk.Label(params_frame, text="张/盒:", font=("Arial", 11)).grid(
             row=0, column=0, sticky=tk.E, pady=10, padx=(0, 15)
         )
-        self.main_app.pieces_per_box_var = tk.StringVar(value="2850")
+        self.main_app.pieces_per_box_var = tk.StringVar()
         pieces_per_box_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.pieces_per_box_var, width=20, font=("Arial", 11)
         )
@@ -116,7 +116,7 @@ class RegularUIDialog:
         ttk.Label(params_frame, text="盒/小箱:", font=("Arial", 11)).grid(
             row=1, column=0, sticky=tk.E, pady=10, padx=(0, 15)
         )
-        self.main_app.boxes_per_small_box_var = tk.StringVar(value="1")
+        self.main_app.boxes_per_small_box_var = tk.StringVar()
         boxes_per_small_box_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.boxes_per_small_box_var, width=20, font=("Arial", 11)
         )
@@ -126,7 +126,7 @@ class RegularUIDialog:
         ttk.Label(params_frame, text="小箱/大箱:", font=("Arial", 11)).grid(
             row=2, column=0, sticky=tk.E, pady=10, padx=(0, 15)
         )
-        self.main_app.small_boxes_per_large_box_var = tk.StringVar(value="2")
+        self.main_app.small_boxes_per_large_box_var = tk.StringVar()
         small_boxes_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.small_boxes_per_large_box_var, width=20, font=("Arial", 11)
         )
@@ -215,29 +215,52 @@ class RegularUIDialog:
 
     def confirm_parameters(self, dialog):
         """确认常规模板参数并生成PDF"""
+        # 获取参数值
+        pieces_per_box_str = self.main_app.pieces_per_box_var.get().strip()
+        boxes_per_small_box_str = self.main_app.boxes_per_small_box_var.get().strip()
+        small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
+        
+        # 检查空值
+        if not pieces_per_box_str:
+            messagebox.showerror("参数错误", "请输入“张/盒”参数")
+            return
+        if not boxes_per_small_box_str:
+            messagebox.showerror("参数错误", "请输入“盒/小箱”参数")
+            return
+        if not small_boxes_per_large_box_str:
+            messagebox.showerror("参数错误", "请输入“小箱/大箱”参数")
+            return
+        
         try:
-            # 验证三个参数
-            pieces_per_box = int(self.main_app.pieces_per_box_var.get())
-            boxes_per_small_box = int(self.main_app.boxes_per_small_box_var.get())
-            small_boxes_per_large_box = int(self.main_app.small_boxes_per_large_box_var.get())
-
-            # 验证参数有效性
-            if pieces_per_box <= 0 or boxes_per_small_box <= 0 or small_boxes_per_large_box <= 0:
-                messagebox.showerror("参数错误", "所有参数必须大于0")
-                return
-
-            self.main_app.packaging_params = {
-                "张/盒": pieces_per_box,
-                "盒/小箱": boxes_per_small_box,
-                "小箱/大箱": small_boxes_per_large_box,
-                "选择外观": self.main_app.appearance_var.get(),
-            }
-
-            dialog.destroy()
-            self.main_app.generate_multi_level_pdfs()
-
+            # 尝试转换为数字
+            pieces_per_box = int(pieces_per_box_str)
+            boxes_per_small_box = int(boxes_per_small_box_str)
+            small_boxes_per_large_box = int(small_boxes_per_large_box_str)
         except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的数字")
+            messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、2、5")
+            return
+        
+        # 检查负数和0
+        if pieces_per_box <= 0:
+            messagebox.showerror("参数错误", "“张/盒”必须为正整数\n\n当前值：{}".format(pieces_per_box))
+            return
+        if boxes_per_small_box <= 0:
+            messagebox.showerror("参数错误", "“盒/小箱”必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
+            return
+        if small_boxes_per_large_box <= 0:
+            messagebox.showerror("参数错误", "“小箱/大箱”必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
+            return
+        
+        # 参数验证通过，设置参数
+        self.main_app.packaging_params = {
+            "张/盒": pieces_per_box,
+            "盒/小箱": boxes_per_small_box,
+            "小箱/大箱": small_boxes_per_large_box,
+            "选择外观": self.main_app.appearance_var.get(),
+        }
+
+        dialog.destroy()
+        self.main_app.generate_multi_level_pdfs()
 
 
 # 创建全局实例供regular模板使用
