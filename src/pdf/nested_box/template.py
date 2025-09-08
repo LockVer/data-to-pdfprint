@@ -51,8 +51,8 @@ class NestedBoxTemplate(PDFBaseUtils):
         total_large_boxes = math.ceil(total_small_boxes / small_boxes_per_large_box)
 
         # 创建输出目录
-        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        folder_name = f"{data['客户编码']}+{clean_theme}+标签"
+        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+        folder_name = f"{data['客户名称编码']}+{clean_theme}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -60,20 +60,20 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         # 生成套盒模板的盒标 - 第二个参数用于结束号
         selected_appearance = params["选择外观"]
-        box_label_path = full_output_dir / f"{data['客户编码']}+{clean_theme}+套盒盒标.pdf"
+        box_label_path = full_output_dir / f"{data['客户名称编码']}+{clean_theme}+套盒盒标.pdf"
 
         self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
         generated_files["盒标"] = str(box_label_path)
 
         # 生成套盒模板小箱标
-        small_box_path = full_output_dir / f"{data['客户编码']}+{clean_theme}+套盒小箱标.pdf"
+        small_box_path = full_output_dir / f"{data['客户名称编码']}+{clean_theme}+套盒小箱标.pdf"
         self._create_nested_small_box_label(
             data, params, str(small_box_path), excel_file_path
         )
         generated_files["小箱标"] = str(small_box_path)
 
         # 生成套盒模板大箱标
-        large_box_path = full_output_dir / f"{data['客户编码']}+{clean_theme}+套盒大箱标.pdf"
+        large_box_path = full_output_dir / f"{data['客户名称编码']}+{clean_theme}+套盒大箱标.pdf"
         self._create_nested_large_box_label(
             data, params, str(large_box_path), excel_file_path
         )

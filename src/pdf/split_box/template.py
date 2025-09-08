@@ -45,8 +45,8 @@ class SplitBoxTemplate(PDFBaseUtils):
         total_large_boxes = math.ceil(total_small_boxes / small_boxes_per_large_box)
 
         # 创建输出目录
-        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        folder_name = f"{data['客户编码']}+{clean_theme}+标签"
+        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+        folder_name = f"{data['客户名称编码']}+{clean_theme}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -56,7 +56,7 @@ class SplitBoxTemplate(PDFBaseUtils):
         selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
         box_label_path = (
             full_output_dir
-            / f"{data['客户编码']}+{clean_theme}+分盒盒标.pdf"
+            / f"{data['客户名称编码']}+{clean_theme}+分盒盒标.pdf"
         )
 
         self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
@@ -64,7 +64,7 @@ class SplitBoxTemplate(PDFBaseUtils):
 
         # 生成小箱标
         small_box_path = (
-            full_output_dir / f"{data['客户编码']}+{clean_theme}+分盒小箱标.pdf"
+            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+分盒小箱标.pdf"
         )
         remainder_info = {"total_boxes": total_boxes}
         self._create_split_box_small_box_label(
@@ -74,7 +74,7 @@ class SplitBoxTemplate(PDFBaseUtils):
 
         # 生成大箱标
         large_box_path = (
-            full_output_dir / f"{data['客户编码']}+{clean_theme}+分盒大箱标.pdf"
+            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+分盒大箱标.pdf"
         )
         self._create_split_box_large_box_label(
             data, params, str(large_box_path), total_large_boxes, excel_file_path

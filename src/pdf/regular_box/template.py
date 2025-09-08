@@ -68,8 +68,8 @@ class RegularTemplate(PDFBaseUtils):
         }
 
         # 创建输出目录
-        clean_theme = data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        folder_name = f"{data['客户编码']}+{clean_theme}+标签"
+        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+        folder_name = f"{data['客户名称编码']}+{clean_theme}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -79,7 +79,7 @@ class RegularTemplate(PDFBaseUtils):
         selected_appearance = params["选择外观"]
         box_label_path = (
             full_output_dir
-            / f"{data['客户编码']}+{clean_theme}+盒标+{selected_appearance}.pdf"
+            / f"{data['客户名称编码']}+{clean_theme}+盒标+{selected_appearance}.pdf"
         )
 
         self._create_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
@@ -87,7 +87,7 @@ class RegularTemplate(PDFBaseUtils):
 
         # 生成小箱标
         small_box_path = (
-            full_output_dir / f"{data['客户编码']}+{clean_theme}+小箱标.pdf"
+            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+小箱标.pdf"
         )
         self._create_small_box_label(
             data, params, str(small_box_path), total_small_boxes, remainder_info, total_boxes, excel_file_path
@@ -96,7 +96,7 @@ class RegularTemplate(PDFBaseUtils):
 
         # 生成大箱标
         large_box_path = (
-            full_output_dir / f"{data['客户编码']}+{clean_theme}+大箱标.pdf"
+            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+大箱标.pdf"
         )
         self._create_large_box_label(
             data, params, str(large_box_path), total_large_boxes, total_small_boxes, remainder_info, total_boxes, excel_file_path
