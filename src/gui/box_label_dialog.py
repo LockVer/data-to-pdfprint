@@ -184,9 +184,8 @@ class BoxLabelConfigDialog:
             return {
                 "title": "套盒标生成参数设置",
                 "params": [
-                    ("最小分盒套数:", "min_set_count", "每套包装的张数", "30"),
-                    ("几盒为一套:", "boxes_per_set", "多少盒组成一套", "3"),
-                    ("几盒入一小箱:", "boxes_per_inner_case", "小箱可以装多少盒", "6"),
+                    ("最小分盒张数:", "min_box_count", "每盒包装的最少张数", "3780"),
+                    ("几盒为一套:", "boxes_per_set", "多少盒组成一套", "6"),
                     ("几套入一大箱:", "sets_per_outer_case", "大箱可以装多少套", "2")
                 ]
             }
@@ -470,18 +469,16 @@ class BoxLabelConfigDialog:
             box_count = math.ceil(total_quantity / min_box_count)
             
             if self.template_type == "set_box":
-                # 套盒模版计算 - 重新理解逻辑
-                min_set_count = params.get('min_set_count', 30)  # 每套张数
-                boxes_per_set = params.get('boxes_per_set', 3)   # 每套盒数
-                boxes_per_inner = params.get('boxes_per_inner_case', 6)  
-                sets_per_outer = params.get('sets_per_outer_case', 2)
+                # 套盒模版计算 - 使用新的参数逻辑
+                min_box_count = params.get('min_box_count', 3780)  # 每盒张数
+                boxes_per_set = params.get('boxes_per_set', 6)     # 每套盒数
+                sets_per_outer = params.get('sets_per_outer_case', 2)  # 每大箱套数
                 
-                # 核心计算：套数 = 总张数 ÷ 每套张数
-                set_count = math.ceil(total_quantity / min_set_count)
-                # 盒标数量 = 套数 × 每套盒数  
-                box_count = set_count * boxes_per_set
-                # 小箱数量 = 盒数 ÷ 每小箱盒数
-                inner_case_count = math.ceil(box_count / boxes_per_inner)
+                # 核心计算：
+                # 盒标数量 = 总张数 ÷ 每盒张数
+                box_count = math.ceil(total_quantity / min_box_count)
+                # 套数 = 盒数 ÷ 每套盒数
+                set_count = math.ceil(box_count / boxes_per_set)
                 # 大箱数量 = 套数 ÷ 每大箱套数
                 outer_case_count = math.ceil(set_count / sets_per_outer)
                 
@@ -490,19 +487,15 @@ class BoxLabelConfigDialog:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📋 当前参数设置:
-• 每套张数: {min_set_count}
+• 最小分盒张数: {min_box_count}
 • 几盒为一套: {boxes_per_set}  
-• 几盒入一小箱: {boxes_per_inner}
 • 几套入一大箱: {sets_per_outer}
 
-📦 套数: {set_count} 套
-    每套包装: {min_set_count} 张
-
 🗂️  盒标数量: {box_count} 个
-    每套包含: {boxes_per_set} 盒
+    每盒包装: {min_box_count} 张
 
-📦 小箱标数量: {inner_case_count} 个  
-    每小箱包装: {boxes_per_inner} 盒
+📦 套数: {set_count} 套
+    每套包含: {boxes_per_set} 盒
 
 📋 大箱标数量: {outer_case_count} 个
     每大箱包装: {sets_per_outer} 套
@@ -558,11 +551,13 @@ class BoxLabelConfigDialog:
         # 参数兼容性映射 - 将旧参数名映射到新参数名
         if self.template_type == "set_box" and config:
             # 为套盒模版提供兼容性映射
-            if 'box_per_inner_case' in config and 'boxes_per_inner_case' not in config:
-                config['boxes_per_inner_case'] = config['box_per_inner_case']
-            if 'min_box_count' in config and 'min_set_count' not in config:
-                # 假设默认转换：每盒10张 → 每套30张（3盒为一套）
-                config['min_set_count'] = config['min_box_count'] * 3
+            if 'min_set_count' in config and 'min_box_count' not in config:
+                # 从旧的每套张数转换为每盒张数（假设每套6盒）
+                boxes_per_set = config.get('boxes_per_set', 6)
+                config['min_box_count'] = config['min_set_count'] // boxes_per_set if boxes_per_set > 0 else config['min_set_count']
+            if 'boxes_per_inner_case' in config:
+                # 移除旧参数，新版本不再使用小箱概念
+                config.pop('boxes_per_inner_case', None)
         elif getattr(self, 'is_division_box', False) and config:
             # 为分盒模版强制设置盒/小箱比例为1
             config['box_per_inner_case'] = 1
@@ -589,8 +584,11 @@ class BoxLabelConfigDialog:
                     config[field_name] = value
             
             # 为了向后兼容，如果是套盒模版，也提供旧参数名
-            if self.template_type == "set_box" and 'boxes_per_inner_case' in config:
-                config['box_per_inner_case'] = config['boxes_per_inner_case']
+            if self.template_type == "set_box":
+                # 提供兼容性参数，以防其他代码仍在使用
+                if 'min_box_count' in config and 'boxes_per_set' in config:
+                    # 计算每套张数用于向后兼容
+                    config['min_set_count'] = config['min_box_count'] * config['boxes_per_set']
                 
             return config
         except ValueError:
