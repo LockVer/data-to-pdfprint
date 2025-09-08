@@ -56,11 +56,11 @@ class NestedBoxRenderer:
     def draw_nested_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
                                     serial_range, carton_no, remark_text):
         """绘制套盒小箱标表格 - 借鉴分盒模板的表格绘制逻辑"""
-        # 表格尺寸和位置
-        table_width = width - 4 * mm
-        table_height = height - 4 * mm
-        table_x = 2 * mm
-        table_y = 2 * mm
+        # 表格尺寸和位置 - 上下左右各5mm边距
+        table_width = width - 10 * mm
+        table_height = height - 10 * mm
+        table_x = 5 * mm
+        table_y = 5 * mm
         
         # 高度分配：Quantity行占2/6，其他4行各占1/6
         base_row_height = table_height / 6
