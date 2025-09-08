@@ -263,32 +263,23 @@ class BoxLabelTemplate:
     
     def _search_label_name_data(self, excel_data):
         """
-        搜索Excel数据中"标签名称"关键字右边的数据 - 模糊匹配
+        搜索Excel数据中"标签名称"关键字右边的数据
         直接返回找到的数据，不做任何处理
         """
-        print(f"🔍 开始模糊搜索标签名称关键字...")
+        print(f"🔍 开始搜索标签名称关键字...")
         print(f"📋 Excel数据中所有单元格：")
         for key, value in sorted(excel_data.items()):
             if value is not None:
                 print(f"   {key}: {repr(value)}")
         
-        # 先显示所有包含"标签"或"名称"的单元格数据，帮助调试
-        print("📋 所有包含'标签'或'名称'的单元格：")
-        for key, value in sorted(excel_data.items()):
-            try:
-                if value is not None and ("标签" in str(value) or "名称" in str(value)):
-                    print(f"   {key}: {repr(value)}")
-            except Exception as e:
-                # 跳过有问题的数据
-                continue
-        
-        # 遍历所有Excel数据，模糊查找包含"标签名称"的单元格
+        # 遍历所有Excel数据，查找包含"标签名称"的单元格
         for key, value in excel_data.items():
-            try:
-                if value is not None and "标签名称" in str(value):
-                    print(f"✅ 在单元格 {key} 找到标签名称关键字: {value}")
-                    
-                    # 尝试找到右边单元格的数据
+            if value and "标签名称" in str(value):
+                print(f"🔍 在单元格 {key} 找到标签名称关键字: {value}")
+                
+                # 尝试找到右边单元格的数据
+                # 假设key格式为字母+数字，如A4, B5等
+                try:
                     import re
                     match = re.match(r'([A-Z]+)(\d+)', key)
                     if match:
@@ -304,21 +295,18 @@ class BoxLabelTemplate:
                         # 获取右边单元格的数据
                         right_cell_data = excel_data.get(right_cell_key)
                         if right_cell_data:
-                            # 不转换为小写，保持原始格式
-                            result = str(right_cell_data).strip()
-                            print(f"✅ 成功提取标签名称右边数据 ({right_cell_key}): {right_cell_data} -> {result}")
-                            return result
+                            print(f"✅ 找到标签名称右边数据 ({right_cell_key}): {right_cell_data}")
+                            return str(right_cell_data).strip()
                         else:
                             print(f"⚠️  右边单元格 {right_cell_key} 无数据")
                             print(f"📋 检查右边单元格周围的数据：")
                             for check_key, check_value in excel_data.items():
                                 if check_key.endswith(row_number) and check_value:
                                     print(f"     {check_key}: {repr(check_value)}")
-            except Exception as e:
-                # 跳过有问题的数据，继续搜索
-                continue
+                except Exception as e:
+                    print(f"❌ 解析单元格位置失败: {e}")
         
-        # 如果没找到"标签名称"关键字，使用B4备选数据
+        # 如果没找到"标签名称"关键字，直接返回B4的数据作为备选
         fallback_theme = excel_data.get('B4', '默认主题')
         print(f"⚠️  未找到标签名称关键字，使用B4备选数据: {fallback_theme}")
         return str(fallback_theme).strip() if fallback_theme else '默认主题'
@@ -526,7 +514,8 @@ class BoxLabelTemplate:
             'F4': data_dict.get('F4', total_sheets),  # 保留原始F4数据
             'B4': theme,  # 保留B4数据
             'min_box_count': min_box_count,  # 每盒张数 - 用于外观2的Ticket count
-            'box_count': min_box_count  # 备用字段
+            'box_count': min_box_count,  # 备用字段
+            'excel_data': data_dict  # 添加完整的Excel数据，用于主题搜索
         }
         
         # 生成盒标 - 根据外观选择生成不同样式

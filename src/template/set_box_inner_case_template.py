@@ -125,20 +125,14 @@ class SetBoxInnerCaseTemplate:
             else:
                 carton_no = f"{start_set_index + 1:02d}-{end_set_index + 1:02d}"  # 套号范围
             
-            # 提取主题 - 使用和分盒模板相同的搜索逻辑
-            theme_from_search = self._search_label_name_data(excel_data)
-            if theme_from_search:
-                english_theme = self._extract_english_theme(theme_from_search)
-            else:
-                # 备选方案：使用B4数据
-                theme_text = excel_data.get('B4', '默认主题')
-                english_theme = self._extract_english_theme(theme_text)
+            # 提取主题 - 使用和常规模板完全相同的搜索逻辑
+            english_theme = self._search_label_name_data(excel_data)
             
-            # 确保字符串编码正确 - 与常规内箱标保持一致
-            clean_theme = str(english_theme).encode('utf-8').decode('utf-8') if english_theme else 'JAW'
-            clean_range = str(number_range).encode('utf-8').decode('utf-8') if number_range else 'JAW01001-01'
-            clean_carton_no = str(carton_no).encode('utf-8').decode('utf-8') if carton_no else '01'
-            clean_remark = str(excel_data.get('A4', '默认客户')).encode('utf-8').decode('utf-8')
+            # 直接使用主题搜索结果，与常规模版保持一致
+            clean_theme = str(english_theme) if english_theme else 'JAW'
+            clean_range = str(number_range) if number_range else 'JAW01001-01'
+            clean_carton_no = str(carton_no) if carton_no else '01'
+            clean_remark = str(excel_data.get('A4', '默认客户'))
             
             label_data = {
                 'item': 'Paper Cards',  # 固定值
@@ -256,9 +250,10 @@ class SetBoxInnerCaseTemplate:
                 except Exception as e:
                     print(f"❌ 解析单元格位置失败: {e}")
         
-        # 如果没找到"标签名称"关键字，返回None
-        print(f"⚠️  未找到标签名称关键字")
-        return None
+        # 如果没找到"标签名称"关键字，直接返回B4的数据作为备选
+        fallback_theme = excel_data.get('B4', '默认主题')
+        print(f"⚠️  未找到标签名称关键字，使用B4备选数据: {fallback_theme}")
+        return str(fallback_theme).strip() if fallback_theme else '默认主题'
     
     def _get_next_column(self, col_letters):
         """获取下一列的字母标识"""
@@ -278,30 +273,6 @@ class SetBoxInnerCaseTemplate:
         
         return next_col
 
-    def _extract_english_theme(self, theme_text):
-        """提取英文主题"""
-        if not theme_text:
-            return 'JAW'
-        
-        import re
-        # 去掉开头的"-"符号
-        clean_theme = theme_text.lstrip('-').strip()
-        
-        # 查找英文部分
-        english_patterns = [
-            r'[A-Z][A-Z\s\'!]*[A-Z!]',           # 大写字母开头结尾的英文短语
-            r'[A-Z]+\'[A-Z\s]+[A-Z!]',           # 带撇号的英文
-            r'[A-Z]+[A-Z\s!]*',                  # 任何大写字母组合
-            r'[A-Za-z][A-Za-z\s\'!]*[A-Za-z!]'  # 任何英文字母组合
-        ]
-        
-        for pattern in english_patterns:
-            match = re.search(pattern, clean_theme)
-            if match:
-                return match.group().strip()
-        
-        # 如果找不到英文，返回清理后的主题或默认值
-        return clean_theme if clean_theme else 'JAW'
     
     def _draw_bold_text(self, canvas_obj, text, x, y, font_name, font_size):
         """

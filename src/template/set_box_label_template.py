@@ -44,7 +44,7 @@ class SetBoxLabelTemplate:
             'light_gray': CMYKColor(0, 0, 0, 20)
         }
     
-    def create_set_box_label(self, canvas_obj, data, x, y):
+    def create_set_box_label(self, canvas_obj, excel_data, x, y, set_box_number=None):
         """
         创建单个套盒盒标
         
@@ -59,38 +59,45 @@ class SetBoxLabelTemplate:
         center_x = x + self.LABEL_WIDTH / 2
         center_y = y + self.LABEL_HEIGHT / 2
         
-        # 上方：主题文字 - 使用和分盒模板相同的搜索逻辑
-        main_title = self._search_label_name_data(data)
-        if not main_title:
-            # 备选方案：使用B4数据
-            main_title = data.get('subject', data.get('B4', 'TAB STREET DRAMA'))
+        # 上方：主题文字 - 参照分盒模版的搜索逻辑
+        # 直接使用"标签名称"关键字右边的数据，不做任何处理
+        main_title = self._search_label_name_data(excel_data)
         
-        # 调试输出
         print(f"套盒模板主题获取结果: '{main_title}'")
             
         # 重置绘制设置，确保文字正常渲染
         c.setFillColor(self.colors['black'])
         
-        # 主题文字 - 强制使用简单内置字体避免渲染问题
+        # 主题文字 - 参照分合模版，支持自动换行和居中对齐
         title_font_size = 18
-        c.setFont('Helvetica-Bold', title_font_size)
+        theme_text = str(main_title) if main_title else 'DEFAULT THEME'
         
-        title_width = c.stringWidth(main_title, 'Helvetica-Bold', title_font_size)
-        title_x = center_x - title_width / 2
-        title_y = center_y + 18  # 向上移动更多，增加与编号的间距
-        # 使用粗体绘制方法绘制主题
-        self._draw_bold_text(c, main_title, title_x, title_y, 'Helvetica-Bold', title_font_size)
+        # 定义主题文字区域（盒标采用上下分区设计）
+        theme_max_width = self.LABEL_WIDTH - 6 * mm  # 左右各留3mm边距
+        theme_max_height = self.LABEL_HEIGHT * 0.5   # 减少主题文字空间，50%的高度
+        
+        # 主题区域的左上角坐标
+        theme_x = x + 3 * mm  # 左边距
+        theme_y = y + self.LABEL_HEIGHT - 6 * mm  # 从标签顶部向下6mm开始，减少顶部边距
+        
+        # 使用多行粗体绘制，支持自动换行和居中对齐
+        self._draw_bold_multiline_text(
+            c, theme_text, theme_x, theme_y,
+            theme_max_width, theme_max_height, 
+            'MicrosoftYaHei', title_font_size,
+            align='center'  # 居中对齐
+        )
         
         # 套盒编号文字 - 使用箱号-盒号格式
-        set_box_code = data.get('set_box_number', 'MOP01001-01')
+        set_box_code = set_box_number or 'MOP01001-01'
         code_font_size = 20  # 稍大于主题，匹配目标样式比例
-        c.setFont('Helvetica-Bold', code_font_size)
+        c.setFont('MicrosoftYaHei', code_font_size)
         
-        code_width = c.stringWidth(set_box_code, 'Helvetica-Bold', code_font_size)
+        code_width = c.stringWidth(set_box_code, 'MicrosoftYaHei', code_font_size)
         code_x = center_x - code_width / 2
-        code_y = center_y - 18  # 向下移动更多，增加与主题的间距
+        code_y = y + self.LABEL_HEIGHT * 0.2  # 编号位置固定在标签下方20%处，增大与主题的间距
         # 使用粗体绘制方法绘制编号
-        self._draw_bold_text(c, set_box_code, code_x, code_y, 'Helvetica-Bold', code_font_size)
+        self._draw_bold_text(c, set_box_code, code_x, code_y, 'MicrosoftYaHei', code_font_size)
     
     def _draw_bold_text(self, canvas_obj, text, x, y, font_name, font_size):
         """
@@ -112,6 +119,71 @@ class SetBoxLabelTemplate:
         # 多次绘制实现粗体效果
         for offset_x, offset_y in bold_offsets:
             c.drawString(x + offset_x, y + offset_y, text)
+    
+    def _draw_bold_multiline_text(self, canvas_obj, text, x, y, max_width, max_height, font_name, font_size, align='left'):
+        """
+        绘制支持自动换行的粗体多行文本（通过重复绘制实现粗体效果）
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 分割文本为单词
+        words = text.split()
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if test_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    # 单个单词太长，强制换行
+                    lines.append(word)
+        
+        if current_line:
+            lines.append(current_line)
+        
+        # 计算行高
+        line_height = font_size * 1.2
+        total_text_height = len(lines) * line_height
+        
+        # 计算起始Y坐标（从顶部开始）
+        start_y = y - font_size
+        
+        # 粗体效果的偏移量 - 与单行粗体保持一致
+        bold_offsets = [
+            (0, 0),      # 原始位置
+            (0.5, 0),    # 右偏移，与编号一致
+            (0, 0.5),    # 上偏移，与编号一致
+            (0.5, 0.5),  # 右上偏移，与编号一致
+            (0.25, 0),   # 额外的右偏移
+            (0, 0.25),   # 额外的上偏移
+        ]
+        
+        # 绘制每一行（多次绘制实现粗体效果）
+        for i, line in enumerate(lines):
+            line_y = start_y - (i * line_height)
+            
+            if align == 'center':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + (max_width - line_width) / 2
+            elif align == 'right':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + max_width - line_width
+            else:  # left
+                base_line_x = x
+            
+            # 多次绘制实现粗体效果
+            for offset_x, offset_y in bold_offsets:
+                c.drawString(base_line_x + offset_x, line_y + offset_y, line)
+            
+            print(f"绘制粗体文本行 {i+1}: '{line}' 在位置 ({base_line_x}, {line_y})")
     
     def _search_label_name_data(self, excel_data):
         """
@@ -158,9 +230,10 @@ class SetBoxLabelTemplate:
                 except Exception as e:
                     print(f"❌ 解析单元格位置失败: {e}")
         
-        # 如果没找到"标签名称"关键字，返回None
-        print(f"⚠️  未找到标签名称关键字")
-        return None
+        # 如果没找到"标签名称"关键字，直接返回B4的数据作为备选
+        fallback_theme = excel_data.get('B4', '默认主题')
+        print(f"⚠️  未找到标签名称关键字，使用B4备选数据: {fallback_theme}")
+        return str(fallback_theme).strip() if fallback_theme else '默认主题'
     
     def _get_next_column(self, col_letters):
         """获取下一列的字母标识"""
@@ -179,6 +252,31 @@ class SetBoxLabelTemplate:
             result //= 26
         
         return next_col
+    
+    def _extract_english_theme(self, theme_text):
+        """提取英文主题 - 与常规盒标保持一致"""
+        if not theme_text:
+            return 'TAB STREET DRAMA'
+        
+        import re
+        # 先去掉开头的"-"符号（如果有）
+        clean_title = theme_text.lstrip('-').strip()
+        
+        # 查找英文部分 - 匹配连续的英文字母、空格、撇号、感叹号等
+        english_patterns = [
+            r'[A-Z][A-Z\s\'!]*[A-Z!]',           # 大写字母开头结尾的英文短语
+            r'[A-Z]+\'[A-Z\s]+[A-Z!]',           # 带撇号的英文 (如 DEX'S SIDEKICK)
+            r'[A-Z]+[A-Z\s!]*',                  # 任何大写字母组合
+            r'[A-Za-z][A-Za-z\s\'!]*[A-Za-z!]'  # 任何英文字母组合
+        ]
+        
+        for pattern in english_patterns:
+            match = re.search(pattern, clean_title)
+            if match:
+                return match.group().strip()
+        
+        # 如果没有匹配到，使用清理后的原标题
+        return clean_title if clean_title else 'TAB STREET DRAMA'
 
     def _generate_set_box_number(self, base_number, box_index, boxes_per_set):
         """
@@ -335,7 +433,8 @@ class SetBoxLabelTemplate:
             'set_count': set_count,  # 套数
             'boxes_per_set': boxes_per_set,  # 几盒为一套
             'boxes_per_inner_case': boxes_per_inner_case,  # 几盒入一小箱
-            'sets_per_outer_case': sets_per_outer_case  # 几套入一大箱
+            'sets_per_outer_case': sets_per_outer_case,  # 几套入一大箱
+            'excel_data': data_dict  # 添加完整的Excel数据，用于主题搜索
         })
         
         # 生成套盒盒标
@@ -434,8 +533,10 @@ class SetBoxLabelTemplate:
                 label_data['set_box_number'] = set_box_number
                 print(f"套盒盒标 {i+1}: 编号 {set_box_number} (第{i+1}页)")
             
-            # 创建标签
-            self.create_set_box_label(c, label_data, x, y)
+            # 创建标签 - 传递excel_data，与分盒模版保持一致
+            excel_data = label_data.get('excel_data', label_data)
+            box_number = label_data.get('set_box_number', 'MOP01001-01')
+            self.create_set_box_label(c, excel_data, x, y, box_number)
             
             # 每个标签后都换页（除了最后一个）
             if i < count - 1:
