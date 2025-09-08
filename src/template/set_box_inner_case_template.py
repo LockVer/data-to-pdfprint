@@ -47,106 +47,80 @@ class SetBoxInnerCaseTemplate:
     
     def create_set_box_inner_case_label_data(self, excel_data, quantities):
         """
-        根据Excel数据和套盒配置创建套盒小箱标数据
+        根据Excel数据创建套盒小箱标数据 - 简化版本
+        
+        小箱标格式：
+        - Item: Paper Cards (固定)
+        - Theme: 主题名称
+        - Quantity: 总张数PCS + 编号范围
+        - Carton No.: 套号
+        - Remark: A4数据
         
         Args:
             excel_data: Excel数据字典 {A4, B4, B11, F4}
             quantities: 套盒配置 {
                 'min_set_count': 每套张数,
                 'boxes_per_set': 几盒为一套,
-                'boxes_per_inner_case': 几盒入一小箱,
                 'sets_per_outer_case': 几套入一大箱
             }
         
         Returns:
-            list: 套盒小箱标数据列表
+            list: 套盒小箱标数据列表 (每套一个小箱标)
         """
-        # 获取参数，优先使用新参数，兼容旧参数
+        # 提取基础数据
         total_sheets = int(excel_data.get('F4', 100))
-        if 'min_set_count' in quantities:
-            min_set_count = quantities['min_set_count']
-        elif 'min_box_count' in quantities:
-            min_set_count = quantities['min_box_count'] * quantities.get('boxes_per_set', 3)
-        else:
-            min_set_count = 30
-            
+        min_set_count = quantities.get('min_set_count', 30)
         boxes_per_set = quantities.get('boxes_per_set', 3)
-        boxes_per_inner_case = quantities.get('boxes_per_inner_case', 6)
-        sets_per_outer_case = quantities.get('sets_per_outer_case', 2)
+        base_number = excel_data.get('B11', 'JAW01001')
         
-        # 计算套数和总盒数
+        # 计算套数
         set_count = math.ceil(total_sheets / min_set_count)
-        total_boxes = set_count * boxes_per_set
         
-        # 计算小箱数：每个小箱装 boxes_per_inner_case 个盒
-        total_inner_cases = math.ceil(total_boxes / boxes_per_inner_case)
-        
-        print(f"=" * 80)
-        print(f"🎯🎯🎯 套盒小箱标数据计算 🎯🎯🎯")
+        print(f"=" * 60)
+        print(f"📦 套盒小箱标数据计算（简化版）")
         print(f"  总张数: {total_sheets}")
         print(f"  每套张数: {min_set_count}")
         print(f"  几盒为一套: {boxes_per_set}")
-        print(f"  几盒入一小箱: {boxes_per_inner_case}")
-        print(f"  套数: {set_count}")
-        print(f"  总盒数: {total_boxes}")
-        print(f"  小箱数: {total_inner_cases}")
-        print(f"=" * 80)
+        print(f"  总套数: {set_count}")
+        print(f"=" * 60)
         
-        # 基础编号
-        base_number = excel_data.get('B11', 'JAW01001')
+        # 提取主题
+        english_theme = self._search_label_name_data(excel_data)
+        clean_theme = str(english_theme) if english_theme else 'JAW'
+        clean_remark = str(excel_data.get('A4', '默认客户'))
         
         inner_case_labels = []
         
-        # 为每个小箱生成标签
-        for inner_case_index in range(total_inner_cases):
-            # 计算当前小箱中的盒范围
-            start_box_index = inner_case_index * boxes_per_inner_case
-            end_box_index = min(start_box_index + boxes_per_inner_case - 1, total_boxes - 1)
+        # 为每套生成一个小箱标
+        for set_index in range(set_count):
+            # 计算当前套包含的盒编号范围
+            start_box_index = set_index * boxes_per_set
+            end_box_index = start_box_index + boxes_per_set - 1
             
-            # 计算当前小箱包含的盒数
-            current_boxes_in_case = end_box_index - start_box_index + 1
-            
-            # 生成小箱内盒的编号范围
+            # 生成编号范围
             start_box_number = self._generate_set_box_number(base_number, start_box_index, boxes_per_set)
             end_box_number = self._generate_set_box_number(base_number, end_box_index, boxes_per_set)
             
-            # 编号范围
             if start_box_number == end_box_number:
                 number_range = start_box_number
             else:
                 number_range = f"{start_box_number}-{end_box_number}"
             
-            # 计算套号：根据当前小箱包含的盒来确定套号范围
-            start_set_index = start_box_index // boxes_per_set
-            end_set_index = end_box_index // boxes_per_set
-            
-            if start_set_index == end_set_index:
-                carton_no = f"{start_set_index + 1:02d}"  # 单个套号，格式如 "01"
-            else:
-                carton_no = f"{start_set_index + 1:02d}-{end_set_index + 1:02d}"  # 套号范围
-            
-            # 提取主题 - 使用和常规模板完全相同的搜索逻辑
-            english_theme = self._search_label_name_data(excel_data)
-            
-            # 直接使用主题搜索结果，与常规模版保持一致
-            clean_theme = str(english_theme) if english_theme else 'JAW'
-            clean_range = str(number_range) if number_range else 'JAW01001-01'
-            clean_carton_no = str(carton_no) if carton_no else '01'
-            clean_remark = str(excel_data.get('A4', '默认客户'))
+            # 套号
+            carton_no = f"{set_index + 1:02d}"
             
             label_data = {
-                'item': 'Paper Cards',  # 固定值
-                'theme': clean_theme,  # 确保编码正确的主题
-                'quantity': f"{min_set_count}PCS",  # 一套的张数
-                'number_range': clean_range,  # 确保编码正确的编号范围
-                'carton_no': clean_carton_no,  # 确保编码正确的套号
-                'remark': clean_remark,  # 确保编码正确的备注(A4数据)
-                'case_index': inner_case_index + 1,
-                'total_cases': total_inner_cases
+                'item': 'Paper Cards',
+                'theme': clean_theme,
+                'quantity': f"{total_sheets}PCS",  # 总张数，不是每套张数
+                'number_range': number_range,
+                'carton_no': carton_no,
+                'remark': clean_remark,
+                'set_index': set_index + 1,
+                'total_sets': set_count
             }
             
-            print(f"小箱 {inner_case_index + 1}: 盒{start_box_index + 1}-{end_box_index + 1}, 编号{number_range}, 套号{carton_no}")
-            
+            print(f"小箱标 {set_index + 1}: 套号{carton_no}, 编号范围{number_range}")
             inner_case_labels.append(label_data)
         
         return inner_case_labels

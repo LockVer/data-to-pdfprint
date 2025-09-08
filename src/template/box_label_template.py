@@ -211,29 +211,47 @@ class BoxLabelTemplate:
         c.setFillColor(self.colors['black'])
         
         # 字体设置 - 与分合模版保持一致
-        font_size = 18  # 与分合模版保持一致
+        initial_font_size = 18  # 初始字体大小
         
-        # 根据标准图片精确定位三行文本
-        # 精细调整：第一行稍向下，第二三行更紧密且更靠下
-        title_y = y + self.LABEL_HEIGHT - 15 * mm     # Game title位置 - 向下移动3mm
-        count_y = y + self.LABEL_HEIGHT - 36 * mm     # Ticket count位置 - 向下移动4mm
-        serial_y = y + self.LABEL_HEIGHT - 46 * mm    # Serial位置 - 向下移动2mm，与第二行更紧密
+        # 重新设计垂直布局 - 为换行文本预留足够空间
+        # 标签总高度50mm，合理分配给三个文本区域
+        text_area_height = self.LABEL_HEIGHT - 8 * mm  # 去除上下边距后的可用高度 (42mm)
+        single_text_area = text_area_height / 3  # 每个文本区域约14mm
+        
+        # 三个文本区域的顶部y坐标（从上到下）
+        title_y = y + self.LABEL_HEIGHT - 8 * mm        # 第一行区域顶部
+        count_y = title_y - single_text_area           # 第二行区域顶部  
+        serial_y = count_y - single_text_area          # 第三行区域顶部
         
         # 边距设置 - 确保左右都有适当边距
         left_margin = x + 4 * mm   # 左边距
-        right_margin = 4 * mm      # 右边距（用于检查文本宽度）
+        right_margin = 4 * mm      # 右边距
+        text_max_width = self.LABEL_WIDTH - left_margin + x - right_margin  # 可用文本宽度
+        text_max_height = single_text_area - 2 * mm  # 每行文本的最大高度，留2mm间隙
         
-        # 第一行: Game title - 使用粗体绘制方法
+        # 准备三行文本
         title_text = f"Game title: {game_title}"
-        self._draw_bold_text(c, title_text, left_margin, title_y, self.chinese_font, font_size)
-        
-        # 第二行: Ticket count - 使用粗体绘制方法
         count_text = f"Ticket count: {ticket_count}"
-        self._draw_bold_text(c, count_text, left_margin, count_y, self.chinese_font, font_size)
-        
-        # 第三行: Serial - 使用粗体绘制方法
         serial_text = f"Serial: {serial}"
-        self._draw_bold_text(c, serial_text, left_margin, serial_y, self.chinese_font, font_size)
+        
+        # 计算适合所有三行文本的统一字体大小
+        unified_font_size = self._calculate_unified_font_size(
+            c, [title_text, count_text, serial_text], 
+            text_max_width, text_max_height, self.chinese_font, initial_font_size
+        )
+        
+        # 使用统一字体大小绘制三行文本
+        self._draw_bold_multiline_text_fixed_size(c, title_text, left_margin, title_y, 
+                                                text_max_width, text_max_height, 
+                                                self.chinese_font, unified_font_size, align='left')
+        
+        self._draw_bold_multiline_text_fixed_size(c, count_text, left_margin, count_y, 
+                                                text_max_width, text_max_height, 
+                                                self.chinese_font, unified_font_size, align='left')
+        
+        self._draw_bold_multiline_text_fixed_size(c, serial_text, left_margin, serial_y, 
+                                                text_max_width, text_max_height, 
+                                                self.chinese_font, unified_font_size, align='left')
         
         print(f"绘制外观2标签: Game='{game_title}', Ticket='{ticket_count}', Serial='{serial}'")
     
@@ -375,36 +393,57 @@ class BoxLabelTemplate:
     def _draw_bold_multiline_text(self, canvas_obj, text, x, y, max_width, max_height, font_name, font_size, align='left'):
         """
         绘制支持自动换行的粗体多行文本（通过重复绘制实现粗体效果）
+        支持自适应字体大小，确保文本完整显示在指定区域内
         """
         c = canvas_obj
-        c.setFont(font_name, font_size)
         
-        # 分割文本为单词
-        words = text.split()
-        lines = []
-        current_line = ""
+        # 自适应字体大小 - 从指定字体开始，逐步缩小直到适合区域
+        current_font_size = font_size
+        min_font_size = 10  # 最小字体大小
         
-        for word in words:
-            test_line = current_line + (" " if current_line else "") + word
-            test_width = c.stringWidth(test_line, font_name, font_size)
+        while current_font_size >= min_font_size:
+            c.setFont(font_name, current_font_size)
             
-            if test_width <= max_width:
-                current_line = test_line
-            else:
-                if current_line:
-                    lines.append(current_line)
-                    current_line = word
+            # 分割文本为单词
+            words = text.split()
+            lines = []
+            current_line = ""
+            
+            for word in words:
+                test_line = current_line + (" " if current_line else "") + word
+                test_width = c.stringWidth(test_line, font_name, current_font_size)
+                
+                if test_width <= max_width:
+                    current_line = test_line
                 else:
-                    # 单个单词太长，强制换行
-                    lines.append(word)
+                    if current_line:
+                        lines.append(current_line)
+                        current_line = word
+                    else:
+                        # 单个单词太长，强制换行
+                        lines.append(word)
+            
+            if current_line:
+                lines.append(current_line)
+            
+            line_height = current_font_size * 1.2
+            total_text_height = len(lines) * line_height
+            
+            # 检查是否适合指定区域
+            if total_text_height <= max_height:
+                break
+            
+            # 字体太大，缩小重试
+            current_font_size -= 1
         
-        if current_line:
-            lines.append(current_line)
-        
-        line_height = font_size * 1.2
-        
-        # 禁用自动字体调整，保持设定的大字体效果
-        start_y = y - font_size
+        # 计算起始y坐标 - 在指定区域内垂直居中
+        if total_text_height > max_height:
+            # 如果文本仍然太高，从区域顶部开始
+            start_y = y
+        else:
+            # 在指定区域内垂直居中
+            vertical_center_offset = (max_height - total_text_height) / 2
+            start_y = y - vertical_center_offset
         
         # 粗体效果的偏移量 - 减小偏移量避免重影
         bold_offsets = [
@@ -418,11 +457,14 @@ class BoxLabelTemplate:
         for i, line in enumerate(lines):
             line_y = start_y - (i * line_height)
             
+            # 确保使用正确的字体大小
+            c.setFont(font_name, current_font_size)
+            
             if align == 'center':
-                line_width = c.stringWidth(line, font_name, font_size)
+                line_width = c.stringWidth(line, font_name, current_font_size)
                 base_line_x = x + (max_width - line_width) / 2
             elif align == 'right':
-                line_width = c.stringWidth(line, font_name, font_size)
+                line_width = c.stringWidth(line, font_name, current_font_size)
                 base_line_x = x + max_width - line_width
             else:  # left
                 base_line_x = x
@@ -459,6 +501,118 @@ class BoxLabelTemplate:
         # 多次绘制实现粗体效果
         for offset_x, offset_y in bold_offsets:
             c.drawString(base_x + offset_x, y + offset_y, text)
+    
+    def _calculate_unified_font_size(self, canvas_obj, texts, max_width, max_height, font_name, initial_font_size):
+        """
+        计算适合所有文本的统一字体大小
+        """
+        c = canvas_obj
+        current_font_size = initial_font_size
+        min_font_size = 10
+        
+        while current_font_size >= min_font_size:
+            # 检查每个文本是否都能适合指定区域
+            all_fit = True
+            
+            for text in texts:
+                c.setFont(font_name, current_font_size)
+                
+                # 分割文本为单词并计算行数
+                words = text.split()
+                lines = []
+                current_line = ""
+                
+                for word in words:
+                    test_line = current_line + (" " if current_line else "") + word
+                    test_width = c.stringWidth(test_line, font_name, current_font_size)
+                    
+                    if test_width <= max_width:
+                        current_line = test_line
+                    else:
+                        if current_line:
+                            lines.append(current_line)
+                            current_line = word
+                        else:
+                            lines.append(word)
+                
+                if current_line:
+                    lines.append(current_line)
+                
+                # 检查总高度
+                line_height = current_font_size * 1.2
+                total_height = len(lines) * line_height
+                
+                if total_height > max_height:
+                    all_fit = False
+                    break
+            
+            if all_fit:
+                return current_font_size
+            
+            current_font_size -= 1
+        
+        return max(current_font_size, min_font_size)
+    
+    def _draw_bold_multiline_text_fixed_size(self, canvas_obj, text, x, y, max_width, max_height, font_name, font_size, align='left'):
+        """
+        绘制固定字体大小的粗体多行文本
+        """
+        c = canvas_obj
+        c.setFont(font_name, font_size)
+        
+        # 分割文本为单词
+        words = text.split()
+        lines = []
+        current_line = ""
+        
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if test_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = word
+                else:
+                    lines.append(word)
+        
+        if current_line:
+            lines.append(current_line)
+        
+        line_height = font_size * 1.2
+        total_text_height = len(lines) * line_height
+        
+        # 在指定区域内垂直居中
+        if total_text_height > max_height:
+            start_y = y
+        else:
+            vertical_center_offset = (max_height - total_text_height) / 2
+            start_y = y - vertical_center_offset
+        
+        # 粗体效果的偏移量
+        bold_offsets = [
+            (0, 0), (0.3, 0), (0, 0.3), (0.3, 0.3)
+        ]
+        
+        # 绘制每一行
+        for i, line in enumerate(lines):
+            line_y = start_y - (i * line_height)
+            c.setFont(font_name, font_size)
+            
+            if align == 'center':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + (max_width - line_width) / 2
+            elif align == 'right':
+                line_width = c.stringWidth(line, font_name, font_size)
+                base_line_x = x + max_width - line_width
+            else:  # left
+                base_line_x = x
+            
+            # 多次绘制实现粗体效果
+            for offset_x, offset_y in bold_offsets:
+                c.drawString(base_line_x + offset_x, line_y + offset_y, line)
     
     def generate_labels_pdf(self, data_dict, quantities, output_path, label_prefix="", appearance='v1'):
         """
