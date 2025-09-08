@@ -259,39 +259,20 @@ class TextProcessor:
                     if pd.notna(cell_value) and "总张数" in str(cell_value):
                         print(f"✅ 找到总张数关键字: 位置({i+1},{j+1}) = '{cell_value}'")
                         
-                        # 尝试从下方单元格获取数值
+                        # 只从下方单元格获取数值
                         if i + 1 < df.shape[0]:
                             total_value = df.iloc[i + 1, j]
                             if pd.notna(total_value):
                                 print(f"✅ 从下方提取总张数: {total_value}")
                                 return int(float(total_value))
-                        
-                        # 如果下方没有数据，尝试同行右侧
-                        if j + 1 < df.shape[1]:
-                            total_value = df.iloc[i, j + 1]
-                            if pd.notna(total_value):
-                                print(f"✅ 从右侧提取总张数: {total_value}")
-                                return int(float(total_value))
-                        
-                        # 最后尝试同行后几列
-                        for k in range(j + 1, min(j + 5, df.shape[1])):
-                            total_value = df.iloc[i, k]
-                            if pd.notna(total_value) and str(total_value).replace('.', '').replace('-', '').isdigit():
-                                print(f"✅ 从右侧第{k-j}列提取总张数: {total_value}")
-                                return int(float(total_value))
             
-            # 如果没找到关键字，使用默认位置
-            print("⚠️ 未找到总张数关键字，使用默认位置(4,6)")
-            default_value = df.iloc[3, 5]
-            if pd.notna(default_value):
-                return int(float(default_value))
-            else:
-                print("❌ 默认位置也无数据，返回0")
-                return 0
+            # 如果没找到关键字，返回None让用户输入
+            print("❌ 未找到总张数关键字，需要用户手动输入")
+            return None
                 
         except Exception as e:
             print(f"❌ 提取总张数失败: {e}")
-            return 0
+            return None
 
 
 # 全局文本处理器实例

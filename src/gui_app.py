@@ -14,12 +14,13 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.pdf.generator import PDFGenerator
-from src.pdf.regular.ui_dialog import get_regular_ui_dialog
+from src.pdf.regular_box.ui_dialog import get_regular_ui_dialog
 from src.pdf.split_box.ui_dialog import get_split_box_ui_dialog
 from src.pdf.nested_box.ui_dialog import get_nested_box_ui_dialog
 from src.utils.text_processor import text_processor
 from src.utils.excel_data_extractor import ExcelDataExtractor
 from src.utils.font_manager import font_manager
+from src.utils.data_input_dialog import show_data_input_dialog
 
 # 在应用启动时初始化字体管理器
 print("[INFO] 初始化字体管理器...")
@@ -168,17 +169,41 @@ class DataToPDFApp:
                 self.status_var.set("❌ 文件格式错误")
                 return
 
-            # 使用统一的Excel数据提取器 - 只显示四个核心字段
+            # 使用统一的Excel数据提取器
             extractor = ExcelDataExtractor(file_path)
-            common_data = extractor.extract_common_data()
             
-            # 只保留四个核心字段
-            self.current_data = {
-                "客户编码": common_data.get('客户编码', ''),
-                "主题": common_data.get('标签名称', ''),
-                "开始号": common_data.get('开始号', ''),
-                "总张数": str(common_data.get('总张数', 0)),
-            }
+            # 先尝试获取统一标准数据（仅Excel数据）
+            self.current_data = extractor.get_unified_standard_data()
+            
+            # 检查是否有缺失字段需要用户补充
+            missing_fields = [field for field, value in self.current_data.items() if value is None]
+            
+            if missing_fields:
+                # 有数据缺失，显示数据补充对话框
+                self.status_var.set("⚠️ 数据不完整，请补充...")
+                self.info_text.insert(tk.END, f"检测到{len(missing_fields)}个数据缺失，请补充：{', '.join(missing_fields)}\n")
+                self.root.update()
+                
+                # 准备对话框显示用的数据（转换为字符串格式）
+                display_data = {}
+                for field, value in self.current_data.items():
+                    display_data[field] = str(value) if value is not None else ''
+                
+                # 调用数据补充对话框
+                supplemented_data = show_data_input_dialog(self.root, display_data)
+                
+                if supplemented_data is None:
+                    # 用户取消了补充操作
+                    self.status_var.set("❌ 已取消数据补充")
+                    self.info_text.insert(tk.END, "用户取消了数据补充操作\n")
+                    return
+                
+                # 使用统一数据处理方法合并Excel数据和用户输入数据
+                self.current_data = extractor.get_unified_standard_data(supplemented_data)
+                self.info_text.insert(tk.END, "✅ 数据补充完成\n")
+            else:
+                # 数据完整，已经通过统一方法处理
+                self.info_text.insert(tk.END, "✅ Excel数据完整，无需补充\n")
 
             # 显示提取的信息
             info_text = f"文件: {Path(file_path).name}\n"
@@ -406,8 +431,8 @@ class DataToPDFApp:
                     result_text += f"  - {label_type}: {Path(file_path).name}\n"
 
                 # 使用和模板中完全相同的主题清理逻辑
-                clean_theme = self.current_data['主题'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-                folder_name = f"{self.current_data['客户编码']}+{clean_theme}+标签"
+                clean_theme = self.current_data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+                folder_name = f"{self.current_data['客户名称编码']}+{clean_theme}+标签"
                 result_text += (
                     f"\n📁 保存目录: {os.path.join(output_dir, folder_name)}\n"
                 )

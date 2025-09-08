@@ -166,18 +166,18 @@ class RegularUIDialog:
         info_frame.grid_columnconfigure(1, weight=1)
 
         # 客户编码
-        ttk.Label(info_frame, text="客户编码:", font=("Arial", 11)).grid(
+        ttk.Label(info_frame, text="客户名称编码:", font=("Arial", 11)).grid(
             row=0, column=0, sticky=tk.E, pady=12, padx=(0, 15)
         )
-        ttk.Label(info_frame, text=self.main_app.current_data['客户编码'], font=("Arial", 11, "bold")).grid(
+        ttk.Label(info_frame, text=self.main_app.current_data['客户名称编码'], font=("Arial", 11, "bold")).grid(
             row=0, column=1, sticky=tk.W, pady=12
         )
         
         # 主题
-        ttk.Label(info_frame, text="主题:", font=("Arial", 11)).grid(
+        ttk.Label(info_frame, text="标签名称:", font=("Arial", 11)).grid(
             row=1, column=0, sticky=tk.NE, pady=12, padx=(0, 15)  # 改为NE，顶部对齐
         )
-        theme_label = ttk.Label(info_frame, text=self.main_app.current_data['主题'], font=("Arial", 11, "bold"), wraplength=200, justify=tk.LEFT)
+        theme_label = ttk.Label(info_frame, text=self.main_app.current_data['标签名称'], font=("Arial", 11, "bold"), wraplength=200, justify=tk.LEFT)
         theme_label.grid(row=1, column=1, sticky=tk.NW, pady=12)  # 改为NW，顶部左对齐
         
         # 总张数

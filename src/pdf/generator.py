@@ -4,7 +4,7 @@ PDF生成器 - 重构版本
 """
 
 from typing import Dict, Any
-from src.pdf.regular.template import RegularTemplate
+from src.pdf.regular_box.template import RegularTemplate
 from src.pdf.split_box.template import SplitBoxTemplate
 from src.pdf.nested_box.template import NestedBoxTemplate
 
@@ -12,7 +12,7 @@ from src.pdf.nested_box.template import NestedBoxTemplate
 def _get_template_class(template_name: str):
     """获取模板类"""
     template_classes = {
-        "regular": RegularTemplate,
+        "regular_box": RegularTemplate,
         "split_box": SplitBoxTemplate,
         "nested_box": NestedBoxTemplate
     }
@@ -47,7 +47,7 @@ class PDFGenerator:
     def regular_template(self):
         """延迟创建常规模板实例"""
         if self._regular_template is None:
-            RegularTemplate = _get_template_class("regular")
+            RegularTemplate = _get_template_class("regular_box")
             self._regular_template = RegularTemplate(self.max_pages_per_file)
         return self._regular_template
     

@@ -112,8 +112,8 @@ class NestedBoxUIDialog:
         data_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
         data_frame.pack(fill=tk.X, pady=(0, 20))
 
-        data_text = f"客户编码: {self.main_app.current_data['客户编码']}\n"
-        data_text += f"主题: {self.main_app.current_data['主题']}\n"
+        data_text = f"客户名称编码: {self.main_app.current_data['客户名称编码']}\n"
+        data_text += f"标签名称: {self.main_app.current_data['标签名称']}\n"
         data_text += f"总张数: {self.main_app.current_data['总张数']}"
 
         data_label = ttk.Label(data_frame, text=data_text, font=("Consolas", 10))

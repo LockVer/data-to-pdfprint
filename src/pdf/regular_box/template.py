@@ -15,8 +15,8 @@ from src.utils.text_processor import text_processor
 from src.utils.excel_data_extractor import ExcelDataExtractor
 
 # 导入常规模板专属数据处理器和渲染器
-from src.pdf.regular.data_processor import regular_data_processor
-from src.pdf.regular.renderer import regular_renderer
+from src.pdf.regular_box.data_processor import regular_data_processor
+from src.pdf.regular_box.renderer import regular_renderer
 
 
 class RegularTemplate(PDFBaseUtils):
@@ -112,12 +112,10 @@ class RegularTemplate(PDFBaseUtils):
         pieces_per_box = int(params["张/盒"])
         total_boxes = math.ceil(total_pieces / pieces_per_box)
         
-        # 获取盒标内容 - 优先使用关键字提取
-        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
-        # 使用常规模板专属数据处理器
-        excel_data = regular_data_processor.extract_box_label_data(excel_path)
-        top_text = excel_data.get('标签名称') or 'Unknown Title'
-        base_number = excel_data.get('开始号') or 'DSK00001'
+        # 使用统一数据处理后的标准四字段（优先使用传入的data参数）
+        top_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DSK00001'
+        print(f"✅ 常规盒标使用统一数据: 主题='{top_text}', 开始号='{base_number}'")
         
         # 分页生成PDF
         current_page = 1
@@ -220,11 +218,11 @@ class RegularTemplate(PDFBaseUtils):
         # 获取Excel数据 - 使用关键字提取
         excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
         
-        # 使用常规模板专属数据处理器
-        excel_data = regular_data_processor.extract_small_box_label_data(excel_path)
-        theme_text = excel_data.get('标签名称') or 'Unknown Title'
-        base_number = excel_data.get('开始号') or 'DEFAULT01001'
-        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        # 使用统一数据处理后的标准四字段（优先使用传入的data参数）
+        theme_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DEFAULT01001'
+        remark_text = data.get('客户名称编码') or 'Unknown Client'
+        print(f"✅ 常规小箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 计算参数
         pieces_per_box = int(params["张/盒"])
@@ -323,11 +321,11 @@ class RegularTemplate(PDFBaseUtils):
         # 获取Excel数据 - 使用关键字提取
         excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
         
-        # 使用常规模板专属数据处理器
-        excel_data = regular_data_processor.extract_large_box_label_data(excel_path)
-        theme_text = excel_data.get('标签名称') or 'Unknown Title'
-        base_number = excel_data.get('开始号') or 'DEFAULT01001'
-        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        # 使用统一数据处理后的标准四字段（优先使用传入的data参数）
+        theme_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DEFAULT01001'
+        remark_text = data.get('客户名称编码') or 'Unknown Client'
+        print(f"✅ 常规大箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 计算参数 - 大箱标专用
         pieces_per_box = int(params["张/盒"])  

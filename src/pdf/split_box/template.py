@@ -52,11 +52,11 @@ class SplitBoxTemplate(PDFBaseUtils):
 
         generated_files = {}
 
-        # 生成盒标 (只生成用户选择的外观)
-        selected_appearance = params["选择外观"]
+        # 生成分盒盒标 (分盒模板无外观选择)
+        selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
         box_label_path = (
             full_output_dir
-            / f"{data['客户编码']}+{clean_theme}+分盒盒标+{selected_appearance}.pdf"
+            / f"{data['客户编码']}+{clean_theme}+分盒盒标.pdf"
         )
 
         self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
@@ -90,12 +90,10 @@ class SplitBoxTemplate(PDFBaseUtils):
         pieces_per_box = int(params["张/盒"])
         total_boxes = math.ceil(total_pieces / pieces_per_box)
         
-        # 获取盒标内容 - 只使用关键字提取
-        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
-        # 使用分盒模板专属数据处理器
-        excel_data = split_box_data_processor.extract_box_label_data(excel_path)
-        top_text = excel_data.get('标签名称') or 'Unknown Title'
-        base_number = excel_data.get('开始号') or 'DEFAULT01001'
+        # 使用统一数据处理后的标准四字段（优先使用传入的data参数）
+        top_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DEFAULT01001'
+        print(f"✅ 分盒盒标使用统一数据: 主题='{top_text}', 开始号='{base_number}'")
         
         # 从用户输入的第三个参数获取分组大小（从"小箱/大箱"参数获取）
         try:
@@ -179,11 +177,11 @@ class SplitBoxTemplate(PDFBaseUtils):
         # 获取Excel数据 - 使用关键字提取
         excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
         
-        # 使用分盒模板专属数据处理器
-        excel_data = split_box_data_processor.extract_small_box_label_data(excel_path)
-        theme_text = excel_data.get('标签名称') or 'Unknown Title'
-        base_number = excel_data.get('开始号') or 'DEFAULT01001'
-        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        # 使用统一数据处理后的标准四字段（优先使用传入的data参数）
+        theme_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DEFAULT01001'
+        remark_text = data.get('客户名称编码') or 'Unknown Client'
+        print(f"✅ 分盒小箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 获取用户输入的分组大小（从"小箱/大箱"参数获取）
         try:
@@ -265,11 +263,11 @@ class SplitBoxTemplate(PDFBaseUtils):
         # 获取Excel数据 - 使用关键字提取，与小箱标相同
         excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
         
-        # 使用分盒模板专属数据处理器
-        excel_data = split_box_data_processor.extract_large_box_label_data(excel_path)
-        theme_text = excel_data.get('标签名称') or 'Unknown Title'
-        base_number = excel_data.get('开始号') or 'DEFAULT01001'
-        remark_text = excel_data.get('客户编码') or 'Unknown Client'
+        # 使用统一数据处理后的标准四字段（优先使用传入的data参数）
+        theme_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DEFAULT01001'
+        remark_text = data.get('客户名称编码') or 'Unknown Client'
+        print(f"✅ 分盒大箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 获取用户输入的分组大小（从"小箱/大箱"参数获取）
         try:
