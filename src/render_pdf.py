@@ -424,19 +424,30 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
             cards_per_box = additional_inputs.get('sheets_per_box', total_cards) if additional_inputs else total_cards
             
             if box_info.get('is_separate_mode', False):
-                # 分盒模式：主级编号使用大箱数量循环，子级编号按大箱内小箱循环
-                large_case_num = start_num
+                # 分盒模式：按照正确的分盒模式规律生成盒标序列号
+                boxes_per_small_case = box_info.get('boxes_per_small_case', 1)
+                small_cases_per_large_case = box_info.get('small_cases_per_large_case', 2)
+                current_box_index = 0  # 全局盒子索引
+                
                 for large_case_idx in range(box_info['total_large_cases']):
-                    for small_case_in_large in range(box_info['small_cases_per_large_case']):
-                        # 检查是否超出总小箱数
-                        if large_case_idx * box_info['small_cases_per_large_case'] + small_case_in_large >= box_info['total_small_cases']:
+                    # 计算该大箱包含的盒子数量
+                    boxes_in_current_large_case = min(
+                        small_cases_per_large_case * boxes_per_small_case, 
+                        box_info['total_boxes'] - current_box_index
+                    )
+                    
+                    # 父级编号：基于大箱编号计算（大箱编号从1开始）
+                    large_case_serial_num = start_num + large_case_idx
+                    parent_serial = f"{serial_prefix}{large_case_serial_num:05d}"
+                    
+                    # 为该大箱内的每个盒子生成盒标
+                    for box_idx_in_large_case in range(boxes_in_current_large_case):
+                        if current_box_index >= box_info['total_boxes']:
                             break
-                        
-                        # 主级编号：大箱编号（大箱数量循环）
-                        # 子级编号：大箱内小箱编号（01, 02, ...）
-                        main_serial = f"{serial_prefix}{large_case_num:05d}"
-                        sub_serial = f"{small_case_in_large + 1:02d}"
-                        box_serial = f"{main_serial}-{sub_serial}"  # JAW01001-01, JAW01001-02
+                            
+                        # 子级编号：该盒子在大箱内的编号（从01开始）
+                        box_index_in_large = box_idx_in_large_case + 1
+                        box_serial = f"{parent_serial}-{box_index_in_large:02d}"
                         
                         pages.append(Page(index=page_index, elements=[
                             Element(role="game_title", content=f"Game title: {theme}"),        # Game title: JAWS
@@ -445,8 +456,10 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
                         ]))
                         
                         page_index += 1
+                        current_box_index += 1
                     
-                    large_case_num += 1
+                    if current_box_index >= box_info['total_boxes']:
+                        break
             else:
                 # 常规多级模式：按小箱逐一生成盒标
                 for case_idx in range(box_info['total_small_cases']):
@@ -518,19 +531,30 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
             boxes_generated = 0
             
             if box_info.get('is_separate_mode', False):
-                # 分盒模式：主级编号使用大箱数量循环，子级编号按大箱内小箱循环
-                large_case_num = start_num
+                # 分盒模式：按照正确的分盒模式规律为每个盒子生成盒标
+                boxes_per_small_case = box_info.get('boxes_per_small_case', 1)
+                small_cases_per_large_case = box_info.get('small_cases_per_large_case', 2)
+                current_box_index = 0  # 全局盒子索引
+                
                 for large_case_idx in range(box_info['total_large_cases']):
-                    for small_case_in_large in range(box_info['small_cases_per_large_case']):
-                        # 检查是否超出总小箱数
-                        if large_case_idx * box_info['small_cases_per_large_case'] + small_case_in_large >= box_info['total_small_cases']:
+                    # 计算该大箱包含的盒子数量
+                    boxes_in_current_large_case = min(
+                        small_cases_per_large_case * boxes_per_small_case, 
+                        box_info['total_boxes'] - current_box_index
+                    )
+                    
+                    # 父级编号：基于大箱编号计算（大箱编号从1开始）
+                    large_case_serial_num = start_num + large_case_idx
+                    parent_serial = f"{serial_prefix}{large_case_serial_num:05d}"
+                    
+                    # 为该大箱内的每个盒子生成盒标
+                    for box_idx_in_large_case in range(boxes_in_current_large_case):
+                        if current_box_index >= box_info['total_boxes']:
                             break
-                        
-                        # 主级编号：大箱编号（大箱数量循环）
-                        # 子级编号：大箱内小箱编号（01, 02, ...）
-                        main_serial = f"{serial_prefix}{large_case_num:05d}"
-                        sub_serial = f"{small_case_in_large + 1:02d}"
-                        box_serial = f"{main_serial}-{sub_serial}"  # JAW01001-01, JAW01001-02
+                            
+                        # 子级编号：该盒子在大箱内的编号（从01开始）
+                        box_index_in_large = box_idx_in_large_case + 1
+                        box_serial = f"{parent_serial}-{box_index_in_large:02d}"
                         
                         pages.append(Page(index=page_index, elements=[
                             Element(role="theme_info", content=theme),          # JAWS
@@ -538,8 +562,10 @@ def create_template_data(excel_variables, additional_inputs=None, template_mode=
                         ]))
                         
                         page_index += 1
+                        current_box_index += 1
                     
-                    large_case_num += 1
+                    if current_box_index >= box_info['total_boxes']:
+                        break
             else:
                 # 常规多级模式：按小箱逐一生成盒标
                 for case_idx in range(box_info['total_small_cases']):
