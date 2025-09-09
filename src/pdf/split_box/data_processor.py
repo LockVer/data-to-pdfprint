@@ -90,13 +90,15 @@ class SplitBoxDataProcessor:
             'small_boxes_per_large_box': small_boxes_per_large_box
         }
     
-    def generate_split_box_serial_number(self, base_number: str, box_num: int, group_size: int) -> str:
+    def generate_split_box_serial_number(self, base_number: str, box_num: int, boxes_per_small_box: int, small_boxes_per_large_box: int) -> str:
         """
-        生成分盒盒标的序列号 - 与原有逻辑完全一致
+        生成分盒盒标的序列号 - 修正为文档中的分盒逻辑
         对应原来 _create_split_box_label 中的序列号生成逻辑
         
-        分盒模板特殊逻辑：副号满 group_size 进一（用户第三个参数控制）
+        分盒模板特殊逻辑：副号进位阈值 = 盒/小箱 × 小箱/大箱
         """
+        # 计算副号进位阈值
+        group_size = boxes_per_small_box * small_boxes_per_large_box
         serial_info = self.parse_serial_number_format(base_number)
         
         # 分盒模板序列号生成逻辑（与原代码完全一致）
@@ -109,16 +111,18 @@ class SplitBoxDataProcessor:
         current_main = serial_info['main_number'] + main_increments
         current_number = f"{serial_info['prefix']}{current_main:05d}-{suffix_in_group:02d}"
         
-        print(f"📝 分盒盒标 #{box_num}: 主号{current_main}, 副号{suffix_in_group}, 分组大小{group_size} → {current_number}")
+        print(f"📝 分盒盒标 #{box_num}: 主号{current_main}, 副号{suffix_in_group}, 分组大小{group_size}({boxes_per_small_box}×{small_boxes_per_large_box}) → {current_number}")
         return current_number
     
     def generate_split_small_box_serial_range(self, base_number: str, small_box_num: int, 
-                                            boxes_per_small_box: int, group_size: int, total_boxes: int = None) -> str:
+                                            boxes_per_small_box: int, small_boxes_per_large_box: int, total_boxes: int = None) -> str:
         """
-        生成分盒小箱标的序列号范围 - 修复边界计算问题
+        生成分盒小箱标的序列号范围 - 修复边界计算问题，使用正确的副号进位阈值
         对应原来 _create_split_small_box_label 中的序列号范围计算逻辑
         添加total_boxes边界检查，确保序列号不超出实际盒数
         """
+        # 计算副号进位阈值
+        group_size = boxes_per_small_box * small_boxes_per_large_box
         serial_info = self.parse_serial_number_format(base_number)
         
         # 计算当前小箱包含的盒子范围
@@ -154,12 +158,14 @@ class SplitBoxDataProcessor:
     
     def generate_split_large_box_serial_range(self, base_number: str, large_box_num: int,
                                             small_boxes_per_large_box: int, boxes_per_small_box: int, 
-                                            group_size: int, total_boxes: int = None) -> str:
+                                            total_boxes: int = None) -> str:
         """
-        生成分盒大箱标的序列号范围 - 修复边界计算问题
+        生成分盒大箱标的序列号范围 - 修复边界计算问题，使用正确的副号进位阈值
         对应原来 _create_split_large_box_label 中的序列号范围计算逻辑
         添加total_boxes边界检查，确保序列号不超出实际盒数
         """
+        # 计算副号进位阈值
+        group_size = boxes_per_small_box * small_boxes_per_large_box
         serial_info = self.parse_serial_number_format(base_number)
         
         # 计算当前大箱包含的小箱范围
@@ -197,9 +203,16 @@ class SplitBoxDataProcessor:
         print(f"📝 分盒大箱标 #{large_box_num}: 包含小箱{start_small_box}-{end_small_box}, 盒{start_box}-{end_box}, 序列号范围={serial_range}")
         return serial_range
     
-    def calculate_carton_number_for_small_box(self, small_box_num: int) -> str:
-        """计算分盒小箱标的Carton No - 与原有逻辑完全一致"""
-        return str(small_box_num)
+    def calculate_carton_number_for_small_box(self, small_box_num: int, small_boxes_per_large_box: int) -> str:
+        """
+        计算分盒小箱标的Carton No - 修正为文档中的格式：大箱号-小箱号
+        小箱号在每个新大箱内重置为1
+        """
+        # 计算大箱号（从1开始）
+        large_box_num = ((small_box_num - 1) // small_boxes_per_large_box) + 1
+        # 计算小箱在当前大箱内的编号（从1开始，每个大箱重置）
+        small_box_in_large_box = ((small_box_num - 1) % small_boxes_per_large_box) + 1
+        return f"{large_box_num}-{small_box_in_large_box}"
     
     def calculate_carton_range_for_large_box(self, large_box_num: int, small_boxes_per_large_box: int) -> str:
         """计算分盒大箱标的Carton No范围 - 与原有逻辑完全一致"""
@@ -207,21 +220,14 @@ class SplitBoxDataProcessor:
         end_small_box = start_small_box + small_boxes_per_large_box - 1
         return f"{start_small_box}-{end_small_box}"
     
-    def validate_group_size(self, group_size_param: str) -> int:
+    def calculate_group_size(self, boxes_per_small_box: int, small_boxes_per_large_box: int) -> int:
         """
-        验证和处理分组大小参数 - 与原有逻辑完全一致
-        对应原来代码中的参数验证逻辑
+        计算副号进位阈值 - 修正为文档中的逻辑
+        副号进位阈值 = 盒/小箱 × 小箱/大箱
         """
-        try:
-            group_size = int(group_size_param)  # 用户的第三个参数，控制副号满几进一
-            if group_size <= 0:  # 避免除零错误
-                print("⚠️ 分组大小必须大于0，使用默认值6")
-                group_size = 6
-            print(f"✅ 分盒模板分组大小: {group_size} (副号满{group_size}进一)")
-            return group_size
-        except (ValueError, TypeError):
-            print("⚠️ 无效的分组大小参数，使用默认值6")
-            return 6
+        group_size = boxes_per_small_box * small_boxes_per_large_box
+        print(f"✅ 分盒模板副号进位阈值: {group_size} (盒/小箱{boxes_per_small_box} × 小箱/大箱{small_boxes_per_large_box})")
+        return group_size
 
 
 # 创建全局实例供split_box模板使用

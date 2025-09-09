@@ -85,13 +85,13 @@ class SplitBoxUIDialog:
         )
         pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
-        # 盒/小箱输入 - 分盒模板固定为1，不可修改
+        # 盒/小箱输入 - 解除限制，允许用户输入
         ttk.Label(params_frame, text="盒/小箱:").grid(
             row=1, column=0, sticky=tk.W, pady=5
         )
-        self.main_app.boxes_per_small_box_var = tk.StringVar(value="1")
+        self.main_app.boxes_per_small_box_var = tk.StringVar()
         boxes_per_small_box_entry = ttk.Entry(
-            params_frame, textvariable=self.main_app.boxes_per_small_box_var, width=15, state="disabled"
+            params_frame, textvariable=self.main_app.boxes_per_small_box_var, width=15
         )
         boxes_per_small_box_entry.grid(
             row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5
@@ -175,30 +175,37 @@ class SplitBoxUIDialog:
 
     def confirm_parameters(self, dialog):
         """确认分盒模板参数并生成PDF"""
-        # 获取参数值（第二个参数保持固定为1）
+        # 获取参数值（现在三个参数都可以输入）
         pieces_per_box_str = self.main_app.pieces_per_box_var.get().strip()
+        boxes_per_small_box_str = self.main_app.boxes_per_small_box_var.get().strip()
         small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
         
         # 检查空值
         if not pieces_per_box_str:
             messagebox.showerror("参数错误", "请输入'张/盒'参数")
             return
+        if not boxes_per_small_box_str:
+            messagebox.showerror("参数错误", "请输入'盒/小箱'参数")
+            return
         if not small_boxes_per_large_box_str:
             messagebox.showerror("参数错误", "请输入'小箱/大箱'参数")
             return
         
         try:
-            # 尝试转换为数字（第二个参数固定为1）
+            # 尝试转换为数字（现在三个参数都可以输入）
             pieces_per_box = int(pieces_per_box_str)
-            boxes_per_small_box = 1  # 分盒模板固定为1
+            boxes_per_small_box = int(boxes_per_small_box_str)
             small_boxes_per_large_box = int(small_boxes_per_large_box_str)
         except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、2")
+            messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、3、2")
             return
         
         # 检查负数和0
         if pieces_per_box <= 0:
             messagebox.showerror("参数错误", "'张/盒'必须为正整数\n\n当前值：{}".format(pieces_per_box))
+            return
+        if boxes_per_small_box <= 0:
+            messagebox.showerror("参数错误", "'盒/小箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
             return
         if small_boxes_per_large_box <= 0:
             messagebox.showerror("参数错误", "'小箱/大箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
