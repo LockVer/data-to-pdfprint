@@ -187,6 +187,9 @@ class SplitBoxUIDialog:
             messagebox.showerror("参数错误", "'张/盒'不能超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请输入不超过 {} 的值".format(pieces_per_box, total_pieces, total_pieces))
             return
             
+        # 获取中文名称
+        chinese_name = self.main_app.chinese_name_var.get().strip()
+        
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,

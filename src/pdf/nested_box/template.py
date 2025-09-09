@@ -224,6 +224,12 @@ class NestedBoxTemplate(PDFBaseUtils):
         cmyk_black = CMYKColor(0, 0, 0, 1)
         c.setFillColor(cmyk_black)
 
+        # 生成空箱标签（第一页）
+        chinese_name = params.get("中文名称", "")
+        nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        c.showPage()
+        c.setFillColor(cmyk_black)
+
         # 生成指定范围的套盒小箱标
         for small_box_num in range(1, total_small_boxes + 1):
             if small_box_num > 1:
@@ -294,6 +300,12 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         # 使用CMYK黑色
         cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 生成空箱标签（第一页）
+        chinese_name = params.get("中文名称", "")
+        nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        c.showPage()
         c.setFillColor(cmyk_black)
 
         # 生成大箱标

@@ -283,11 +283,21 @@ class RegularTemplate(PDFBaseUtils):
         cmyk_black = CMYKColor(0, 0, 0, 1)
         c.setFillColor(cmyk_black)
 
+        # 在第一页添加空箱标签（仅在处理第一个小箱时）
+        if start_small_box == 1:
+            # 获取中文名称参数
+            chinese_name = params.get("中文名称", "")
+            # 渲染空箱标签
+            regular_renderer.render_empty_box_label(c, width, height, chinese_name)
+            c.showPage()
+            c.setFillColor(cmyk_black)
+
         # 生成指定范围的小箱标
         for small_box_num in range(start_small_box, end_small_box + 1):
-            if small_box_num > start_small_box:
-                c.showPage()
-                c.setFillColor(cmyk_black)
+            if small_box_num > start_small_box or start_small_box == 1:  # 修改条件，考虑空标签页
+                if not (small_box_num == start_small_box and start_small_box == 1):  # 避免重复showPage
+                    c.showPage()
+                    c.setFillColor(cmyk_black)
 
             # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
             serial_range = regular_data_processor.generate_regular_small_box_serial_range(
@@ -388,11 +398,21 @@ class RegularTemplate(PDFBaseUtils):
         cmyk_black = CMYKColor(0, 0, 0, 1)
         c.setFillColor(cmyk_black)
 
+        # 在第一页添加空箱标签（仅在处理第一个大箱时）
+        if start_large_box == 1:
+            # 获取中文名称参数
+            chinese_name = params.get("中文名称", "")
+            # 渲染空箱标签
+            regular_renderer.render_empty_box_label(c, width, height, chinese_name)
+            c.showPage()
+            c.setFillColor(cmyk_black)
+
         # 生成指定范围的大箱标
         for large_box_num in range(start_large_box, end_large_box + 1):
-            if large_box_num > start_large_box:
-                c.showPage()
-                c.setFillColor(cmyk_black)
+            if large_box_num > start_large_box or start_large_box == 1:  # 修改条件，考虑空标签页
+                if not (large_box_num == start_large_box and start_large_box == 1):  # 避免重复showPage
+                    c.showPage()
+                    c.setFillColor(cmyk_black)
 
             # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
             serial_range = regular_data_processor.generate_regular_large_box_serial_range(
