@@ -107,6 +107,16 @@ class NestedBoxUIDialog:
         )
         small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
+        # 中文名称输入
+        ttk.Label(params_frame, text="中文名称:").grid(
+            row=3, column=0, sticky=tk.W, pady=5
+        )
+        self.main_app.chinese_name_var = tk.StringVar()
+        chinese_name_entry = ttk.Entry(
+            params_frame, textvariable=self.main_app.chinese_name_var, width=15
+        )
+        chinese_name_entry.grid(row=3, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+
         # 标签模版选择框架
         template_frame = ttk.LabelFrame(main_frame, text="标签模版选择", padding="15")
         template_frame.pack(fill=tk.X, pady=(0, 20))
@@ -206,6 +216,9 @@ class NestedBoxUIDialog:
         if pieces_per_box > total_pieces:
             messagebox.showerror("参数错误", "'张/盒'不能超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请输入不超过 {} 的值".format(pieces_per_box, total_pieces, total_pieces))
             return
+            
+        # 获取中文名称
+        chinese_name = self.main_app.chinese_name_var.get().strip()
         
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
@@ -214,6 +227,7 @@ class NestedBoxUIDialog:
             "小箱/大箱": small_boxes_per_large_box,
             "选择外观": "外观一",  # 套盒模板固定使用外观一，但实际不使用
             "标签模版": self.main_app.template_var.get(),
+            "中文名称": self.main_app.chinese_name_var.get(),
         }
 
         dialog.destroy()

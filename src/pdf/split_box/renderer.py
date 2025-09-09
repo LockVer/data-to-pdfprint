@@ -291,6 +291,89 @@ class SplitBoxRenderer:
             c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
             c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
+    def render_empty_box_label(self, c, width, height, chinese_name):
+        """渲染空箱标签 - 用于小箱标和大箱标的第一页"""
+        # 表格尺寸和位置 - 上下左右各5mm边距
+        table_width = width - 10 * mm
+        table_height = height - 10 * mm
+        table_x = 5 * mm
+        table_y = 5 * mm
+        
+        # 高度分配：Quantity行占2/6，其他4行各占1/6
+        base_row_height = table_height / 6
+        quantity_row_height = base_row_height * 2  # Quantity行双倍高度
+        
+        # 列宽 (标签列:数据列 = 1:2)
+        label_col_width = table_width / 3
+        data_col_width = table_width * 2 / 3
+        
+        # 绘制表格边框
+        c.setStrokeColor(CMYKColor(0, 0, 0, 1))
+        c.setLineWidth(1)
+        c.rect(table_x, table_y, table_width, table_height)
+        
+        # 计算各行的Y坐标
+        row_positions = []
+        current_y = table_y
+        # 从底部开始：Remark, Carton No, Quantity(双倍), Theme, Item
+        for height_val in [base_row_height, base_row_height, quantity_row_height, base_row_height, base_row_height]:
+            row_positions.append(current_y)
+            current_y += height_val
+        
+        # 绘制行线
+        for i in range(1, 5):
+            y = row_positions[i]
+            c.line(table_x, y, table_x + table_width, y)
+        
+        # 绘制列线
+        col_x = table_x + label_col_width
+        c.line(col_x, table_y, col_x, table_y + table_height)
+        
+        # 绘制Quantity行的分隔线（上层和下层之间）
+        quantity_split_y = row_positions[2] + quantity_row_height / 2
+        c.line(col_x, quantity_split_y, table_x + table_width, quantity_split_y)
+        
+        # 表格内容
+        font_manager.set_best_font(c, 10, bold=True)
+        
+        # 计算居中位置
+        label_center_x = table_x + label_col_width / 2  # 标签列居中
+        data_center_x = col_x + data_col_width / 2      # 数据列居中
+        
+        # 文本偏移量
+        text_offset = 3
+        
+        # 行1: Item (第5行，从上往下) - 多次绘制加粗
+        item_y = row_positions[4] + base_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+        
+        # 行2: Theme (第4行) - 多次绘制加粗，使用用户输入的中文名称
+        theme_y = row_positions[3] + base_row_height/2 - text_offset
+        clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
+            c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], clean_chinese_name)
+        
+        # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗，保持空白
+        quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+            # 数据列保持空白
+        
+        # 行4: Carton No (第2行) - 多次绘制加粗，保持空白
+        carton_y = row_positions[1] + base_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+            # 数据列保持空白
+        
+        # 行5: Remark (第1行) - 多次绘制加粗
+        remark_y = row_positions[0] + base_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+
 
 # 创建全局实例供split_box模板使用
 split_box_renderer = SplitBoxRenderer()

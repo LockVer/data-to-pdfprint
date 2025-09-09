@@ -2,6 +2,7 @@
 Nested Box Template - Multi-level PDF generation with Excel serial number ranges
 """
 import math
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 from reportlab.pdfgen import canvas
@@ -56,24 +57,36 @@ class NestedBoxTemplate(PDFBaseUtils):
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
+        # 获取参数和日期时间戳
+        chinese_name = params.get("中文名称", "")
+        english_name = clean_theme  # 英文名称使用清理后的主题
+        customer_code = data['客户名称编码']  # 客户编号
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         generated_files = {}
 
         # 生成套盒模板的盒标 - 第二个参数用于结束号
         selected_appearance = params["选择外观"]
-        box_label_path = full_output_dir / f"{data['客户名称编码']}+{clean_theme}+套盒盒标.pdf"
+        # 文件名格式：客户编号_中文名称_英文名称_套盒盒标_日期时间戳
+        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒盒标_{timestamp}.pdf"
+        box_label_path = full_output_dir / box_label_filename
 
         self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
         generated_files["盒标"] = str(box_label_path)
 
         # 生成套盒模板小箱标
-        small_box_path = full_output_dir / f"{data['客户名称编码']}+{clean_theme}+套盒小箱标.pdf"
+        # 文件名格式：客户编号_中文名称_英文名称_套盒小箱标_日期时间戳
+        small_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒小箱标_{timestamp}.pdf"
+        small_box_path = full_output_dir / small_box_filename
         self._create_nested_small_box_label(
             data, params, str(small_box_path), excel_file_path
         )
         generated_files["小箱标"] = str(small_box_path)
 
         # 生成套盒模板大箱标
-        large_box_path = full_output_dir / f"{data['客户名称编码']}+{clean_theme}+套盒大箱标.pdf"
+        # 文件名格式：客户编号_中文名称_英文名称_套盒大箱标_日期时间戳
+        large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒大箱标_{timestamp}.pdf"
+        large_box_path = full_output_dir / large_box_filename
         self._create_nested_large_box_label(
             data, params, str(large_box_path), excel_file_path
         )
@@ -211,6 +224,12 @@ class NestedBoxTemplate(PDFBaseUtils):
         cmyk_black = CMYKColor(0, 0, 0, 1)
         c.setFillColor(cmyk_black)
 
+        # 生成空箱标签（第一页）
+        chinese_name = params.get("中文名称", "")
+        nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        c.showPage()
+        c.setFillColor(cmyk_black)
+
         # 生成指定范围的套盒小箱标
         for small_box_num in range(1, total_small_boxes + 1):
             if small_box_num > 1:
@@ -281,6 +300,12 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         # 使用CMYK黑色
         cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 生成空箱标签（第一页）
+        chinese_name = params.get("中文名称", "")
+        nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        c.showPage()
         c.setFillColor(cmyk_black)
 
         # 生成大箱标

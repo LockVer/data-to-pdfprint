@@ -132,6 +132,16 @@ class RegularUIDialog:
         )
         small_boxes_entry.grid(row=2, column=1, sticky=tk.W+tk.E, pady=10)
 
+        # 中文名称输入
+        ttk.Label(params_frame, text="中文名称:", font=("Arial", 11)).grid(
+            row=3, column=0, sticky=tk.E, pady=10, padx=(0, 15)
+        )
+        self.main_app.chinese_name_var = tk.StringVar()
+        chinese_name_entry = ttk.Entry(
+            params_frame, textvariable=self.main_app.chinese_name_var, width=20, font=("Arial", 11)
+        )
+        chinese_name_entry.grid(row=3, column=1, sticky=tk.W+tk.E, pady=10)
+
         # 左侧：外观选择框架
         appearance_frame = ttk.LabelFrame(left_column, text="盒标外观选择", padding="12")
         appearance_frame.pack(fill=tk.X, pady=(0, 10))
@@ -282,6 +292,9 @@ class RegularUIDialog:
         if pieces_per_box > total_pieces:
             messagebox.showerror("参数错误", "'张/盒'不能超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请输入不超过 {} 的值".format(pieces_per_box, total_pieces, total_pieces))
             return
+            
+        # 获取中文名称
+        chinese_name = self.main_app.chinese_name_var.get().strip()
         
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
@@ -290,6 +303,7 @@ class RegularUIDialog:
             "小箱/大箱": small_boxes_per_large_box,
             "选择外观": self.main_app.appearance_var.get(),
             "标签模版": self.main_app.template_var.get(),
+            "中文名称": self.main_app.chinese_name_var.get(),
         }
 
         dialog.destroy()
