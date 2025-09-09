@@ -155,8 +155,8 @@ class ParamInputStep(BaseStep):
         """根据包装模式更新基础参数标签文本"""
         if hasattr(self, 'sheets_label') and hasattr(self, 'sheets_help_label'):
             if self.app_data.package_mode == 'set':
-                self.sheets_label.config(text="每套张数:")
-                self.sheets_help_label.config(text="每个套包含的卡片数量")
+                self.sheets_label.config(text="套中每盒张数:")
+                self.sheets_help_label.config(text="套中每个盒子包含的卡片数量")
             else:
                 self.sheets_label.config(text="每盒张数:")
                 self.sheets_help_label.config(text="每个盒子包含的卡片数量")
@@ -238,9 +238,11 @@ class ParamInputStep(BaseStep):
                 
                 if self.app_data.package_mode == 'set':
                     # 套盒模式计算
-                    cards_per_set = sheets_per_box  # 每套张数
-                    boxes_per_set = boxes_per_small_case  # 每套盒数
-                    sets_per_large_case = small_cases_per_large_case  # 每大箱套数
+                    cards_per_box_in_set = sheets_per_box  # 套中每盒张数（用户输入）
+                    boxes_per_set = boxes_per_small_case  # 每套盒数（用户输入）
+                    sets_per_large_case = small_cases_per_large_case  # 每大箱套数（用户输入）
+                    
+                    cards_per_set = cards_per_box_in_set * boxes_per_set  # 每套张数（计算得出）
                     
                     total_sets = math.ceil(total_sheets / cards_per_set) if cards_per_set > 0 else 0
                     total_small_cases = total_sets  # 一套=一小箱
@@ -262,7 +264,8 @@ class ParamInputStep(BaseStep):
                 
                 preview_text += f"包装参数:\n"
                 if self.app_data.package_mode == 'set':
-                    preview_text += f"  每套张数: {sheets_per_box:,} 张\n"
+                    preview_text += f"  套中每盒张数: {sheets_per_box:,} 张\n"
+                    preview_text += f"  每套张数: {cards_per_set:,} 张（计算得出）\n"
                 else:
                     preview_text += f"  每盒张数: {sheets_per_box:,} 张\n"
                 

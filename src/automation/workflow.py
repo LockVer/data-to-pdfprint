@@ -246,7 +246,9 @@ def create_default_config() -> PackagingConfig:
     """
     return PackagingConfig(
         box_quantity=100,  # 默认分盒张数
-        set_quantity=6,    # 默认分套张数
+        set_quantity=6,    # 默认分套张数（保留兼容性，实际使用计算值）
         small_box_capacity=1,  # 默认每小箱盒数（分盒模式可由用户修改）
-        large_box_capacity=2   # 默认每大箱小箱数
+        large_box_capacity=2,   # 默认每大箱小箱数
+        cards_per_box_in_set=6,  # 默认套中每盒张数
+        boxes_per_set=6   # 默认每套盒数
     )

@@ -130,13 +130,14 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
     
     # 根据模式调整计算逻辑
     if template_mode == "multi_set":
-        # 套盒模式：一套=一小箱，sheets_per_box 实际是每套张数
-        cards_per_set = sheets_per_box  # 每套张数（用户输入）
+        # 套盒模式：sheets_per_box 实际是套中每盒张数（用户输入）
+        cards_per_box_in_set = sheets_per_box  # 套中每盒张数（用户输入）
+        boxes_per_set = boxes_per_small_case  # 每套盒数（用户输入）
         sets_per_large_case = small_cases_per_large_case  # 每大箱套数（用户输入）
         
-        # 从boxes_per_small_case参数推断每套盒数（从序列号格式01-06可知是6盒）
-        boxes_per_set = boxes_per_small_case  # 每套盒数
-        cards_per_box = cards_per_set // boxes_per_set if boxes_per_set > 0 else cards_per_set  # 每盒张数
+        # 计算每套张数：套中每盒张数 × 每套盒数
+        cards_per_set = cards_per_box_in_set * boxes_per_set
+        cards_per_box = cards_per_box_in_set  # 每盒张数就是套中每盒张数
         
         # 重新计算数量：套盒模式下，小箱=套
         total_sets = math.ceil(total_cards / cards_per_set) if cards_per_set > 0 else 0

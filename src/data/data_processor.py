@@ -13,9 +13,11 @@ from dataclasses import dataclass
 class PackagingConfig:
     """包装配置参数"""
     box_quantity: int  # 分盒张数
-    set_quantity: int  # 分套张数 (仅套盒模式使用)
+    set_quantity: int  # 分套张数 (仅套盒模式使用) - 将被弃用，改用计算值
     small_box_capacity: int  # 小箱内的盒数
     large_box_capacity: int  # 大箱内的小箱数
+    cards_per_box_in_set: int  # 套中每盒张数 (仅套盒模式使用)
+    boxes_per_set: int  # 每套盒数 (仅套盒模式使用)
 
 
 class DataProcessor:
@@ -141,24 +143,29 @@ class DataProcessor:
     def _process_set_box_mode(self, base_data: Dict[str, Any], config: PackagingConfig) -> Dict[str, Any]:
         """
         处理套盒模式
-        套盒箱标（六盒为一套 六盒入一小箱 再两套入一大箱）
+        套盒箱标（根据用户输入的套中每盒张数和每套盒数计算每套张数）
         """
         box_quantity = config.box_quantity
-        set_quantity = config.set_quantity
+        cards_per_box_in_set = config.cards_per_box_in_set
+        boxes_per_set = config.boxes_per_set
         
-        # 套盒模式：6盒为一套，6盒入一小箱，两套入一大箱
-        total_sets = math.ceil(box_quantity / set_quantity)  # 总套数
+        # 计算每套张数：套中每盒张数 × 每套盒数
+        cards_per_set = cards_per_box_in_set * boxes_per_set
+        
+        # 套盒模式：根据用户输入计算套数和箱数
+        total_sets = math.ceil(box_quantity / boxes_per_set)  # 总套数
         small_boxes = total_sets  # 每套一个小箱
         large_boxes = math.ceil(total_sets / 2)  # 两套入一大箱
         
         result = {
             **base_data,
             'box_quantity': box_quantity,
-            'set_quantity': set_quantity,
+            'cards_per_box_in_set': cards_per_box_in_set,
+            'boxes_per_set': boxes_per_set,
+            'cards_per_set': cards_per_set,  # 计算得出的每套张数
             'total_sets': total_sets,
             'small_box_quantity': small_boxes,
             'large_box_quantity': large_boxes,
-            'boxes_per_set': set_quantity,
             'sets_per_small_box': 1,
             'sets_per_large_box': 2,
             'label_specifications': {
