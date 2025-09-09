@@ -224,9 +224,15 @@ class NestedBoxTemplate(PDFBaseUtils):
         cmyk_black = CMYKColor(0, 0, 0, 1)
         c.setFillColor(cmyk_black)
 
-        # 生成空箱标签（第一页）
+        # 生成空箱标签（第一页）- 根据标签模版类型选择函数
         chinese_name = params.get("中文名称", "")
-        nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        template_type = params.get("标签模版", "有纸卡备注")
+        
+        if template_type == "有纸卡备注":
+            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        else:  # "无纸卡备注"
+            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+        
         c.showPage()
         c.setFillColor(cmyk_black)
 
@@ -309,9 +315,15 @@ class NestedBoxTemplate(PDFBaseUtils):
         cmyk_black = CMYKColor(0, 0, 0, 1)
         c.setFillColor(cmyk_black)
 
-        # 生成空箱标签（第一页）
+        # 生成空箱标签（第一页）- 根据标签模版类型选择函数
         chinese_name = params.get("中文名称", "")
-        nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        template_type = params.get("标签模版", "有纸卡备注")
+        
+        if template_type == "有纸卡备注":
+            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        else:  # "无纸卡备注"
+            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+        
         c.showPage()
         c.setFillColor(cmyk_black)
 

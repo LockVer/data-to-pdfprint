@@ -236,8 +236,15 @@ class SplitBoxTemplate(PDFBaseUtils):
         if start_small_box == 1:
             # 获取中文名称参数
             chinese_name = params.get("中文名称", "")
-            # 渲染空箱标签
-            split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            # 获取标签模版类型
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 根据标签模版类型选择空箱标签渲染函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            else:  # "无纸卡备注"
+                split_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            
             c.showPage()
             c.setFillColor(cmyk_black)
 
@@ -334,8 +341,15 @@ class SplitBoxTemplate(PDFBaseUtils):
         if start_large_box == 1:
             # 获取中文名称参数
             chinese_name = params.get("中文名称", "")
-            # 渲染空箱标签
-            split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            # 获取标签模版类型
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 根据标签模版类型选择空箱标签渲染函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            else:  # "无纸卡备注"
+                split_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            
             c.showPage()
             c.setFillColor(cmyk_black)
 

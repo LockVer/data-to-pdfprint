@@ -295,7 +295,7 @@ class NestedBoxRenderer:
                                                        serial_range, carton_no, remark_text)
 
     def render_empty_box_label(self, c, width, height, chinese_name):
-        """渲染空箱标签 - 套盒模板版本"""
+        """渲染空箱标签 - 套盒模板版本（有纸卡备注）"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
         table_height = height - 10 * mm
@@ -393,6 +393,103 @@ class NestedBoxRenderer:
             c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
         
         # 行5: Remark (第1行) - 固定值 KHQC0015
+        remark_y = row_positions[0] + base_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+
+    def render_empty_box_label_no_paper_card(self, c, width, height, chinese_name):
+        """渲染空箱标签 - 套盒模板版本（无纸卡备注）"""
+        # 表格尺寸和位置 - 上下左右各5mm边距
+        table_width = width - 10 * mm
+        table_height = height - 10 * mm
+        table_x = 5 * mm
+        table_y = 5 * mm
+        
+        # 无纸卡备注：4行，Quantity行占2/5，其他3行各占1/5
+        base_row_height = table_height / 5
+        quantity_row_height = base_row_height * 2  # Quantity行双倍高度
+        
+        # 列宽 (标签列:数据列 = 1:2)
+        label_col_width = table_width / 3
+        data_col_width = table_width * 2 / 3
+        
+        # 绘制表格边框
+        c.setStrokeColor(CMYKColor(0, 0, 0, 1))
+        c.setLineWidth(1)
+        c.rect(table_x, table_y, table_width, table_height)
+        
+        # 计算各行的Y坐标 - 从底部开始：Remark, Carton No, Quantity(双倍), Item
+        row_positions = []
+        current_y = table_y
+        for height_val in [base_row_height, base_row_height, quantity_row_height, base_row_height]:
+            row_positions.append(current_y)
+            current_y += height_val
+        
+        # 绘制行线
+        for i in range(1, 4):
+            y = row_positions[i]
+            c.line(table_x, y, table_x + table_width, y)
+        
+        # 绘制列线
+        col_x = table_x + label_col_width
+        c.line(col_x, table_y, col_x, table_y + table_height)
+        
+        # 绘制Quantity行的分隔线（上层和下层之间）
+        quantity_split_y = row_positions[2] + quantity_row_height / 2
+        c.line(col_x, quantity_split_y, table_x + table_width, quantity_split_y)
+        
+        # 表格内容
+        font_manager.set_best_font(c, 10, bold=True)
+        
+        # 计算居中位置
+        label_center_x = table_x + label_col_width / 2  # 标签列居中
+        data_center_x = col_x + data_col_width / 2      # 数据列居中
+        
+        # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
+        font_size = 10
+        text_offset = font_size / 3
+        
+        # 行1: Item (第4行，从上往下) - 显示中文名称
+        item_y = row_positions[3] + base_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+        
+        # 应用文本清理和换行处理
+        clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
+        max_theme_width = data_col_width - 4*mm  # 留出边距
+        theme_lines = text_processor.wrap_text_to_fit(c, clean_chinese_name, max_theme_width, font_manager.get_chinese_font_name(), 10)
+        
+        # 绘制主题文本（支持多行） - 多次绘制加粗
+        if len(theme_lines) > 1:
+            # 多行：调整字体大小并垂直居中
+            font_manager.set_best_font(c, 8, bold=True)
+            line_height = 10
+            # 计算整个文本块的总高度
+            total_text_height = (len(theme_lines) - 1) * line_height
+            # 重新计算多行文本的垂直居中位置
+            cell_center_y = row_positions[3] + base_row_height / 2
+            multi_text_offset = 8 / 3  # 8号字体的偏移
+            start_y = cell_center_y + total_text_height / 2 - multi_text_offset
+            for i, line in enumerate(theme_lines):
+                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+            font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
+        else:
+            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+                c.drawCentredString(data_center_x + offset[0], item_y + offset[1], theme_lines[0])
+        
+        # 行2: Quantity (第3行，双倍高度) - 空白
+        quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        
+        # 行3: Carton No (第2行) - 空白
+        carton_y = row_positions[1] + base_row_height/2 - text_offset
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+        
+        # 行4: Remark (第1行) - 固定值 KHQC0015
         remark_y = row_positions[0] + base_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
