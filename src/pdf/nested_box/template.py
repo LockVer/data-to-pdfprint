@@ -251,9 +251,16 @@ class NestedBoxTemplate(PDFBaseUtils):
             # 计算套盒小箱标的Carton No（简单的小箱编号）
             carton_no = str(small_box_num)
 
-            # 绘制套盒小箱标表格（使用实际张数）
-            nested_box_renderer.draw_nested_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                                             serial_range, carton_no, remark_text)
+            # 获取标签模版类型 - 参照分盒模版的实现方式
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 绘制套盒小箱标表格（使用实际张数，根据模版类型选择函数）
+            if template_type == "有纸卡备注":
+                nested_box_renderer.draw_nested_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
+                                                                 serial_range, carton_no, remark_text)
+            else:  # "无纸卡备注"
+                nested_box_renderer.draw_nested_small_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_small_box, 
+                                                                 serial_range, carton_no, remark_text)
 
         c.save()
         print(f"✅ 套盒模板小箱标PDF已生成: {output_path}")
@@ -332,9 +339,16 @@ class NestedBoxTemplate(PDFBaseUtils):
             end_small_box = start_small_box + small_boxes_per_large_box - 1
             carton_range = f"{start_small_box}-{end_small_box}"
 
-            # 绘制套盒大箱标表格（使用实际张数）
-            nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box, 
-                                                             serial_range, carton_range, remark_text)
+            # 获取标签模版类型 - 参照分盒模版的实现方式
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 绘制套盒大箱标表格（使用实际张数，根据模版类型选择函数）
+            if template_type == "有纸卡备注":
+                nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box, 
+                                                                 serial_range, carton_range, remark_text)
+            else:  # "无纸卡备注"
+                nested_box_renderer.draw_nested_large_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_large_box, 
+                                                                 serial_range, carton_range, remark_text)
 
         c.save()
         print(f"✅ 套盒模板大箱标PDF已生成: {output_path}")
