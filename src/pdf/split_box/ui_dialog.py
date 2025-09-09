@@ -158,10 +158,10 @@ class SplitBoxUIDialog:
         
         # 检查空值
         if not pieces_per_box_str:
-            messagebox.showerror("参数错误", "请输入“张/盒”参数")
+            messagebox.showerror("参数错误", "请输入'张/盒'参数")
             return
         if not small_boxes_per_large_box_str:
-            messagebox.showerror("参数错误", "请输入“小箱/大箱”参数")
+            messagebox.showerror("参数错误", "请输入'小箱/大箱'参数")
             return
         
         try:
@@ -175,22 +175,16 @@ class SplitBoxUIDialog:
         
         # 检查负数和0
         if pieces_per_box <= 0:
-            messagebox.showerror("参数错误", f"张/盒必须为正整数\n\n当前值：{pieces_per_box}")
+            messagebox.showerror("参数错误", "'张/盒'必须为正整数\n\n当前值：{}".format(pieces_per_box))
             return
         if small_boxes_per_large_box <= 0:
-            messagebox.showerror("参数错误", f"小箱/大箱必须为正整数\n\n当前值：{small_boxes_per_large_box}")
+            messagebox.showerror("参数错误", "'小箱/大箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
             return
         
         # 检查张/盒不能超过总张数
         total_pieces = int(self.main_app.current_data.get('总张数', 0))
         if pieces_per_box > total_pieces:
-            messagebox.showerror("参数错误", f"张/盒不能超过总张数\n\n当前设置：{pieces_per_box} 张/盒\n总张数：{total_pieces} 张\n\n请输入不超过 {total_pieces} 的值")
-            return
-        
-        # 获取中文名称
-        chinese_name = self.main_app.chinese_name_var.get().strip()
-        if not chinese_name:
-            messagebox.showerror("参数错误", "请输入中文名称")
+            messagebox.showerror("参数错误", "'张/盒'不能超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请输入不超过 {} 的值".format(pieces_per_box, total_pieces, total_pieces))
             return
             
         # 参数验证通过，设置参数
