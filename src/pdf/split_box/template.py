@@ -337,14 +337,14 @@ class SplitBoxTemplate(PDFBaseUtils):
             # 获取标签模版类型 - 参照常规模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制大箱标表格 - 完全使用小箱标的表格结构，根据模版类型选择函数
+            # 绘制大箱标表格 - 传入完整的包装参数，根据模版类型选择函数
             if template_type == "有纸卡备注":
                 split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
-                                               small_boxes_per_large_box, serial_range, 
+                                               boxes_per_small_box, small_boxes_per_large_box, serial_range, 
                                                str(large_box_num), remark_text)
             else:  # "无纸卡备注"
                 split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
-                                               small_boxes_per_large_box, serial_range, 
+                                               boxes_per_small_box, small_boxes_per_large_box, serial_range, 
                                                str(large_box_num), remark_text)
 
         c.save()

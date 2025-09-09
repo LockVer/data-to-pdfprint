@@ -410,7 +410,7 @@ class SplitBoxRenderer:
             c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
     def draw_split_box_large_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_box,
-                                                      small_boxes_per_large_box, serial_range, carton_no, remark_text):
+                                                      boxes_per_small_box, small_boxes_per_large_box, serial_range, carton_no, remark_text):
         """绘制分盒大箱标表格 - 无纸卡备注模版"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -497,7 +497,7 @@ class SplitBoxRenderer:
             c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
         # 上层：计算并显示 (张/盒 * 小箱/大箱)PCS
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
-        pcs_count = pieces_per_box * small_boxes_per_large_box  # 张/盒 * 小箱/大箱
+        pcs_count = pieces_per_box * boxes_per_small_box * small_boxes_per_large_box  # 张/盒 × 盒/小箱 × 小箱/大箱
         pcs_text = f"{pcs_count}PCS"
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
