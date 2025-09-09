@@ -107,6 +107,28 @@ class SplitBoxUIDialog:
         )
         small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
+        # 标签模版选择框架
+        template_frame = ttk.LabelFrame(main_frame, text="标签模版选择", padding="15")
+        template_frame.pack(fill=tk.X, pady=(0, 20))
+
+        self.main_app.template_var = tk.StringVar(value="无纸卡备注")
+        
+        # 创建单选按钮
+        template_radio1 = ttk.Radiobutton(
+            template_frame,
+            text="无纸卡备注",
+            variable=self.main_app.template_var,
+            value="无纸卡备注"
+        )
+        template_radio1.grid(row=0, column=0, sticky=tk.W, pady=5)
+
+        template_radio2 = ttk.Radiobutton(
+            template_frame,
+            text="有纸卡备注",
+            variable=self.main_app.template_var,
+            value="有纸卡备注"
+        )
+        template_radio2.grid(row=0, column=1, sticky=tk.W, padx=(20, 0), pady=5)
 
         # 当前数据显示
         data_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
@@ -184,6 +206,7 @@ class SplitBoxUIDialog:
             "盒/小箱": boxes_per_small_box,
             "小箱/大箱": small_boxes_per_large_box,
             "选择外观": "外观一",  # 分盒模板固定使用外观一
+            "标签模版": self.main_app.template_var.get(),
         }
 
         dialog.destroy()

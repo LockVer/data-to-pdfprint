@@ -134,7 +134,7 @@ class RegularUIDialog:
 
         # 左侧：外观选择框架
         appearance_frame = ttk.LabelFrame(left_column, text="盒标外观选择", padding="12")
-        appearance_frame.pack(fill=tk.X)
+        appearance_frame.pack(fill=tk.X, pady=(0, 10))
 
         self.main_app.appearance_var = tk.StringVar(value="外观一")
         
@@ -157,6 +157,32 @@ class RegularUIDialog:
             value="外观二"
         )
         appearance_radio2.pack(side=tk.LEFT)
+
+        # 左侧：标签模版选择框架
+        template_frame = ttk.LabelFrame(left_column, text="标签模版选择", padding="12")
+        template_frame.pack(fill=tk.X)
+
+        self.main_app.template_var = tk.StringVar(value="无纸卡备注")
+        
+        # 居中布局的框架
+        template_container = ttk.Frame(template_frame)
+        template_container.pack(expand=True)
+        
+        template_radio1 = ttk.Radiobutton(
+            template_container,
+            text="无纸卡备注",
+            variable=self.main_app.template_var,
+            value="无纸卡备注"
+        )
+        template_radio1.pack(side=tk.LEFT, padx=(0, 30))
+
+        template_radio2 = ttk.Radiobutton(
+            template_container,
+            text="有纸卡备注",
+            variable=self.main_app.template_var,
+            value="有纸卡备注"
+        )
+        template_radio2.pack(side=tk.LEFT)
 
         # 右侧：当前数据显示
         info_frame = ttk.LabelFrame(right_column, text="当前数据", padding="12")
@@ -263,6 +289,7 @@ class RegularUIDialog:
             "盒/小箱": boxes_per_small_box,
             "小箱/大箱": small_boxes_per_large_box,
             "选择外观": self.main_app.appearance_var.get(),
+            "标签模版": self.main_app.template_var.get(),
         }
 
         dialog.destroy()
