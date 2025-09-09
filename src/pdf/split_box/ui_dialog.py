@@ -107,6 +107,15 @@ class SplitBoxUIDialog:
         )
         small_boxes_entry.grid(row=2, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
+        # 中文名称输入
+        ttk.Label(params_frame, text="中文名称:").grid(
+            row=3, column=0, sticky=tk.W, pady=5
+        )
+        self.main_app.chinese_name_var = tk.StringVar()
+        chinese_name_entry = ttk.Entry(
+            params_frame, textvariable=self.main_app.chinese_name_var, width=15
+        )
+        chinese_name_entry.grid(row=3, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
         # 当前数据显示
         data_frame = ttk.LabelFrame(main_frame, text="当前数据", padding="15")
@@ -166,24 +175,31 @@ class SplitBoxUIDialog:
         
         # 检查负数和0
         if pieces_per_box <= 0:
-            messagebox.showerror("参数错误", "“张/盒”必须为正整数\n\n当前值：{}".format(pieces_per_box))
+            messagebox.showerror("参数错误", f"张/盒必须为正整数\n\n当前值：{pieces_per_box}")
             return
         if small_boxes_per_large_box <= 0:
-            messagebox.showerror("参数错误", ""小箱/大箱"必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
+            messagebox.showerror("参数错误", f"小箱/大箱必须为正整数\n\n当前值：{small_boxes_per_large_box}")
             return
         
         # 检查张/盒不能超过总张数
         total_pieces = int(self.main_app.current_data.get('总张数', 0))
         if pieces_per_box > total_pieces:
-            messagebox.showerror("参数错误", f""张/盒"不能超过总张数\n\n当前设置：{pieces_per_box} 张/盒\n总张数：{total_pieces} 张\n\n请输入不超过 {total_pieces} 的值")
+            messagebox.showerror("参数错误", f"张/盒不能超过总张数\n\n当前设置：{pieces_per_box} 张/盒\n总张数：{total_pieces} 张\n\n请输入不超过 {total_pieces} 的值")
             return
         
+        # 获取中文名称
+        chinese_name = self.main_app.chinese_name_var.get().strip()
+        if not chinese_name:
+            messagebox.showerror("参数错误", "请输入中文名称")
+            return
+            
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,
             "盒/小箱": boxes_per_small_box,
             "小箱/大箱": small_boxes_per_large_box,
             "选择外观": "外观一",  # 分盒模板固定使用外观一
+            "中文名称": chinese_name,
         }
 
         dialog.destroy()

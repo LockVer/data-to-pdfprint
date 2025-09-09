@@ -2,6 +2,7 @@
 Split Box Template - Multi-level PDF generation with special serial number logic
 """
 import math
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 from reportlab.pdfgen import canvas
@@ -50,22 +51,27 @@ class SplitBoxTemplate(PDFBaseUtils):
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
+        # 获取参数和日期时间戳
+        chinese_name = params.get("中文名称", "")
+        english_name = clean_theme  # 英文名称使用清理后的主题
+        customer_code = data['客户名称编码']  # 客户编号
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
         generated_files = {}
 
         # 生成分盒盒标 (分盒模板无外观选择)
         selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
-        box_label_path = (
-            full_output_dir
-            / f"{data['客户名称编码']}+{clean_theme}+分盒盒标.pdf"
-        )
+        # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
+        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
+        box_label_path = full_output_dir / box_label_filename
 
         self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
         generated_files["盒标"] = str(box_label_path)
 
         # 生成小箱标
-        small_box_path = (
-            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+分盒小箱标.pdf"
-        )
+        # 文件名格式：客户编号_中文名称_英文名称_分盒小箱标_日期时间戳
+        small_box_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒小箱标_{timestamp}.pdf"
+        small_box_path = full_output_dir / small_box_filename
         remainder_info = {"total_boxes": total_boxes}
         self._create_split_box_small_box_label(
             data, params, str(small_box_path), total_small_boxes, remainder_info, excel_file_path
@@ -73,9 +79,9 @@ class SplitBoxTemplate(PDFBaseUtils):
         generated_files["小箱标"] = str(small_box_path)
 
         # 生成大箱标
-        large_box_path = (
-            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+分盒大箱标.pdf"
-        )
+        # 文件名格式：客户编号_中文名称_英文名称_分盒大箱标_日期时间戳
+        large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒大箱标_{timestamp}.pdf"
+        large_box_path = full_output_dir / large_box_filename
         self._create_split_box_large_box_label(
             data, params, str(large_box_path), total_large_boxes, excel_file_path
         )

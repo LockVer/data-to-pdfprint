@@ -2,6 +2,7 @@
 常规模板 - 标准的多级标签PDF生成
 """
 import math
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
 from reportlab.pdfgen import canvas
@@ -73,31 +74,36 @@ class RegularTemplate(PDFBaseUtils):
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
+        # 获取参数和日期时间戳
+        chinese_name = params.get("中文名称", "")
+        english_name = clean_theme  # 英文名称使用清理后的主题
+        customer_code = data['客户名称编码']  # 客户编号
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
         generated_files = {}
 
         # 生成盒标 (只生成用户选择的外观)
         selected_appearance = params["选择外观"]
-        box_label_path = (
-            full_output_dir
-            / f"{data['客户名称编码']}+{clean_theme}+盒标+{selected_appearance}.pdf"
-        )
+        # 文件名格式：客户编号_中文名称_英文名称_盒标_外观类型_日期时间戳
+        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_盒标_{selected_appearance}_{timestamp}.pdf"
+        box_label_path = full_output_dir / box_label_filename
 
         self._create_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
         generated_files["盒标"] = str(box_label_path)
 
         # 生成小箱标
-        small_box_path = (
-            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+小箱标.pdf"
-        )
+        # 文件名格式：客户编号_中文名称_英文名称_小箱标_日期时间戳
+        small_box_filename = f"{customer_code}_{chinese_name}_{english_name}_小箱标_{timestamp}.pdf"
+        small_box_path = full_output_dir / small_box_filename
         self._create_small_box_label(
             data, params, str(small_box_path), total_small_boxes, remainder_info, total_boxes, excel_file_path
         )
         generated_files["小箱标"] = str(small_box_path)
 
         # 生成大箱标
-        large_box_path = (
-            full_output_dir / f"{data['客户名称编码']}+{clean_theme}+大箱标.pdf"
-        )
+        # 文件名格式：客户编号_中文名称_英文名称_大箱标_日期时间戳
+        large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_大箱标_{timestamp}.pdf"
+        large_box_path = full_output_dir / large_box_filename
         self._create_large_box_label(
             data, params, str(large_box_path), total_large_boxes, total_small_boxes, remainder_info, total_boxes, excel_file_path
         )

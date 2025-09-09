@@ -132,6 +132,16 @@ class RegularUIDialog:
         )
         small_boxes_entry.grid(row=2, column=1, sticky=tk.W+tk.E, pady=10)
 
+        # 中文名称输入
+        ttk.Label(params_frame, text="中文名称:", font=("Arial", 11)).grid(
+            row=3, column=0, sticky=tk.E, pady=10, padx=(0, 15)
+        )
+        self.main_app.chinese_name_var = tk.StringVar()
+        chinese_name_entry = ttk.Entry(
+            params_frame, textvariable=self.main_app.chinese_name_var, width=20, font=("Arial", 11)
+        )
+        chinese_name_entry.grid(row=3, column=1, sticky=tk.W+tk.E, pady=10)
+
         # 左侧：外观选择框架
         appearance_frame = ttk.LabelFrame(left_column, text="盒标外观选择", padding="12")
         appearance_frame.pack(fill=tk.X)
@@ -242,27 +252,34 @@ class RegularUIDialog:
         
         # 检查负数和0
         if pieces_per_box <= 0:
-            messagebox.showerror("参数错误", "“张/盒”必须为正整数\n\n当前值：{}".format(pieces_per_box))
+            messagebox.showerror("参数错误", f"张/盒必须为正整数\n\n当前值：{pieces_per_box}")
             return
         if boxes_per_small_box <= 0:
-            messagebox.showerror("参数错误", "“盒/小箱”必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
+            messagebox.showerror("参数错误", f"盒/小箱必须为正整数\n\n当前值：{boxes_per_small_box}")
             return
         if small_boxes_per_large_box <= 0:
-            messagebox.showerror("参数错误", ""小箱/大箱"必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
+            messagebox.showerror("参数错误", f"小箱/大箱必须为正整数\n\n当前值：{small_boxes_per_large_box}")
             return
         
         # 检查张/盒不能超过总张数
         total_pieces = int(self.main_app.current_data.get('总张数', 0))
         if pieces_per_box > total_pieces:
-            messagebox.showerror("参数错误", f""张/盒"不能超过总张数\n\n当前设置：{pieces_per_box} 张/盒\n总张数：{total_pieces} 张\n\n请输入不超过 {total_pieces} 的值")
+            messagebox.showerror("参数错误", f"张/盒不能超过总张数\n\n当前设置：{pieces_per_box} 张/盒\n总张数：{total_pieces} 张\n\n请输入不超过 {total_pieces} 的值")
             return
         
+        # 获取中文名称
+        chinese_name = self.main_app.chinese_name_var.get().strip()
+        if not chinese_name:
+            messagebox.showerror("参数错误", "请输入中文名称")
+            return
+            
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,
             "盒/小箱": boxes_per_small_box,
             "小箱/大箱": small_boxes_per_large_box,
             "选择外观": self.main_app.appearance_var.get(),
+            "中文名称": chinese_name,
         }
 
         dialog.destroy()
