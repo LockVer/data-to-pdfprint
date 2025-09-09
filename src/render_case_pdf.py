@@ -144,11 +144,11 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
         total_large_cases = math.ceil(total_sets / sets_per_large_case) if sets_per_large_case > 0 else 0
         total_boxes = total_sets * boxes_per_set  # 总盒数
     else:
-        # 其他模式（包括常规模式）：使用用户输入的每小箱盒数参数
+        # 其他模式（包括常规模式和分盒模式）：使用用户输入的每小箱盒数参数
         cards_per_box = sheets_per_box
         total_boxes = math.ceil(total_cards / cards_per_box)
-        total_small_cases = math.ceil(total_boxes / boxes_per_small_case)
-        total_large_cases = math.ceil(total_small_cases / small_cases_per_large_case)
+        total_small_cases = math.ceil(total_boxes / boxes_per_small_case) if boxes_per_small_case > 0 else total_boxes
+        total_large_cases = math.ceil(total_small_cases / small_cases_per_large_case) if small_cases_per_large_case > 0 else total_small_cases
     
     # 解析开始号前缀和数字
     match = re.search(r'^([A-Za-z]+)(\d+)', start_number)
@@ -225,53 +225,89 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
         # 按照新的分盒模式规律生成
         # =============================================
         
-        # 小箱标: 双层循环，多级格式
+        # 小箱标: 按照正确的分盒模式规律生成
+        current_box_index = 0  # 当前盒子索引
+        
         for large_case_idx in range(total_large_cases):  # 大箱数量循环
+            # 计算该大箱包含的盒子范围
+            boxes_in_current_large_case = min(small_cases_per_large_case * boxes_per_small_case, total_boxes - current_box_index)
+            
+            # 父级编号：基于大箱编号计算（大箱编号从1开始）
+            large_case_serial_num = start_num + large_case_idx
+            parent_serial = f"{serial_prefix}{large_case_serial_num:05d}"
+            
+            # 该大箱内的盒子编号从1开始
+            box_index_in_large_case = 1
+            
             for small_case_idx in range(small_cases_per_large_case):  # 大箱内小箱数量循环
                 if large_case_idx * small_cases_per_large_case + small_case_idx >= total_small_cases:
                     break
                 
-                # 父级编号（父级标号与子级编号相同）
-                parent_num = large_case_idx + 1  # 大箱数量-循环递增
-                child_num = small_case_idx + 1   # 小箱数量-循环递增
+                # 计算该小箱包含的盒子数量
+                remaining_boxes_in_large_case = boxes_in_current_large_case - (box_index_in_large_case - 1)
+                actual_boxes_in_this_small_case = min(boxes_per_small_case, remaining_boxes_in_large_case)
                 
-                # quantity: 盒张数 * 每小箱盒数（写死1）
-                small_quantity = cards_per_box * 1  # 每小箱盒数写死为1
+                # 子级编号：该小箱在大箱内的盒子编号范围
+                child_start = box_index_in_large_case
+                child_end = box_index_in_large_case + actual_boxes_in_this_small_case - 1
                 
-                # serial: 开始号和结束号相同，多级格式
-                parent_serial = f"{serial_prefix}{parent_num + start_num - 1:05d}"
-                child_serial = f"{child_num:02d}"
-                multi_serial = f"{parent_serial}-{child_serial}"
+                # quantity: 实际盒数 * 每盒张数
+                small_quantity = actual_boxes_in_this_small_case * cards_per_box
                 
-                # carton_no: 双层循环格式
-                carton_no = f"{parent_num}-{child_num}"
+                # serial: 父级编号-子级开始编号-父级编号-子级结束编号
+                if child_start == child_end:
+                    # 只有一个盒子的情况
+                    start_multi_serial = f"{parent_serial}-{child_start:02d}"
+                    end_multi_serial = f"{parent_serial}-{child_end:02d}"
+                    serial_range = f"{start_multi_serial}-{end_multi_serial}"
+                else:
+                    # 多个盒子的情况
+                    start_multi_serial = f"{parent_serial}-{child_start:02d}"
+                    end_multi_serial = f"{parent_serial}-{child_end:02d}"
+                    serial_range = f"{start_multi_serial}-{end_multi_serial}"
+                
+                # carton_no: 大箱编号-小箱编号 (用于定位小箱标)
+                carton_no = f"{large_case_idx + 1}-{small_case_idx + 1}"
                 
                 pages.append(CasePage(index=large_case_idx*small_cases_per_large_case + small_case_idx + 1, elements=[
                     CaseElement(role="item", content="Paper Cards"),
                     CaseElement(role="theme", content=f"{theme} (chip)"),
                     CaseElement(role="quantity", content=f"{small_quantity}PCS"),
-                    CaseElement(role="serial_range", content=f"{multi_serial}-{multi_serial}"),
+                    CaseElement(role="serial_range", content=serial_range),
                     CaseElement(role="carton_no", content=carton_no),
                     CaseElement(role="remark", content=customer_code)
                 ]))
+                
+                # 更新大箱内的盒子编号索引
+                box_index_in_large_case += actual_boxes_in_this_small_case
+            
+            # 更新全局盒子索引
+            current_box_index += boxes_in_current_large_case
         
-        # 大箱标: 跨范围，多级格式
+        # 大箱标: 按照正确的分盒模式规律生成
+        current_box_index = 0  # 重置盒子索引用于大箱标计算
+        
         for large_case_idx in range(total_large_cases):
-            # quantity: 大箱内小箱数量 * 盒张数 * 每小箱盒数（写死1）
-            large_quantity = small_cases_per_large_case * cards_per_box * 1
+            # 计算该大箱包含的盒子数量
+            boxes_in_current_large_case = min(small_cases_per_large_case * boxes_per_small_case, total_boxes - current_box_index)
             
-            # serial: 开始号和结束号不同（跨范围）
-            current_large_case_num = large_case_idx + 1
-            parent_serial = f"{serial_prefix}{current_large_case_num + start_num - 1:05d}"
+            # quantity: 实际盒数 * 每盒张数
+            large_quantity = boxes_in_current_large_case * cards_per_box
             
-            # 开始号: 父级编号-子级编号（01固定开始）
-            start_serial = f"{parent_serial}-01"
+            # 父级编号：基于大箱编号计算（大箱编号从1开始）
+            large_case_serial_num = start_num + large_case_idx
+            parent_serial = f"{serial_prefix}{large_case_serial_num:05d}"
             
-            # 结束号: 父级编号-子级编号（大箱内小箱数量最大值）
-            end_serial = f"{parent_serial}-{small_cases_per_large_case:02d}"
+            # 子级编号：从01到该大箱包含的盒子总数
+            child_start = 1
+            child_end = boxes_in_current_large_case
             
-            # carton_no: 当前大箱数
-            carton_no = f"{current_large_case_num}"
+            # serial: 父级编号-01-父级编号-子级结束编号
+            start_serial = f"{parent_serial}-{child_start:02d}"
+            end_serial = f"{parent_serial}-{child_end:02d}"
+            
+            # carton_no: 大箱编号 (用于定位大箱标)
+            carton_no = f"{large_case_idx + 1}"
             
             pages.append(CasePage(index=len(pages) + 1, elements=[
                 CaseElement(role="item", content="Paper Cards"),
@@ -281,6 +317,9 @@ def create_case_template_data(excel_variables, additional_inputs=None, template_
                 CaseElement(role="carton_no", content=carton_no),
                 CaseElement(role="remark", content=customer_code)
             ]))
+            
+            # 更新全局盒子索引
+            current_box_index += boxes_in_current_large_case
             
     elif template_mode == "multi_set":
         # =============================================

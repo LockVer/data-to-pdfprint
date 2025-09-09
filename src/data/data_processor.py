@@ -112,21 +112,23 @@ class DataProcessor:
     def _process_separate_box_mode(self, base_data: Dict[str, Any], config: PackagingConfig) -> Dict[str, Any]:
         """
         处理分盒模式
-        分盒箱标（一盒入一小箱 再两小箱入一大箱）
+        分盒箱标（根据用户输入的每小箱盒数进行计算）
         """
         box_quantity = config.box_quantity
+        boxes_per_small_box = config.small_box_capacity  # 使用用户输入的每小箱盒数
+        small_boxes_per_large_box = config.large_box_capacity  # 使用用户输入的每大箱小箱数
         
-        # 分盒模式：每盒单独包装
-        small_boxes = box_quantity  # 每盒一个小箱
-        large_boxes = math.ceil(small_boxes / 2)  # 两小箱入一大箱
+        # 分盒模式：根据用户输入计算小箱和大箱数量
+        small_boxes = math.ceil(box_quantity / boxes_per_small_box) if boxes_per_small_box > 0 else box_quantity
+        large_boxes = math.ceil(small_boxes / small_boxes_per_large_box) if small_boxes_per_large_box > 0 else small_boxes
         
         result = {
             **base_data,
             'box_quantity': box_quantity,
             'small_box_quantity': small_boxes,
             'large_box_quantity': large_boxes,
-            'boxes_per_small_box': 1,
-            'small_boxes_per_large_box': 2,
+            'boxes_per_small_box': boxes_per_small_box,
+            'small_boxes_per_large_box': small_boxes_per_large_box,
             'label_specifications': {
                 'box_labels': box_quantity,
                 'small_box_labels': small_boxes,
