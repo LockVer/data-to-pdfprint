@@ -266,9 +266,16 @@ class SplitBoxTemplate(PDFBaseUtils):
             sub_box_num = ((small_box_num - 1) % group_size) + 1    # 副箱号
             carton_no = f"{main_box_num}-{sub_box_num}"
 
-            # 绘制分盒小箱标表格（使用实际张数）
-            split_box_renderer.draw_split_box_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                           serial_range, carton_no, remark_text)
+            # 获取标签模版类型 - 参照常规模版的实现方式
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 绘制分盒小箱标表格（使用实际张数，根据模版类型选择函数）
+            if template_type == "有纸卡备注":
+                split_box_renderer.draw_split_box_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
+                                               serial_range, carton_no, remark_text)
+            else:  # "无纸卡备注"
+                split_box_renderer.draw_split_box_small_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_small_box, 
+                                               serial_range, carton_no, remark_text)
 
         c.save()
 
@@ -360,10 +367,18 @@ class SplitBoxTemplate(PDFBaseUtils):
                 # 备用方案
                 serial_range = f"DSK{large_box_num:05d}-01-DSK{large_box_num:05d}-{group_size:02d}"
             
-            # 绘制大箱标表格 - 完全使用小箱标的表格结构
-            split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
-                                           small_boxes_per_large_box, serial_range, 
-                                           str(large_box_num), remark_text)
+            # 获取标签模版类型 - 参照常规模版的实现方式
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 绘制大箱标表格 - 完全使用小箱标的表格结构，根据模版类型选择函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
+                                               small_boxes_per_large_box, serial_range, 
+                                               str(large_box_num), remark_text)
+            else:  # "无纸卡备注"
+                split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
+                                               small_boxes_per_large_box, serial_range, 
+                                               str(large_box_num), remark_text)
 
         c.save()
 
