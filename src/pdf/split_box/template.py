@@ -205,8 +205,15 @@ class SplitBoxTemplate(PDFBaseUtils):
         if start_small_box == 1:
             # 获取中文名称参数
             chinese_name = params.get("中文名称", "")
-            # 渲染空箱标签
-            split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            # 获取标签模版类型
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 根据标签模版类型选择空箱标签渲染函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            else:  # "无纸卡备注"
+                split_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            
             c.showPage()
             c.setFillColor(cmyk_black)
 
@@ -235,9 +242,16 @@ class SplitBoxTemplate(PDFBaseUtils):
                 small_box_num, small_boxes_per_large_box
             )
 
-            # 绘制分盒小箱标表格（使用实际张数）
-            split_box_renderer.draw_split_box_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                           serial_range, carton_no, remark_text)
+            # 获取标签模版类型 - 参照常规模版的实现方式
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 绘制分盒小箱标表格（使用实际张数，根据模版类型选择函数）
+            if template_type == "有纸卡备注":
+                split_box_renderer.draw_split_box_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
+                                               serial_range, carton_no, remark_text)
+            else:  # "无纸卡备注"
+                split_box_renderer.draw_split_box_small_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_small_box, 
+                                               serial_range, carton_no, remark_text)
 
         c.save()
 
@@ -291,8 +305,15 @@ class SplitBoxTemplate(PDFBaseUtils):
         if start_large_box == 1:
             # 获取中文名称参数
             chinese_name = params.get("中文名称", "")
-            # 渲染空箱标签
-            split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            # 获取标签模版类型
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 根据标签模版类型选择空箱标签渲染函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            else:  # "无纸卡备注"
+                split_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            
             c.showPage()
             c.setFillColor(cmyk_black)
 
@@ -313,10 +334,18 @@ class SplitBoxTemplate(PDFBaseUtils):
                 base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
             )
             
-            # 绘制大箱标表格 - 传入完整的包装参数
-            split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
-                                           boxes_per_small_box, small_boxes_per_large_box, serial_range, 
-                                           str(large_box_num), remark_text)
+            # 获取标签模版类型 - 参照常规模版的实现方式
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 绘制大箱标表格 - 完全使用小箱标的表格结构，根据模版类型选择函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
+                                               small_boxes_per_large_box, serial_range, 
+                                               str(large_box_num), remark_text)
+            else:  # "无纸卡备注"
+                split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
+                                               small_boxes_per_large_box, serial_range, 
+                                               str(large_box_num), remark_text)
 
         c.save()
 
