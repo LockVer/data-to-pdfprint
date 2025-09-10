@@ -106,15 +106,14 @@ class NestedBoxUIDialog:
         # 保存params_frame引用以便后续使用
         self.params_frame = params_frame
 
-        # 张/盒输入
+        # 张/盒显示（从Excel提取的值）
+        pieces_per_box_value = self.main_app.current_data.get('张/盒', 'N/A')
         ttk.Label(params_frame, text="张/盒:").grid(
             row=0, column=0, sticky=tk.W, pady=5
         )
-        self.main_app.pieces_per_box_var = tk.StringVar()
-        pieces_per_box_entry = ttk.Entry(
-            params_frame, textvariable=self.main_app.pieces_per_box_var, width=15
+        ttk.Label(params_frame, text=f"{pieces_per_box_value}").grid(
+            row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5
         )
-        pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
         # 盒/套输入
         ttk.Label(params_frame, text="盒/套:").grid(
@@ -198,8 +197,8 @@ class NestedBoxUIDialog:
         cancel_btn = ttk.Button(button_frame, text="取消", command=dialog.destroy)
         cancel_btn.pack(side=tk.LEFT)
 
-        # 设置焦点
-        pieces_per_box_entry.focus()
+        # 设置焦点到第一个输入框
+        boxes_per_small_box_entry.focus()
         
         # 自适应大小和居中显示
         self._auto_resize_and_center_dialog(dialog, scrollable_frame)
@@ -218,15 +217,25 @@ class NestedBoxUIDialog:
     def confirm_parameters(self, dialog):
         """确认套盒模板参数并生成PDF"""
         # 获取参数值
-        pieces_per_box_str = self.main_app.pieces_per_box_var.get().strip()
         boxes_per_small_box_str = self.main_app.boxes_per_small_box_var.get().strip()
         small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
         is_overweight = self.main_app.is_overweight_var.get() == "超重"
         
-        # 检查空值
-        if not pieces_per_box_str:
-            messagebox.showerror("参数错误", "请输入'张/盒'参数")
+        # 从提取的数据中获取张/盒值
+        pieces_per_box = int(self.main_app.current_data.get('张/盒', 0))
+        
+        # 检查张/盒是否有效
+        if pieces_per_box <= 0:
+            messagebox.showerror("参数错误", "提取的'张/盒'数据无效\n\n当前值：{}\n\n请检查Excel文件中的'张/盒'字段".format(pieces_per_box))
             return
+        
+        # 检查张/盒不能超过总张数
+        total_pieces = int(self.main_app.current_data.get('总张数', 0))
+        if pieces_per_box > total_pieces:
+            messagebox.showerror("参数错误", "提取的'张/盒'超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请检查Excel文件中的数据是否正确".format(pieces_per_box, total_pieces))
+            return
+        
+        # 检查空值
         if not boxes_per_small_box_str:
             messagebox.showerror("参数错误", "请输入'盒/套'参数")
             return
@@ -239,20 +248,16 @@ class NestedBoxUIDialog:
         
         try:
             # 尝试转换为数字
-            pieces_per_box = int(pieces_per_box_str)
             boxes_per_small_box = int(boxes_per_small_box_str)
             small_boxes_per_large_box = int(small_boxes_per_large_box_str)
         except ValueError:
             if is_overweight:
-                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、15、2")
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：15、2")
             else:
-                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、6、2")
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：6、2")
             return
         
         # 检查负数和0
-        if pieces_per_box <= 0:
-            messagebox.showerror("参数错误", "'张/盒'必须为正整数\n\n当前值：{}".format(pieces_per_box))
-            return
         if boxes_per_small_box <= 0:
             messagebox.showerror("参数错误", "'盒/套'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
             return
@@ -269,12 +274,6 @@ class NestedBoxUIDialog:
                 messagebox.showerror("参数错误", "'一套拆多少箱'不能超过'盒/套'\n\n当前设置：\n- 盒/套：{} 盒\n- 一套拆多少箱：{} 箱\n\n一套最多只有{}盒，无法拆成{}箱\n请输入不超过{}的值".format(
                     boxes_per_small_box, small_boxes_per_large_box, boxes_per_small_box, small_boxes_per_large_box, boxes_per_small_box))
                 return
-        
-        # 检查张/盒不能超过总张数
-        total_pieces = int(self.main_app.current_data.get('总张数', 0))
-        if pieces_per_box > total_pieces:
-            messagebox.showerror("参数错误", "'张/盒'不能超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请输入不超过 {} 的值".format(pieces_per_box, total_pieces, total_pieces))
-            return
             
         # 获取中文名称
         chinese_name = self.main_app.chinese_name_var.get().strip()

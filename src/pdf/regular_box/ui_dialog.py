@@ -133,15 +133,14 @@ class RegularUIDialog:
         # 保存params_frame引用以便后续使用
         self.params_frame = params_frame
 
-        # 张/盒输入
+        # 张/盒显示（从Excel提取的值）
+        pieces_per_box_value = self.main_app.current_data.get('张/盒', 'N/A')
         ttk.Label(params_frame, text="张/盒:", font=("Arial", 11)).grid(
             row=0, column=0, sticky=tk.E, pady=10, padx=(0, 15)
         )
-        self.main_app.pieces_per_box_var = tk.StringVar()
-        pieces_per_box_entry = ttk.Entry(
-            params_frame, textvariable=self.main_app.pieces_per_box_var, width=20, font=("Arial", 11)
+        ttk.Label(params_frame, text=f"{pieces_per_box_value}", font=("Arial", 11)).grid(
+            row=0, column=1, sticky=tk.W+tk.E, pady=10
         )
-        pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W+tk.E, pady=10)
 
         # 第二个参数（根据选择动态调整）
         self.second_param_label = ttk.Label(params_frame, text="盒/小箱:", font=("Arial", 11))
@@ -284,17 +283,27 @@ class RegularUIDialog:
     def confirm_parameters(self, dialog):
         """确认常规模板参数并生成PDF"""
         # 获取参数值
-        pieces_per_box_str = self.main_app.pieces_per_box_var.get().strip()
         boxes_per_small_box_str = self.main_app.boxes_per_small_box_var.get().strip()
         small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
         
         # 获取小箱选择
         has_small_box = self.main_app.has_small_box_var.get() == "有小箱"
         
-        # 检查空值
-        if not pieces_per_box_str:
-            messagebox.showerror("参数错误", "请输入'张/盒'参数")
+        # 从提取的数据中获取张/盒值
+        pieces_per_box = int(self.main_app.current_data.get('张/盒', 0))
+        
+        # 检查张/盒是否有效
+        if pieces_per_box <= 0:
+            messagebox.showerror("参数错误", "提取的'张/盒'数据无效\n\n当前值：{}\n\n请检查Excel文件中的'张/盒'字段".format(pieces_per_box))
             return
+        
+        # 检查张/盒不能超过总张数
+        total_pieces = int(self.main_app.current_data.get('总张数', 0))
+        if pieces_per_box > total_pieces:
+            messagebox.showerror("参数错误", "提取的'张/盒'超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请检查Excel文件中的数据是否正确".format(pieces_per_box, total_pieces))
+            return
+        
+        # 检查空值
         if not boxes_per_small_box_str:
             if has_small_box:
                 messagebox.showerror("参数错误", "请输入'盒/小箱'参数")
@@ -307,7 +316,6 @@ class RegularUIDialog:
         
         try:
             # 尝试转换为数字
-            pieces_per_box = int(pieces_per_box_str)
             boxes_per_small_box = int(boxes_per_small_box_str)
             if has_small_box:
                 small_boxes_per_large_box = int(small_boxes_per_large_box_str)
@@ -316,15 +324,12 @@ class RegularUIDialog:
                 small_boxes_per_large_box = 1
         except ValueError:
             if has_small_box:
-                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、2、5")
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：2、5")
             else:
-                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、6")
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：6")
             return
         
         # 检查负数和0
-        if pieces_per_box <= 0:
-            messagebox.showerror("参数错误", "'张/盒'必须为正整数\n\n当前值：{}".format(pieces_per_box))
-            return
         if boxes_per_small_box <= 0:
             if has_small_box:
                 messagebox.showerror("参数错误", "'盒/小箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
@@ -335,11 +340,6 @@ class RegularUIDialog:
             messagebox.showerror("参数错误", "'小箱/大箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
             return
         
-        # 检查张/盒不能超过总张数
-        total_pieces = int(self.main_app.current_data.get('总张数', 0))
-        if pieces_per_box > total_pieces:
-            messagebox.showerror("参数错误", "'张/盒'不能超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请输入不超过 {} 的值".format(pieces_per_box, total_pieces, total_pieces))
-            return
             
         # 获取中文名称
         chinese_name = self.main_app.chinese_name_var.get().strip()

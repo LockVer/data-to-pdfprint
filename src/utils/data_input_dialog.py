@@ -23,7 +23,7 @@ class DataInputDialog:
         self.result_data = None
         self.input_vars = {}
         
-        # 定义四个核心字段及其格式要求
+        # 定义五个核心字段及其格式要求
         self.required_fields = {
             "客户名称编码": {
                 "format_hint": "如：14KH0149、ABC123",
@@ -40,6 +40,10 @@ class DataInputDialog:
             "总张数": {
                 "format_hint": "正整数，如：57000、1000",
                 "validation": self._validate_total_count
+            },
+            "张/盒": {
+                "format_hint": "正整数，如：300、500",
+                "validation": self._validate_pieces_per_box
             }
         }
     
@@ -255,6 +259,30 @@ class DataInputDialog:
             return True
         except ValueError:
             messagebox.showerror("格式错误", "总张数必须为数字\n\n正确格式：57000、1000")
+            return False
+    
+    def _validate_pieces_per_box(self, value):
+        """验证张/盒"""
+        try:
+            pieces = int(value)
+            if pieces <= 0:
+                messagebox.showerror("格式错误", "张/盒必须为正整数\n\n正确格式：300、500")
+                return False
+            
+            # 检查张/盒是否超过总张数
+            total_count_str = self.input_vars.get("总张数", tk.StringVar()).get()
+            if total_count_str and total_count_str.strip():
+                try:
+                    total_count = int(total_count_str)
+                    if pieces > total_count:
+                        messagebox.showerror("数据错误", f"张/盒不能超过总张数\n\n当前输入：\n张/盒：{pieces}\n总张数：{total_count}")
+                        return False
+                except ValueError:
+                    pass  # 总张数格式错误时不做此验证，由总张数验证处理
+            
+            return True
+        except ValueError:
+            messagebox.showerror("格式错误", "张/盒必须为数字\n\n正确格式：300、500")
             return False
 
 
