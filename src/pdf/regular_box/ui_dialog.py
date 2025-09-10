@@ -94,6 +94,34 @@ class RegularUIDialog:
         right_column = ttk.Frame(main_content_frame)
         right_column.grid(row=0, column=1, sticky=tk.NSEW, padx=(5, 0))
 
+        # 左侧：是否有小箱选择框架
+        small_box_frame = ttk.LabelFrame(left_column, text="包装类型选择", padding="12")
+        small_box_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        self.main_app.has_small_box_var = tk.StringVar(value="有小箱")
+        
+        # 居中布局的框架
+        small_box_container = ttk.Frame(small_box_frame)
+        small_box_container.pack(expand=True)
+        
+        has_small_box_radio = ttk.Radiobutton(
+            small_box_container,
+            text="有小箱（三级包装）",
+            variable=self.main_app.has_small_box_var,
+            value="有小箱",
+            command=self.on_small_box_choice_changed
+        )
+        has_small_box_radio.pack(side=tk.LEFT, padx=(0, 30))
+
+        no_small_box_radio = ttk.Radiobutton(
+            small_box_container,
+            text="无小箱（二级包装）",
+            variable=self.main_app.has_small_box_var,
+            value="无小箱",
+            command=self.on_small_box_choice_changed
+        )
+        no_small_box_radio.pack(side=tk.LEFT)
+        
         # 左侧：参数输入框架
         params_frame = ttk.LabelFrame(left_column, text="包装参数", padding="12")
         params_frame.pack(fill=tk.X, pady=(0, 10))
@@ -101,6 +129,9 @@ class RegularUIDialog:
         # 配置网格权重实现居中布局
         params_frame.grid_columnconfigure(0, weight=1)
         params_frame.grid_columnconfigure(2, weight=1)
+        
+        # 保存params_frame引用以便后续使用
+        self.params_frame = params_frame
 
         # 张/盒输入
         ttk.Label(params_frame, text="张/盒:", font=("Arial", 11)).grid(
@@ -112,25 +143,23 @@ class RegularUIDialog:
         )
         pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W+tk.E, pady=10)
 
-        # 盒/小箱输入
-        ttk.Label(params_frame, text="盒/小箱:", font=("Arial", 11)).grid(
-            row=1, column=0, sticky=tk.E, pady=10, padx=(0, 15)
-        )
+        # 第二个参数（根据选择动态调整）
+        self.second_param_label = ttk.Label(params_frame, text="盒/小箱:", font=("Arial", 11))
+        self.second_param_label.grid(row=1, column=0, sticky=tk.E, pady=10, padx=(0, 15))
         self.main_app.boxes_per_small_box_var = tk.StringVar()
-        boxes_per_small_box_entry = ttk.Entry(
+        self.second_param_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.boxes_per_small_box_var, width=20, font=("Arial", 11)
         )
-        boxes_per_small_box_entry.grid(row=1, column=1, sticky=tk.W+tk.E, pady=10)
+        self.second_param_entry.grid(row=1, column=1, sticky=tk.W+tk.E, pady=10)
 
-        # 小箱/大箱输入
-        ttk.Label(params_frame, text="小箱/大箱:", font=("Arial", 11)).grid(
-            row=2, column=0, sticky=tk.E, pady=10, padx=(0, 15)
-        )
+        # 第三个参数（只在有小箱时显示）
+        self.third_param_label = ttk.Label(params_frame, text="小箱/大箱:", font=("Arial", 11))
+        self.third_param_label.grid(row=2, column=0, sticky=tk.E, pady=10, padx=(0, 15))
         self.main_app.small_boxes_per_large_box_var = tk.StringVar()
-        small_boxes_entry = ttk.Entry(
+        self.third_param_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.small_boxes_per_large_box_var, width=20, font=("Arial", 11)
         )
-        small_boxes_entry.grid(row=2, column=1, sticky=tk.W+tk.E, pady=10)
+        self.third_param_entry.grid(row=2, column=1, sticky=tk.W+tk.E, pady=10)
 
         # 中文名称输入
         ttk.Label(params_frame, text="中文名称:", font=("Arial", 11)).grid(
@@ -141,6 +170,9 @@ class RegularUIDialog:
             params_frame, textvariable=self.main_app.chinese_name_var, width=20, font=("Arial", 11)
         )
         chinese_name_entry.grid(row=3, column=1, sticky=tk.W+tk.E, pady=10)
+        
+        # 初始化时设置显示状态
+        self.on_small_box_choice_changed()
 
         # 左侧：外观选择框架
         appearance_frame = ttk.LabelFrame(left_column, text="盒标外观选择", padding="12")
@@ -256,14 +288,20 @@ class RegularUIDialog:
         boxes_per_small_box_str = self.main_app.boxes_per_small_box_var.get().strip()
         small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
         
+        # 获取小箱选择
+        has_small_box = self.main_app.has_small_box_var.get() == "有小箱"
+        
         # 检查空值
         if not pieces_per_box_str:
             messagebox.showerror("参数错误", "请输入'张/盒'参数")
             return
         if not boxes_per_small_box_str:
-            messagebox.showerror("参数错误", "请输入'盒/小箱'参数")
+            if has_small_box:
+                messagebox.showerror("参数错误", "请输入'盒/小箱'参数")
+            else:
+                messagebox.showerror("参数错误", "请输入'盒/箱'参数")
             return
-        if not small_boxes_per_large_box_str:
+        if has_small_box and not small_boxes_per_large_box_str:
             messagebox.showerror("参数错误", "请输入'小箱/大箱'参数")
             return
         
@@ -271,9 +309,16 @@ class RegularUIDialog:
             # 尝试转换为数字
             pieces_per_box = int(pieces_per_box_str)
             boxes_per_small_box = int(boxes_per_small_box_str)
-            small_boxes_per_large_box = int(small_boxes_per_large_box_str)
+            if has_small_box:
+                small_boxes_per_large_box = int(small_boxes_per_large_box_str)
+            else:
+                # 无小箱时，设置为1（表示跳过小箱层级）
+                small_boxes_per_large_box = 1
         except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、2、5")
+            if has_small_box:
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、2、5")
+            else:
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、6")
             return
         
         # 检查负数和0
@@ -281,9 +326,12 @@ class RegularUIDialog:
             messagebox.showerror("参数错误", "'张/盒'必须为正整数\n\n当前值：{}".format(pieces_per_box))
             return
         if boxes_per_small_box <= 0:
-            messagebox.showerror("参数错误", "'盒/小箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
+            if has_small_box:
+                messagebox.showerror("参数错误", "'盒/小箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
+            else:
+                messagebox.showerror("参数错误", "'盒/箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
             return
-        if small_boxes_per_large_box <= 0:
+        if has_small_box and small_boxes_per_large_box <= 0:
             messagebox.showerror("参数错误", "'小箱/大箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
             return
         
@@ -304,10 +352,26 @@ class RegularUIDialog:
             "选择外观": self.main_app.appearance_var.get(),
             "标签模版": self.main_app.template_var.get(),
             "中文名称": self.main_app.chinese_name_var.get(),
+            "是否有小箱": has_small_box,
         }
 
         dialog.destroy()
         self.main_app.generate_multi_level_pdfs()
+    
+    def on_small_box_choice_changed(self):
+        """处理小箱选择变化"""
+        has_small_box = self.main_app.has_small_box_var.get() == "有小箱"
+        
+        if has_small_box:
+            # 有小箱：三级包装
+            self.second_param_label.config(text="盒/小箱:")
+            self.third_param_label.grid()
+            self.third_param_entry.grid()
+        else:
+            # 无小箱：二级包装
+            self.second_param_label.config(text="盒/箱:")
+            self.third_param_label.grid_remove()
+            self.third_param_entry.grid_remove()
 
 
 # 创建全局实例供regular模板使用

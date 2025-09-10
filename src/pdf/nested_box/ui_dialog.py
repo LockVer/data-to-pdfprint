@@ -85,8 +85,8 @@ class NestedBoxUIDialog:
         )
         pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
 
-        # 盒/小箱输入
-        ttk.Label(params_frame, text="盒/小箱:").grid(
+        # 盒/套输入
+        ttk.Label(params_frame, text="盒/套:").grid(
             row=1, column=0, sticky=tk.W, pady=5
         )
         self.main_app.boxes_per_small_box_var = tk.StringVar()
@@ -97,8 +97,8 @@ class NestedBoxUIDialog:
             row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5
         )
 
-        # 小箱/大箱输入
-        ttk.Label(params_frame, text="小箱/大箱:").grid(
+        # 套/箱输入
+        ttk.Label(params_frame, text="套/箱:").grid(
             row=2, column=0, sticky=tk.W, pady=5
         )
         self.main_app.small_boxes_per_large_box_var = tk.StringVar()
@@ -185,10 +185,10 @@ class NestedBoxUIDialog:
             messagebox.showerror("参数错误", "请输入'张/盒'参数")
             return
         if not boxes_per_small_box_str:
-            messagebox.showerror("参数错误", "请输入'盒/小箱'参数")
+            messagebox.showerror("参数错误", "请输入'盒/套'参数")
             return
         if not small_boxes_per_large_box_str:
-            messagebox.showerror("参数错误", "请输入'小箱/大箱'参数")
+            messagebox.showerror("参数错误", "请输入'套/箱'参数")
             return
         
         try:
@@ -205,10 +205,10 @@ class NestedBoxUIDialog:
             messagebox.showerror("参数错误", "'张/盒'必须为正整数\n\n当前值：{}".format(pieces_per_box))
             return
         if boxes_per_small_box <= 0:
-            messagebox.showerror("参数错误", "'盒/小箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
+            messagebox.showerror("参数错误", "'盒/套'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
             return
         if small_boxes_per_large_box <= 0:
-            messagebox.showerror("参数错误", "'小箱/大箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
+            messagebox.showerror("参数错误", "'套/箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
             return
         
         # 检查张/盒不能超过总张数
@@ -223,8 +223,8 @@ class NestedBoxUIDialog:
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,
-            "盒/小箱": boxes_per_small_box,
-            "小箱/大箱": small_boxes_per_large_box,
+            "盒/套": boxes_per_small_box,
+            "套/箱": small_boxes_per_large_box,
             "选择外观": "外观一",  # 套盒模板固定使用外观一，但实际不使用
             "标签模版": self.main_app.template_var.get(),
             "中文名称": self.main_app.chinese_name_var.get(),

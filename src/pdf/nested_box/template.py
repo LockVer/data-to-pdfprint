@@ -33,18 +33,18 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         Args:
             data: Excel数据
-            params: 用户参数 (张/盒, 盒/小箱, 小箱/大箱, 选择外观)
+            params: 用户参数 (张/盒, 盒/套, 套/箱, 选择外观)
             output_dir: 输出目录
             excel_file_path: Excel文件路径
 
         Returns:
             生成的文件路径字典
         """
-        # 计算数量 - 三级结构：张→盒→小箱→大箱
+        # 计算数量 - 三级结构：张→盒→套→箱
         total_pieces = int(float(data["总张数"]))
         pieces_per_box = int(params["张/盒"])
-        boxes_per_small_box = int(params["盒/小箱"])  # 这个参数用于确定结束号
-        small_boxes_per_large_box = int(params["小箱/大箱"])
+        boxes_per_small_box = int(params["盒/套"])  # 这个参数用于确定结束号
+        small_boxes_per_large_box = int(params["套/箱"])
 
         # 计算各级数量
         total_boxes = math.ceil(total_pieces / pieces_per_box)
@@ -74,23 +74,23 @@ class NestedBoxTemplate(PDFBaseUtils):
         self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
         generated_files["盒标"] = str(box_label_path)
 
-        # 生成套盒模板小箱标
-        # 文件名格式：客户编号_中文名称_英文名称_套盒小箱标_日期时间戳
-        small_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒小箱标_{timestamp}.pdf"
+        # 生成套盒模板套标
+        # 文件名格式：客户编号_中文名称_英文名称_套盒套标_日期时间戳
+        small_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒套标_{timestamp}.pdf"
         small_box_path = full_output_dir / small_box_filename
         self._create_nested_small_box_label(
             data, params, str(small_box_path), excel_file_path
         )
-        generated_files["小箱标"] = str(small_box_path)
+        generated_files["套标"] = str(small_box_path)
 
-        # 生成套盒模板大箱标
-        # 文件名格式：客户编号_中文名称_英文名称_套盒大箱标_日期时间戳
-        large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒大箱标_{timestamp}.pdf"
+        # 生成套盒模板箱标
+        # 文件名格式：客户编号_中文名称_英文名称_套盒箱标_日期时间戳
+        large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒箱标_{timestamp}.pdf"
         large_box_path = full_output_dir / large_box_filename
         self._create_nested_large_box_label(
             data, params, str(large_box_path), excel_file_path
         )
-        generated_files["大箱标"] = str(large_box_path)
+        generated_files["箱标"] = str(large_box_path)
 
         return generated_files
 
@@ -109,13 +109,13 @@ class NestedBoxTemplate(PDFBaseUtils):
         
         # 套盒模板参数分析
         pieces_per_box = int(params["张/盒"])
-        boxes_per_ending_unit = int(params["盒/小箱"])  # 在套盒模板中，这个参数用于结束号的范围计算
-        group_size = int(params["小箱/大箱"])
+        boxes_per_ending_unit = int(params["盒/套"])  # 在套盒模板中，这个参数用于结束号的范围计算
+        group_size = int(params["套/箱"])
         
         print(f"✅ 套盒模板参数:")
         print(f"   张/盒: {pieces_per_box}")
-        print(f"   盒/小箱(结束号范围): {boxes_per_ending_unit}")
-        print(f"   小箱/大箱(分组大小): {group_size}")
+        print(f"   盒/套(结束号范围): {boxes_per_ending_unit}")
+        print(f"   套/箱(分组大小): {group_size}")
         
         # 解析开始号的格式
         import re
@@ -188,7 +188,7 @@ class NestedBoxTemplate(PDFBaseUtils):
         output_path: str,
         excel_file_path: str = None,
     ):
-        """创建套盒模板的小箱标 - 借鉴分盒模板的计算逻辑"""
+        """创建套盒模板的套标 - 借鉴分盒模板的计算逻辑"""
         # 获取Excel数据 - 使用关键字提取
         excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
         
@@ -196,16 +196,16 @@ class NestedBoxTemplate(PDFBaseUtils):
         theme_text = data.get('标签名称') or 'Unknown Title'
         base_number = data.get('开始号') or 'DEFAULT01001'
         remark_text = data.get('客户名称编码') or 'Unknown Client'
-        print(f"✅ 套盒小箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        print(f"✅ 套盒套标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 套盒模板不需要复杂的分组逻辑，直接使用简化逻辑
         
         # 计算参数
         pieces_per_box = int(params["张/盒"])
-        boxes_per_small_box = int(params["盒/小箱"])
+        boxes_per_small_box = int(params["盒/套"])
         pieces_per_small_box = pieces_per_box * boxes_per_small_box
         
-        # 计算小箱数量
+        # 计算套数量
         total_pieces = int(float(data["总张数"]))
         total_boxes = math.ceil(total_pieces / pieces_per_box)
         total_small_boxes = math.ceil(total_boxes / boxes_per_small_box)
@@ -216,8 +216,8 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         # 设置PDF/X兼容模式和CMYK颜色
         c.setPageCompression(1)
-        c.setTitle(f"套盒小箱标-1到{total_small_boxes}")
-        c.setSubject("Taohebox Small Box Label")
+        c.setTitle(f"套盒套标-1到{total_small_boxes}")
+        c.setSubject("Taohebox Set Label")
         c.setCreator("Data-to-PDF Print")
 
         # 使用CMYK黑色
@@ -236,7 +236,7 @@ class NestedBoxTemplate(PDFBaseUtils):
         c.showPage()
         c.setFillColor(cmyk_black)
 
-        # 生成指定范围的套盒小箱标
+        # 生成指定范围的套盒套标
         for small_box_num in range(1, total_small_boxes + 1):
             if small_box_num > 1:
                 c.showPage()
@@ -247,20 +247,20 @@ class NestedBoxTemplate(PDFBaseUtils):
                 base_number, small_box_num, boxes_per_small_box, total_boxes
             )
 
-            # 🔧 计算当前小箱的实际张数（考虑最后一小箱的边界情况）
-            # 计算当前小箱实际包含的盒数
+            # 🔧 计算当前套的实际张数（考虑最后一套的边界情况）
+            # 计算当前套实际包含的盒数
             start_box = (small_box_num - 1) * boxes_per_small_box + 1
             end_box = min(start_box + boxes_per_small_box - 1, total_boxes)
             actual_boxes_in_small_box = end_box - start_box + 1
             actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
 
-            # 计算套盒小箱标的Carton No（简单的小箱编号）
+            # 计算套盒套标的Carton No（简单的套编号）
             carton_no = str(small_box_num)
 
             # 获取标签模版类型 - 参照分盒模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制套盒小箱标表格（使用实际张数，根据模版类型选择函数）
+            # 绘制套盒套标表格（使用实际张数，根据模版类型选择函数）
             if template_type == "有纸卡备注":
                 nested_box_renderer.draw_nested_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
                                                                  serial_range, carton_no, remark_text)
@@ -269,10 +269,10 @@ class NestedBoxTemplate(PDFBaseUtils):
                                                                  serial_range, carton_no, remark_text)
 
         c.save()
-        print(f"✅ 套盒模板小箱标PDF已生成: {output_path}")
+        print(f"✅ 套盒模板套标PDF已生成: {output_path}")
 
     def _create_nested_large_box_label(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, excel_file_path: str = None):
-        """创建套盒模板的大箱标"""
+        """创建套盒模板的箱标"""
         # 获取Excel数据 - 使用关键字提取
         excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
         
@@ -280,22 +280,22 @@ class NestedBoxTemplate(PDFBaseUtils):
         theme_text = data.get('标签名称') or 'Unknown Title'
         base_number = data.get('开始号') or 'DEFAULT01001'
         remark_text = data.get('客户名称编码') or 'Unknown Client'
-        print(f"✅ 套盒大箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        print(f"✅ 套盒箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 获取参数
         pieces_per_box = int(params["张/盒"])
-        boxes_per_small_box = int(params["盒/小箱"])
-        small_boxes_per_large_box = int(params["小箱/大箱"])
+        boxes_per_small_box = int(params["盒/套"])
+        small_boxes_per_large_box = int(params["套/箱"])
         
-        print(f"✅ 套盒大箱标参数: 张/盒={pieces_per_box}, 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}")
+        print(f"✅ 套盒箱标参数: 张/盒={pieces_per_box}, 盒/套={boxes_per_small_box}, 套/箱={small_boxes_per_large_box}")
         
-        # 计算每小箱和每大箱的数量
+        # 计算每套和每箱的数量
         pieces_per_small_box = pieces_per_box * boxes_per_small_box
         pieces_per_large_box = pieces_per_small_box * small_boxes_per_large_box
         
-        print(f"✅ 计算结果: 每小箱{pieces_per_small_box}PCS, 每大箱{pieces_per_large_box}PCS")
+        print(f"✅ 计算结果: 每套{pieces_per_small_box}PCS, 每箱{pieces_per_large_box}PCS")
         
-        # 计算大箱数量
+        # 计算箱数量
         total_pieces = int(float(data["总张数"]))
         total_boxes = math.ceil(total_pieces / pieces_per_box)
         total_small_boxes = math.ceil(total_boxes / boxes_per_small_box)
@@ -307,8 +307,8 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         # 设置PDF属性
         c.setPageCompression(1)
-        c.setTitle(f"套盒大箱标-1到{total_large_boxes}")
-        c.setSubject("Taohebox Large Box Label")
+        c.setTitle(f"套盒箱标-1到{total_large_boxes}")
+        c.setSubject("Taohebox Box Label")
         c.setCreator("Data-to-PDF Print")
 
         # 使用CMYK黑色
@@ -327,7 +327,7 @@ class NestedBoxTemplate(PDFBaseUtils):
         c.showPage()
         c.setFillColor(cmyk_black)
 
-        # 生成大箱标
+        # 生成箱标
         for large_box_num in range(1, total_large_boxes + 1):
             if large_box_num > 1:
                 c.showPage()
@@ -338,15 +338,15 @@ class NestedBoxTemplate(PDFBaseUtils):
                 base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
             )
 
-            # 🔧 计算当前大箱的实际张数（考虑最后一大箱的边界情况）
-            # 计算当前大箱实际包含的盒数
+            # 🔧 计算当前箱的实际张数（考虑最后一箱的边界情况）
+            # 计算当前箱实际包含的盒数
             boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
             start_box = (large_box_num - 1) * boxes_per_large_box + 1
             end_box = min(start_box + boxes_per_large_box - 1, total_boxes)
             actual_boxes_in_large_box = end_box - start_box + 1
             actual_pieces_in_large_box = actual_boxes_in_large_box * pieces_per_box
 
-            # 计算套盒大箱标的Carton No（小箱范围格式）
+            # 计算套盒箱标的Carton No（套范围格式）
             start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
             end_small_box = start_small_box + small_boxes_per_large_box - 1
             carton_range = f"{start_small_box}-{end_small_box}"
@@ -354,7 +354,7 @@ class NestedBoxTemplate(PDFBaseUtils):
             # 获取标签模版类型 - 参照分盒模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制套盒大箱标表格（使用实际张数，根据模版类型选择函数）
+            # 绘制套盒箱标表格（使用实际张数，根据模版类型选择函数）
             if template_type == "有纸卡备注":
                 nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box, 
                                                                  serial_range, carton_range, remark_text)
@@ -363,7 +363,7 @@ class NestedBoxTemplate(PDFBaseUtils):
                                                                  serial_range, carton_range, remark_text)
 
         c.save()
-        print(f"✅ 套盒模板大箱标PDF已生成: {output_path}")
+        print(f"✅ 套盒模板箱标PDF已生成: {output_path}")
 
 
 

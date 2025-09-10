@@ -55,7 +55,7 @@ class NestedBoxRenderer:
 
     def draw_nested_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
                                     serial_range, carton_no, remark_text):
-        """绘制套盒小箱标表格 - 借鉴分盒模板的表格绘制逻辑"""
+        """绘制套盒套标表格 - 借鉴分盒模板的表格绘制逻辑"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
         table_height = height - 10 * mm
@@ -172,7 +172,7 @@ class NestedBoxRenderer:
 
     def draw_nested_small_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_small_box, 
                                                   serial_range, carton_no, remark_text):
-        """绘制套盒小箱标表格 - 无纸卡备注模版"""
+        """绘制套盒套标表格 - 无纸卡备注模版"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
         table_height = height - 10 * mm
@@ -282,15 +282,15 @@ class NestedBoxRenderer:
 
     def draw_nested_large_box_table(self, c, width, height, theme_text, pieces_per_large_box, 
                                     serial_range, carton_no, remark_text):
-        """绘制套盒大箱标表格"""
-        # 复用小箱标的表格绘制逻辑
+        """绘制套盒箱标表格"""
+        # 复用套标的表格绘制逻辑
         self.draw_nested_small_box_table(c, width, height, theme_text, pieces_per_large_box, 
                                          serial_range, carton_no, remark_text)
 
     def draw_nested_large_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_large_box, 
                                                   serial_range, carton_no, remark_text):
-        """绘制套盒大箱标表格 - 无纸卡备注模版"""
-        # 复用小箱标无纸卡备注的表格绘制逻辑
+        """绘制套盒箱标表格 - 无纸卡备注模版"""
+        # 复用套标无纸卡备注的表格绘制逻辑
         self.draw_nested_small_box_table_no_paper_card(c, width, height, theme_text, pieces_per_large_box, 
                                                        serial_range, carton_no, remark_text)
 

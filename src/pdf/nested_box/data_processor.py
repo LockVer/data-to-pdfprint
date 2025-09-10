@@ -29,7 +29,7 @@ class NestedBoxDataProcessor:
     
     def extract_small_box_label_data(self, excel_file_path: str) -> Dict[str, Any]:
         """
-        提取套盒小箱标所需的数据 - 使用统一的公共数据提取方法
+        提取套盒套标所需的数据 - 使用统一的公共数据提取方法
         """
         # 使用统一的公共数据提取方法
         extractor = ExcelDataExtractor(excel_file_path)
@@ -37,7 +37,7 @@ class NestedBoxDataProcessor:
     
     def extract_large_box_label_data(self, excel_file_path: str) -> Dict[str, Any]:
         """
-        提取套盒大箱标所需的数据 - 使用统一的公共数据提取方法
+        提取套盒箱标所需的数据 - 使用统一的公共数据提取方法
         """
         # 使用统一的公共数据提取方法
         extractor = ExcelDataExtractor(excel_file_path)
@@ -138,7 +138,7 @@ class NestedBoxDataProcessor:
     
     def generate_small_box_serial_range(self, base_number: str, small_box_num: int, boxes_per_small_box: int, total_boxes: int = None) -> str:
         """
-        生成套盒小箱标的序列号范围 - 修复边界计算问题
+        生成套盒套标的序列号范围 - 修复边界计算问题
         对应原来 _create_nested_small_box_label 中的序列号范围计算逻辑
         添加total_boxes边界检查，确保序列号不超出实际盒数
         """
@@ -150,11 +150,11 @@ class NestedBoxDataProcessor:
             prefix_part = base_number[:digit_start]
             base_main_num = int(match.group(1))  # 主号
             
-            # 套盒模板小箱标的简化逻辑：
-            # 每个小箱标对应一个主号，包含连续的boxes_per_small_box个副号
-            current_main_number = base_main_num + (small_box_num - 1)  # 当前小箱对应的主号
+            # 套盒模板套标的简化逻辑：
+            # 每个套标对应一个主号，包含连续的boxes_per_small_box个副号
+            current_main_number = base_main_num + (small_box_num - 1)  # 当前套对应的主号
             
-            # 计算当前小箱实际包含的盒数范围
+            # 计算当前套实际包含的盒数范围
             start_box = (small_box_num - 1) * boxes_per_small_box + 1
             end_box = start_box + boxes_per_small_box - 1
             
@@ -170,13 +170,13 @@ class NestedBoxDataProcessor:
             start_serial = f"{prefix_part}{current_main_number:05d}-{start_suffix:02d}"
             end_serial = f"{prefix_part}{current_main_number:05d}-{end_suffix:02d}"
             
-            # 套盒小箱标显示序列号范围
+            # 套盒套标显示序列号范围
             if start_suffix == end_suffix:
                 serial_range = start_serial
             else:
                 serial_range = f"{start_serial}-{end_serial}"
                 
-            print(f"📝 套盒小箱标 #{small_box_num}: 主号{current_main_number}, 副号{start_suffix}-{end_suffix}, 包含盒{start_box}-{end_box} = {serial_range}")
+            print(f"📝 套盒套标 #{small_box_num}: 主号{current_main_number}, 副号{start_suffix}-{end_suffix}, 包含盒{start_box}-{end_box} = {serial_range}")
             return serial_range
         else:
             return f"DSK{small_box_num:05d}-DSK{small_box_num:05d}"
@@ -184,26 +184,26 @@ class NestedBoxDataProcessor:
     def generate_large_box_serial_range(self, base_number: str, large_box_num: int, 
                                       small_boxes_per_large_box: int, boxes_per_small_box: int, total_boxes: int = None) -> str:
         """
-        生成套盒大箱标的序列号范围 - 修复边界计算问题
+        生成套盒箱标的序列号范围 - 修复边界计算问题
         对应原来 _create_nested_large_box_label 中的序列号范围计算逻辑
         添加total_boxes边界检查，确保序列号不超出实际盒数
         """
-        # 计算当前大箱包含的小箱范围
+        # 计算当前箱包含的套范围
         start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
         end_small_box = start_small_box + small_boxes_per_large_box - 1
         
-        # 计算当前大箱包含的总盒子范围
+        # 计算当前箱包含的总盒子范围
         start_box = (start_small_box - 1) * boxes_per_small_box + 1
         end_box = end_small_box * boxes_per_small_box
         
         # 🔧 边界检查：确保end_box不超过总盒数
         if total_boxes is not None:
             end_box = min(end_box, total_boxes)
-            # 根据实际的end_box重新计算最后一个小箱
+            # 根据实际的end_box重新计算最后一个套
             actual_end_small_box = math.ceil(end_box / boxes_per_small_box)
             end_small_box = min(end_small_box, actual_end_small_box)
         
-        # 计算序列号范围 - 从第一个小箱的起始号到最后一个小箱的结束号
+        # 计算序列号范围 - 从第一个套的起始号到最后一个套的结束号
         match = re.search(r'(\d+)', base_number)
         if match:
             # 获取第一个数字（主号）的起始位置
@@ -212,33 +212,33 @@ class NestedBoxDataProcessor:
             prefix_part = base_number[:digit_start]
             base_main_num = int(match.group(1))  # 主号
             
-            # 第一个小箱的序列号范围
+            # 第一个套的序列号范围
             first_main_number = base_main_num + (start_small_box - 1)
             first_start_serial = f"{prefix_part}{first_main_number:05d}-01"
             
-            # 最后一个小箱的序列号范围（考虑边界）
+            # 最后一个套的序列号范围（考虑边界）
             last_main_number = base_main_num + (end_small_box - 1)
             last_box_in_small_box = end_box - (end_small_box - 1) * boxes_per_small_box
             last_suffix = min(boxes_per_small_box, last_box_in_small_box)
             last_end_serial = f"{prefix_part}{last_main_number:05d}-{last_suffix:02d}"
             
-            # 大箱标显示完整序列号范围
+            # 箱标显示完整序列号范围
             if first_start_serial == last_end_serial:
                 serial_range = first_start_serial
             else:
                 serial_range = f"{first_start_serial}-{last_end_serial}"
                 
-            print(f"📝 套盒大箱标 #{large_box_num}: 包含小箱{start_small_box}-{end_small_box}, 盒{start_box}-{end_box}, 序列号范围={serial_range}")
+            print(f"📝 套盒箱标 #{large_box_num}: 包含套{start_small_box}-{end_small_box}, 盒{start_box}-{end_box}, 序列号范围={serial_range}")
             return serial_range
         else:
             return f"DSK{large_box_num:05d}-DSK{large_box_num:05d}"
     
     def calculate_carton_number_for_small_box(self, small_box_num: int) -> str:
-        """计算套盒小箱标的Carton No - 与原有逻辑完全一致"""
+        """计算套盒套标的Carton No - 与原有逻辑完全一致"""
         return str(small_box_num)
     
     def calculate_carton_range_for_large_box(self, large_box_num: int, small_boxes_per_large_box: int) -> str:
-        """计算套盒大箱标的Carton No范围 - 与原有逻辑完全一致"""
+        """计算套盒箱标的Carton No范围 - 与原有逻辑完全一致"""
         start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
         end_small_box = start_small_box + small_boxes_per_large_box - 1
         return f"{start_small_box}-{end_small_box}"
