@@ -560,7 +560,7 @@ class RegularRenderer:
                 c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
                 c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
-    def render_empty_box_label(self, c, width, height, chinese_name):
+    def render_empty_box_label(self, c, width, height, chinese_name, remark_text):
         """渲染空箱标签 - 用于小箱标和大箱标的第一页（有纸卡备注）"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -639,11 +639,12 @@ class RegularRenderer:
         
         # 行5: Remark (第1行) - 多次绘制加粗
         remark_y = row_positions[0] + base_row_height/2 - text_offset
+        clean_remark_text = text_processor.clean_text_for_font(remark_text)
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
-    def render_empty_box_label_no_paper_card(self, c, width, height, chinese_name):
+    def render_empty_box_label_no_paper_card(self, c, width, height, chinese_name, remark_text):
         """渲染空箱标签 - 用于小箱标和大箱标的第一页（无纸卡备注）"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -737,9 +738,10 @@ class RegularRenderer:
         
         # 行4: Remark (第1行) - 多次绘制加粗
         remark_y = row_positions[0] + base_row_height/2 - text_offset
+        clean_remark_text = text_processor.clean_text_for_font(remark_text)
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
 
 # 创建全局实例供regular模板使用  

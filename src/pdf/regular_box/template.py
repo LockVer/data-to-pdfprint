@@ -356,9 +356,9 @@ class RegularTemplate(PDFBaseUtils):
             
             # 根据标签模版类型选择空箱标签渲染函数
             if template_type == "有纸卡备注":
-                regular_renderer.render_empty_box_label(c, width, height, chinese_name)
+                regular_renderer.render_empty_box_label(c, width, height, chinese_name, remark_text)
             else:  # "无纸卡备注"
-                regular_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+                regular_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name, remark_text)
             
             c.showPage()
             c.setFillColor(cmyk_black)
@@ -481,9 +481,9 @@ class RegularTemplate(PDFBaseUtils):
             
             # 根据标签模版类型选择空箱标签渲染函数
             if template_type == "有纸卡备注":
-                regular_renderer.render_empty_box_label(c, width, height, chinese_name)
+                regular_renderer.render_empty_box_label(c, width, height, chinese_name, remark_text)
             else:  # "无纸卡备注"
-                regular_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+                regular_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name, remark_text)
             
             c.showPage()
             c.setFillColor(cmyk_black)
@@ -602,9 +602,9 @@ class RegularTemplate(PDFBaseUtils):
             
             # 根据标签模版类型选择空箱标签渲染函数
             if template_type == "有纸卡备注":
-                regular_renderer.render_empty_box_label(c, width, height, chinese_name)
+                regular_renderer.render_empty_box_label(c, width, height, chinese_name, remark_text)
             else:  # "无纸卡备注"
-                regular_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+                regular_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name, remark_text)
             
             c.showPage()
             c.setFillColor(cmyk_black)

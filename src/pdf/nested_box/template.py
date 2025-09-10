@@ -288,9 +288,9 @@ class NestedBoxTemplate(PDFBaseUtils):
         template_type = params.get("标签模版", "有纸卡备注")
         
         if template_type == "有纸卡备注":
-            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name, remark_text)
         else:  # "无纸卡备注"
-            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name, remark_text)
         
         c.showPage()
         c.setFillColor(cmyk_black)
@@ -379,9 +379,9 @@ class NestedBoxTemplate(PDFBaseUtils):
         template_type = params.get("标签模版", "有纸卡备注")
         
         if template_type == "有纸卡备注":
-            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name, remark_text)
         else:  # "无纸卡备注"
-            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name, remark_text)
         
         c.showPage()
         c.setFillColor(cmyk_black)
@@ -466,9 +466,9 @@ class NestedBoxTemplate(PDFBaseUtils):
         template_type = params.get("标签模版", "有纸卡备注")
         
         if template_type == "有纸卡备注":
-            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name, remark_text)
         else:  # "无纸卡备注"
-            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name, remark_text)
         
         c.showPage()
         c.setFillColor(cmyk_black)
