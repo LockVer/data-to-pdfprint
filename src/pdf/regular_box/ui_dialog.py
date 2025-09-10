@@ -344,6 +344,11 @@ class RegularUIDialog:
         # 获取中文名称
         chinese_name = self.main_app.chinese_name_var.get().strip()
         
+        # 检查中文名称是否为空
+        if not chinese_name:
+            messagebox.showerror("参数错误", "请输入'中文名称'")
+            return
+        
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,

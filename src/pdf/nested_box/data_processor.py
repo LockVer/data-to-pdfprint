@@ -236,6 +236,85 @@ class NestedBoxDataProcessor:
         start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
         end_small_box = start_small_box + small_boxes_per_large_box - 1
         return f"{start_small_box}-{end_small_box}"
+    
+    def calculate_overweight_box_distribution(self, boxes_per_set: int, boxes_per_large_box: int, box_in_set: int) -> int:
+        """
+        计算超重模式下每箱的盒子分配
+        使用均分+余数分配策略：第一箱向上取整，余数依次分配
+        
+        Args:
+            boxes_per_set: 每套包含的盒数
+            boxes_per_large_box: 一套拆成多少箱
+            box_in_set: 当前箱在套内的编号（1-based）
+            
+        Returns:
+            当前箱包含的盒数
+        """
+        # 计算基础分配：每箱的基本盒数
+        base_boxes = boxes_per_set // boxes_per_large_box
+        # 计算余数
+        remainder = boxes_per_set % boxes_per_large_box
+        
+        # 余数分配策略：前面的箱子多分配一个
+        if box_in_set <= remainder:
+            return base_boxes + 1
+        else:
+            return base_boxes
+    
+    def generate_overweight_serial_range(self, base_number: str, set_num: int, box_in_set: int, 
+                                       boxes_per_set: int, boxes_per_large_box: int) -> str:
+        """
+        生成超重模式的序列号范围
+        使用套盒模板的正确逻辑：副号先递增，满"盒/套"参数时主号进一，副号重置
+        
+        Args:
+            base_number: 基础序列号
+            set_num: 套编号（1-based）
+            box_in_set: 箱在套内的编号（1-based）
+            boxes_per_set: 每套包含的盒数
+            boxes_per_large_box: 一套拆成多少箱
+            
+        Returns:
+            序列号范围字符串
+        """
+        # 计算当前箱包含的盒数
+        boxes_in_current_box = self.calculate_overweight_box_distribution(boxes_per_set, boxes_per_large_box, box_in_set)
+        
+        # 计算当前箱的起始盒编号（在当前套内，1-based）
+        start_box_in_set = 0
+        for i in range(1, box_in_set):
+            start_box_in_set += self.calculate_overweight_box_distribution(boxes_per_set, boxes_per_large_box, i)
+        start_box_in_set += 1  # 转换为1-based
+        
+        # 计算结束盒编号（在当前套内）
+        end_box_in_set = start_box_in_set + boxes_in_current_box - 1
+        
+        # 解析基础序列号格式
+        match = re.search(r'(.+?)(\d+)-(\d+)', base_number)
+        if match:
+            start_prefix = match.group(1)
+            base_main_num = int(match.group(2))
+            start_suffix = int(match.group(3))
+            
+            # 套盒模板序列号逻辑：副号先递增，满"盒/套"参数时主号进一
+            # 计算当前套的主号
+            current_main = base_main_num + (set_num - 1)
+            
+            # 计算起始和结束副号（在当前套内）
+            start_suffix_in_set = start_suffix + (start_box_in_set - 1)
+            end_suffix_in_set = start_suffix + (end_box_in_set - 1)
+            
+            start_serial = f"{start_prefix}{current_main:05d}-{start_suffix_in_set:02d}"
+            end_serial = f"{start_prefix}{current_main:05d}-{end_suffix_in_set:02d}"
+            
+            # 始终显示为范围格式
+            serial_range = f"{start_serial}-{end_serial}"
+            
+            print(f"📝 超重箱标 套{set_num}-箱{box_in_set}: 主号{current_main}, 副号{start_suffix_in_set}-{end_suffix_in_set}, 包含盒{start_box_in_set}-{end_box_in_set}(套内), 序列号={serial_range}")
+            return serial_range
+        else:
+            print("⚠️ 无法解析序列号格式，使用默认逻辑")
+            return f"DSK{set_num:05d}-{box_in_set:02d}"
 
 
 # 创建全局实例供nested_box模板使用

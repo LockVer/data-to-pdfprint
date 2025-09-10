@@ -33,13 +33,23 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         Args:
             data: Excel数据
-            params: 用户参数 (张/盒, 盒/套, 套/箱, 选择外观)
+            params: 用户参数 (张/盒, 盒/套, 套/箱, 选择外观, 是否超重)
             output_dir: 输出目录
             excel_file_path: Excel文件路径
 
         Returns:
             生成的文件路径字典
         """
+        # 检查是否为超重模式
+        is_overweight = params.get("是否超重", False)
+        
+        if is_overweight:
+            return self._create_overweight_pdfs(data, params, output_dir, excel_file_path)
+        else:
+            return self._create_normal_pdfs(data, params, output_dir, excel_file_path)
+    
+    def _create_normal_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
+        """正常模式：多套装箱，生成盒标+套标+箱标"""
         # 计算数量 - 三级结构：张→盒→套→箱
         total_pieces = int(float(data["总张数"]))
         pieces_per_box = int(params["张/盒"])
@@ -88,6 +98,55 @@ class NestedBoxTemplate(PDFBaseUtils):
         large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒箱标_{timestamp}.pdf"
         large_box_path = full_output_dir / large_box_filename
         self._create_nested_large_box_label(
+            data, params, str(large_box_path), excel_file_path
+        )
+        generated_files["箱标"] = str(large_box_path)
+
+        return generated_files
+    
+    def _create_overweight_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
+        """超重模式：一套拆多箱，生成盒标+箱标（无套标）"""
+        # 计算数量 - 二级结构：张→盒→箱
+        total_pieces = int(float(data["总张数"]))
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_set = int(params["盒/套"])  # 每套包含的盒数
+        boxes_per_large_box = int(params["套/箱"])  # 一套拆成多少箱（即每箱的盒数）
+
+        # 计算各级数量
+        total_boxes = math.ceil(total_pieces / pieces_per_box)
+        total_sets = math.ceil(total_boxes / boxes_per_set)
+        
+        # 超重模式：每套拆成多箱，所以总箱数 = 套数 × 每套拆成的箱数
+        total_large_boxes = total_sets * boxes_per_large_box
+
+        # 创建输出目录
+        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+        folder_name = f"{data['客户名称编码']}+{clean_theme}+标签"
+        full_output_dir = Path(output_dir) / folder_name
+        full_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # 获取参数和日期时间戳
+        chinese_name = params.get("中文名称", "")
+        english_name = clean_theme  # 英文名称使用清理后的主题
+        customer_code = data['客户名称编码']  # 客户编号
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        generated_files = {}
+
+        # 生成套盒模板的盒标（与正常模式相同）
+        selected_appearance = params["选择外观"]
+        # 文件名格式：客户编号_中文名称_英文名称_套盒盒标_日期时间戳
+        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒盒标_{timestamp}.pdf"
+        box_label_path = full_output_dir / box_label_filename
+
+        self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
+        generated_files["盒标"] = str(box_label_path)
+
+        # 超重模式不生成套标，直接生成箱标（使用大箱标的逻辑）
+        # 文件名格式：客户编号_中文名称_英文名称_套盒箱标_日期时间戳
+        large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒箱标_{timestamp}.pdf"
+        large_box_path = full_output_dir / large_box_filename
+        self._create_overweight_large_box_label(
             data, params, str(large_box_path), excel_file_path
         )
         generated_files["箱标"] = str(large_box_path)
@@ -365,6 +424,91 @@ class NestedBoxTemplate(PDFBaseUtils):
         c.save()
         print(f"✅ 套盒模板箱标PDF已生成: {output_path}")
 
+    def _create_overweight_large_box_label(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, excel_file_path: str = None):
+        """创建超重模式的箱标（使用套号-箱号格式的Carton No）"""
+        # 使用统一数据处理后的标准四字段
+        theme_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DEFAULT01001'
+        remark_text = data.get('客户名称编码') or 'Unknown Client'
+        print(f"✅ 超重模式箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        
+        # 获取参数
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_set = int(params["盒/套"])  # 每套包含的盒数
+        boxes_per_large_box = int(params["套/箱"])  # 一套拆成多少箱（即每箱的盒数）
+        
+        print(f"✅ 超重模式箱标参数: 张/盒={pieces_per_box}, 盒/套={boxes_per_set}, 一套拆{boxes_per_large_box}箱")
+        
+        # 计算数量
+        total_pieces = int(float(data["总张数"]))
+        total_boxes = math.ceil(total_pieces / pieces_per_box)
+        total_sets = math.ceil(total_boxes / boxes_per_set)
+        total_large_boxes = total_sets * boxes_per_large_box
+        
+        print(f"✅ 超重模式计算结果: 总盒={total_boxes}, 总套={total_sets}, 总箱={total_large_boxes}")
+        
+        # 创建PDF
+        c = canvas.Canvas(output_path, pagesize=self.page_size)
+        width, height = self.page_size
+
+        # 设置PDF属性
+        c.setPageCompression(1)
+        c.setTitle(f"套盒超重箱标-1到{total_large_boxes}")
+        c.setSubject("Nested Box Overweight Label")
+        c.setCreator("Data-to-PDF Print")
+
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 生成空箱标签（第一页）
+        chinese_name = params.get("中文名称", "")
+        template_type = params.get("标签模版", "有纸卡备注")
+        
+        if template_type == "有纸卡备注":
+            nested_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+        else:  # "无纸卡备注"
+            nested_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+        
+        c.showPage()
+        c.setFillColor(cmyk_black)
+
+        # 生成超重模式箱标
+        for large_box_num in range(1, total_large_boxes + 1):
+            if large_box_num > 1:
+                c.showPage()
+                c.setFillColor(cmyk_black)
+
+            # 计算当前箱属于哪一套
+            set_num = ((large_box_num - 1) // boxes_per_large_box) + 1
+            box_in_set = ((large_box_num - 1) % boxes_per_large_box) + 1
+            
+            # 计算当前箱包含的盒子范围（使用超重模式的拆分逻辑）
+            boxes_in_each_box = nested_box_data_processor.calculate_overweight_box_distribution(
+                boxes_per_set, boxes_per_large_box, box_in_set
+            )
+            
+            # 计算序列号范围
+            serial_range = nested_box_data_processor.generate_overweight_serial_range(
+                base_number, set_num, box_in_set, boxes_per_set, boxes_per_large_box
+            )
+            
+            # 计算实际张数
+            actual_pieces_in_large_box = boxes_in_each_box * pieces_per_box
+            
+            # 超重模式的Carton No格式：套号-箱号
+            carton_no = f"{set_num}-{box_in_set}"
+
+            # 绘制超重模式箱标表格
+            if template_type == "有纸卡备注":
+                nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box, 
+                                                                 serial_range, carton_no, remark_text)
+            else:  # "无纸卡备注"
+                nested_box_renderer.draw_nested_large_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_large_box, 
+                                                                 serial_range, carton_no, remark_text)
+
+        c.save()
+        print(f"✅ 超重模式箱标PDF已生成: {output_path}")
 
 
 

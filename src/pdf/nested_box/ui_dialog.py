@@ -71,9 +71,40 @@ class NestedBoxUIDialog:
         )
         title_label.pack(pady=(0, 20))
 
+        # 是否超重选择框架
+        overweight_frame = ttk.LabelFrame(main_frame, text="包装类型选择", padding="15")
+        overweight_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        self.main_app.is_overweight_var = tk.StringVar(value="正常")
+        
+        # 居中布局的框架
+        overweight_container = ttk.Frame(overweight_frame)
+        overweight_container.pack(expand=True)
+        
+        normal_radio = ttk.Radiobutton(
+            overweight_container,
+            text="正常（多套装箱）",
+            variable=self.main_app.is_overweight_var,
+            value="正常",
+            command=self.on_overweight_choice_changed
+        )
+        normal_radio.grid(row=0, column=0, sticky=tk.W, pady=5)
+
+        overweight_radio = ttk.Radiobutton(
+            overweight_container,
+            text="超重（一套拆多箱）",
+            variable=self.main_app.is_overweight_var,
+            value="超重",
+            command=self.on_overweight_choice_changed
+        )
+        overweight_radio.grid(row=0, column=1, sticky=tk.W, padx=(20, 0), pady=5)
+
         # 参数输入框架
         params_frame = ttk.LabelFrame(main_frame, text="包装参数", padding="15")
         params_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # 保存params_frame引用以便后续使用
+        self.params_frame = params_frame
 
         # 张/盒输入
         ttk.Label(params_frame, text="张/盒:").grid(
@@ -97,10 +128,10 @@ class NestedBoxUIDialog:
             row=1, column=1, sticky=tk.W, padx=(10, 0), pady=5
         )
 
-        # 套/箱输入
-        ttk.Label(params_frame, text="套/箱:").grid(
-            row=2, column=0, sticky=tk.W, pady=5
-        )
+        # 第三个参数输入（动态标签）
+        self.third_param_label = ttk.Label(params_frame, text="套/箱:")
+        self.third_param_label.grid(row=2, column=0, sticky=tk.W, pady=5)
+        
         self.main_app.small_boxes_per_large_box_var = tk.StringVar()
         small_boxes_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.small_boxes_per_large_box_var, width=15
@@ -173,12 +204,24 @@ class NestedBoxUIDialog:
         # 自适应大小和居中显示
         self._auto_resize_and_center_dialog(dialog, scrollable_frame)
 
+    def on_overweight_choice_changed(self):
+        """处理超重选择变化"""
+        is_overweight = self.main_app.is_overweight_var.get() == "超重"
+        
+        if is_overweight:
+            # 超重模式：第三个参数改为 "一套拆多少箱"
+            self.third_param_label.config(text="一套拆多少箱:")
+        else:
+            # 正常模式：第三个参数为 "套/箱"
+            self.third_param_label.config(text="套/箱:")
+    
     def confirm_parameters(self, dialog):
         """确认套盒模板参数并生成PDF"""
         # 获取参数值
         pieces_per_box_str = self.main_app.pieces_per_box_var.get().strip()
         boxes_per_small_box_str = self.main_app.boxes_per_small_box_var.get().strip()
         small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
+        is_overweight = self.main_app.is_overweight_var.get() == "超重"
         
         # 检查空值
         if not pieces_per_box_str:
@@ -188,7 +231,10 @@ class NestedBoxUIDialog:
             messagebox.showerror("参数错误", "请输入'盒/套'参数")
             return
         if not small_boxes_per_large_box_str:
-            messagebox.showerror("参数错误", "请输入'套/箱'参数")
+            if is_overweight:
+                messagebox.showerror("参数错误", "请输入'一套拆多少箱'参数")
+            else:
+                messagebox.showerror("参数错误", "请输入'套/箱'参数")
             return
         
         try:
@@ -197,7 +243,10 @@ class NestedBoxUIDialog:
             boxes_per_small_box = int(boxes_per_small_box_str)
             small_boxes_per_large_box = int(small_boxes_per_large_box_str)
         except ValueError:
-            messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、6、2")
+            if is_overweight:
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、15、2")
+            else:
+                messagebox.showerror("参数错误", "请输入有效的整数\n\n正确格式示例：300、6、2")
             return
         
         # 检查负数和0
@@ -208,8 +257,18 @@ class NestedBoxUIDialog:
             messagebox.showerror("参数错误", "'盒/套'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
             return
         if small_boxes_per_large_box <= 0:
-            messagebox.showerror("参数错误", "'套/箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
+            if is_overweight:
+                messagebox.showerror("参数错误", "'一套拆多少箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
+            else:
+                messagebox.showerror("参数错误", "'套/箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
             return
+        
+        # 超重模式特殊验证：一套拆多少箱不能超过盒/套
+        if is_overweight:
+            if small_boxes_per_large_box > boxes_per_small_box:
+                messagebox.showerror("参数错误", "'一套拆多少箱'不能超过'盒/套'\n\n当前设置：\n- 盒/套：{} 盒\n- 一套拆多少箱：{} 箱\n\n一套最多只有{}盒，无法拆成{}箱\n请输入不超过{}的值".format(
+                    boxes_per_small_box, small_boxes_per_large_box, boxes_per_small_box, small_boxes_per_large_box, boxes_per_small_box))
+                return
         
         # 检查张/盒不能超过总张数
         total_pieces = int(self.main_app.current_data.get('总张数', 0))
@@ -220,11 +279,17 @@ class NestedBoxUIDialog:
         # 获取中文名称
         chinese_name = self.main_app.chinese_name_var.get().strip()
         
+        # 检查中文名称是否为空
+        if not chinese_name:
+            messagebox.showerror("参数错误", "请输入'中文名称'")
+            return
+        
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,
             "盒/套": boxes_per_small_box,
             "套/箱": small_boxes_per_large_box,
+            "是否超重": is_overweight,
             "选择外观": "外观一",  # 套盒模板固定使用外观一，但实际不使用
             "标签模版": self.main_app.template_var.get(),
             "中文名称": self.main_app.chinese_name_var.get(),
