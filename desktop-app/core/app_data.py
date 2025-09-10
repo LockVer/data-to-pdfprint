@@ -15,6 +15,7 @@ class PackageParams:
     sheets_per_box: int = 2850
     boxes_per_small_case: int = 1
     small_cases_per_large_case: int = 2
+    is_overweight: bool = False  # 是否超重模式 (仅套盒模式使用)
 
 
 @dataclass

@@ -127,15 +127,26 @@ class PDFGenerator:
                 ['每大箱小箱数', str(data.get('small_boxes_per_large_box', 2))]
             ]
         elif template == 'set_box':
-            case_info = [
-                ['包装方式', '六盒为一套 六盒入一小箱 再两套入一大箱'],
-                ['套数', str(data.get('total_sets', 0))],
-                ['小箱数量', str(data.get('small_box_quantity', 0))],
-                ['大箱数量', str(data.get('large_box_quantity', 0))],
-                ['每套盒数', str(data.get('boxes_per_set', 6))],
-                ['每小箱套数', str(data.get('sets_per_small_box', 1))],
-                ['每大箱套数', str(data.get('sets_per_large_box', 2))]
-            ]
+            is_overweight = data.get('is_overweight', False)
+            if is_overweight:
+                case_info = [
+                    ['包装方式', '分套模式超重条件 - 一套分几箱'],
+                    ['套数', str(data.get('total_sets', 0))],
+                    ['总箱数', str(data.get('total_cases', 0))],
+                    ['每套盒数', str(data.get('boxes_per_set', 6))],
+                    ['每套分箱数', str(data.get('cases_per_set', 1))],
+                    ['每箱盒数', str(data.get('boxes_per_case', 6))]
+                ]
+            else:
+                case_info = [
+                    ['包装方式', '六盒为一套 六盒入一小箱 再两套入一大箱'],
+                    ['套数', str(data.get('total_sets', 0))],
+                    ['小箱数量', str(data.get('small_box_quantity', 0))],
+                    ['大箱数量', str(data.get('large_box_quantity', 0))],
+                    ['每套盒数', str(data.get('boxes_per_set', 6))],
+                    ['每小箱套数', str(data.get('sets_per_small_box', 1))],
+                    ['每大箱套数', str(data.get('sets_per_large_box', 2))]
+                ]
         
         case_table = Table(case_info, colWidths=[4*cm, 4*cm])
         case_table.setStyle(TableStyle([
@@ -202,9 +213,89 @@ class PDFGenerator:
                 content.append(Paragraph(f"大箱 {i+1}: 包含2个小箱，每小箱1盒", self.content_style))
         
         elif template == 'set_box':
-            content.append(Paragraph("套盒包装模式箱标", self.content_style))
-            for i in range(data.get('large_box_quantity', 0)):
-                content.append(Paragraph(f"大箱 {i+1}: 包含2套，每套6盒", self.content_style))
+            is_overweight = data.get('is_overweight', False)
+            if is_overweight:
+                content.append(Paragraph("套盒包装模式箱标（超重条件）", self.content_style))
+                content.extend(self._generate_overweight_case_labels(data))
+            else:
+                content.append(Paragraph("套盒包装模式箱标", self.content_style))
+                for i in range(data.get('large_box_quantity', 0)):
+                    content.append(Paragraph(f"大箱 {i+1}: 包含2套，每套6盒", self.content_style))
+        
+        return content
+    
+    def _generate_overweight_case_labels(self, data: Dict[str, Any]) -> List:
+        """
+        生成超重条件下的箱标内容
+        
+        分套模式超重条件箱标规律：
+        - 一套分几箱
+        - quantity: 每箱中盒数 * 每盒张数
+        - serial: 父级编号（套编号）相同，子级编号（盒子编号）按每箱盒数递增
+        - carton_no: 第几套第几箱
+        """
+        content = []
+        
+        # 提取关键参数
+        total_sets = data.get('total_sets', 0)
+        cases_per_set = data.get('cases_per_set', 1)
+        boxes_per_case = data.get('boxes_per_case', 6)
+        cards_per_box_in_set = data.get('cards_per_box_in_set', 630)
+        start_number = data.get('start_number', '')
+        
+        # 提取编号前缀
+        import re
+        match = re.search(r'(\d+)', start_number)
+        if match:
+            start_num = int(match.group(1))
+            prefix = start_number.replace(match.group(1), '')
+        else:
+            start_num = 1
+            prefix = ''
+        
+        case_idx = 0
+        for set_num in range(1, total_sets + 1):
+            for case_in_set in range(1, cases_per_set + 1):
+                case_idx += 1
+                
+                # 计算quantity: 每箱中盒数 * 每盒张数
+                quantity = boxes_per_case * cards_per_box_in_set
+                
+                # 计算serial: 父级编号相同（套编号），子级编号按每箱盒数递增
+                start_box_in_case = (case_in_set - 1) * boxes_per_case + 1
+                end_box_in_case = min(case_in_set * boxes_per_case, data.get('boxes_per_set', 6))
+                
+                serial_start = f"{prefix}{start_num + set_num - 1:05d}-{start_box_in_case:02d}"
+                serial_end = f"{prefix}{start_num + set_num - 1:05d}-{end_box_in_case:02d}"
+                serial = f"{serial_start}-{serial_end}"
+                
+                # carton_no: 第几套第几箱
+                carton_no = f"第{set_num}套第{case_in_set}箱"
+                
+                # 生成标签内容
+                label_info = [
+                    ['箱号', str(case_idx)],
+                    ['数量(PCS)', str(quantity)],
+                    ['序列号', serial],
+                    ['箱标识', carton_no],
+                    ['包含盒数', str(boxes_per_case)],
+                    ['所属套', str(set_num)]
+                ]
+                
+                label_table = Table(label_info, colWidths=[3*cm, 6*cm])
+                label_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightyellow),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                
+                content.append(label_table)
+                content.append(Spacer(1, 10))
         
         return content
     

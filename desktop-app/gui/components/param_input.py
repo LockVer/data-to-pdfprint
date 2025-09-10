@@ -18,6 +18,7 @@ class ParamInputStep(BaseStep):
         self.sheets_per_box_var = tk.IntVar(value=2850)
         self.boxes_per_small_case_var = tk.IntVar(value=4)
         self.small_cases_per_large_case_var = tk.IntVar(value=2)
+        self.is_overweight_var = tk.BooleanVar(value=False)  # 超重模式选择
         
         self.advanced_frame = None
         super().__init__(parent, app_data, title)
@@ -60,6 +61,10 @@ class ParamInputStep(BaseStep):
             "每个大箱包含的小箱数量"
         )
         
+        # 超重模式复选框（仅套盒模式显示）
+        self.overweight_container = self.create_overweight_checkbox(self.advanced_frame)
+        self.overweight_container.pack_forget()  # 默认隐藏，在套盒模式时显示
+        
         # 计算预览区域
         preview_frame = ttk.LabelFrame(self.content_frame, text="参数预览", padding=15)
         preview_frame.pack(fill=tk.BOTH, expand=True)
@@ -78,6 +83,7 @@ class ParamInputStep(BaseStep):
         self.sheets_per_box_var.trace_add('write', self.update_preview)
         self.boxes_per_small_case_var.trace_add('write', self.update_preview)
         self.small_cases_per_large_case_var.trace_add('write', self.update_preview)
+        self.is_overweight_var.trace_add('write', self.update_preview)
     
     def create_param_input(self, parent, label_text, var, help_text):
         """创建参数输入控件"""
@@ -151,6 +157,37 @@ class ParamInputStep(BaseStep):
         
         return container
     
+    def create_overweight_checkbox(self, parent):
+        """创建超重模式复选框"""
+        container = ttk.Frame(parent)
+        
+        # 复选框
+        checkbox = tk.Checkbutton(
+            container,
+            text="超重模式",
+            variable=self.is_overweight_var,
+            font=("Arial", 10, "bold"),
+            command=self.on_overweight_change
+        )
+        checkbox.pack(side=tk.LEFT)
+        
+        # 帮助文本
+        help_label = tk.Label(
+            container, 
+            text="勾选表示一套需要分为多个箱子，将显示不同的参数设置", 
+            font=("Arial", 9),
+            foreground='#666666'
+        )
+        help_label.pack(side=tk.LEFT, padx=(10, 0))
+        
+        return container
+    
+    def on_overweight_change(self):
+        """超重模式复选框变化时的回调"""
+        if self.app_data.package_mode == 'set':
+            self.update_cases_label_text()
+            self.update_preview()
+    
     def update_sheets_label_text(self):
         """根据包装模式更新基础参数标签文本"""
         if hasattr(self, 'sheets_label') and hasattr(self, 'sheets_help_label'):
@@ -171,6 +208,29 @@ class ParamInputStep(BaseStep):
                 self.boxes_label.config(text="每小箱盒数:")
                 self.boxes_help_label.config(text="每个小箱包含的盒子数量")
     
+    def update_cases_label_text(self):
+        """根据包装模式和超重状态更新箱数参数标签文本"""
+        if hasattr(self, 'cases_container') and self.app_data.package_mode == 'set':
+            # 获取cases_container中的标签组件
+            for widget in self.cases_container.winfo_children():
+                if isinstance(widget, tk.Label) and hasattr(widget, 'config'):
+                    widget_text = widget.cget('text')
+                    if '大箱' in widget_text or '套数' in widget_text or '分为' in widget_text:
+                        if self.is_overweight_var.get():
+                            widget.config(text="一套分为几箱:")
+                        else:
+                            widget.config(text="每大箱套数:")
+                        break
+            
+            # 更新帮助文本
+            for widget in self.cases_container.winfo_children():
+                if isinstance(widget, tk.Label) and widget.cget('foreground') == '#666666':
+                    if self.is_overweight_var.get():
+                        widget.config(text="每个套分为几个箱子进行包装")
+                    else:
+                        widget.config(text="每个大箱包含的套数")
+                    break
+    
     def update_advanced_params_visibility(self):
         """根据包装模式更新高级参数可见性"""
         if hasattr(self, 'advanced_frame') and self.app_data.package_mode:
@@ -178,6 +238,7 @@ class ParamInputStep(BaseStep):
                 # 常规模式：显示"每小箱盒数"和"每大箱小箱数"，允许用户输入每小箱盒数
                 self.boxes_container.pack(fill=tk.X, pady=10)
                 self.cases_container.pack(fill=tk.X, pady=10)
+                self.overweight_container.pack_forget()  # 隐藏超重模式复选框
                 # 常规模式：恢复输入框为可编辑状态
                 if hasattr(self, 'boxes_entry'):
                     self.boxes_entry.config(state='normal', bg='white')
@@ -188,9 +249,10 @@ class ParamInputStep(BaseStep):
                 if self.small_cases_per_large_case_var.get() <= 1:
                     self.small_cases_per_large_case_var.set(2)  # 默认2个小箱一大箱
             elif self.app_data.package_mode == 'set':
-                # 套盒模式：显示"每套盒数"和"每大箱套数"
+                # 套盒模式：显示"每套盒数"、"每大箱套数/一套分为几箱"和超重模式复选框
                 self.boxes_container.pack(fill=tk.X, pady=10)
                 self.cases_container.pack(fill=tk.X, pady=10)
+                self.overweight_container.pack(fill=tk.X, pady=10)  # 显示超重模式复选框
                 # 套盒模式：恢复输入框为可编辑状态
                 if hasattr(self, 'boxes_entry'):
                     self.boxes_entry.config(state='normal', bg='white')
@@ -199,11 +261,14 @@ class ParamInputStep(BaseStep):
                 if self.boxes_per_small_case_var.get() <= 1:
                     self.boxes_per_small_case_var.set(6)  # 每套默认6盒
                 if self.small_cases_per_large_case_var.get() <= 1:
-                    self.small_cases_per_large_case_var.set(2)  # 每大箱默认2套
+                    self.small_cases_per_large_case_var.set(2)  # 每大箱默认2套（非超重）或一套分为2箱（超重）
+                # 更新标签文本
+                self.update_cases_label_text()
             else:
                 # 分盒模式显示所有高级参数，允许用户输入每小箱盒数
                 self.boxes_container.pack(fill=tk.X, pady=10)
                 self.cases_container.pack(fill=tk.X, pady=10)
+                self.overweight_container.pack_forget()  # 隐藏超重模式复选框
                 # 分盒模式：允许用户输入每小箱盒数，不再写死为1
                 if hasattr(self, 'boxes_entry'):
                     self.boxes_entry.config(state='normal', bg='white')
@@ -240,14 +305,22 @@ class ParamInputStep(BaseStep):
                     # 套盒模式计算
                     cards_per_box_in_set = sheets_per_box  # 套中每盒张数（用户输入）
                     boxes_per_set = boxes_per_small_case  # 每套盒数（用户输入）
-                    sets_per_large_case = small_cases_per_large_case  # 每大箱套数（用户输入）
+                    is_overweight = self.is_overweight_var.get()  # 是否超重模式
                     
                     cards_per_set = cards_per_box_in_set * boxes_per_set  # 每套张数（计算得出）
-                    
                     total_sets = math.ceil(total_sheets / cards_per_set) if cards_per_set > 0 else 0
-                    total_small_cases = total_sets  # 一套=一小箱
-                    total_large_cases = math.ceil(total_sets / sets_per_large_case) if sets_per_large_case > 0 else 0
                     total_boxes = total_sets * boxes_per_set
+                    
+                    if is_overweight:
+                        # 超重模式：一套分为几箱
+                        cases_per_set = small_cases_per_large_case  # 一套分为几箱（用户输入）
+                        total_small_cases = total_sets * cases_per_set  # 总小箱数
+                        total_large_cases = total_small_cases  # 超重模式下小箱就是最终包装
+                    else:
+                        # 非超重模式：每大箱套数
+                        sets_per_large_case = small_cases_per_large_case  # 每大箱套数（用户输入）
+                        total_small_cases = total_sets  # 一套=一小箱
+                        total_large_cases = math.ceil(total_sets / sets_per_large_case) if sets_per_large_case > 0 else 0
                 else:
                     # 其他模式原逻辑
                     total_boxes = math.ceil(total_sheets / sheets_per_box) if sheets_per_box > 0 else 0
@@ -274,9 +347,12 @@ class ParamInputStep(BaseStep):
                     preview_text += f"  每小箱盒数: {boxes_per_small_case} 盒\n"
                     preview_text += f"  每大箱小箱数: {small_cases_per_large_case} 小箱\n\n"
                 elif self.app_data.package_mode == 'set':
-                    # 套盒模式：显示用户输入的每套盒数和每大箱套数
+                    # 套盒模式：显示用户输入的参数，根据超重模式显示不同内容
                     preview_text += f"  每套盒数: {boxes_per_small_case} 盒\n"
-                    preview_text += f"  每大箱套数: {small_cases_per_large_case} 套\n\n"
+                    if is_overweight:
+                        preview_text += f"  一套分为几箱: {small_cases_per_large_case} 箱（超重模式）\n\n"
+                    else:
+                        preview_text += f"  每大箱套数: {small_cases_per_large_case} 套（常规模式）\n\n"
                 else:
                     # 分盒模式：显示所有参数（每小箱盒数可由用户输入）
                     preview_text += f"  每小箱盒数: {boxes_per_small_case} 盒\n"
@@ -290,9 +366,13 @@ class ParamInputStep(BaseStep):
                     preview_text += f"  总小箱数: {total_small_cases} 小箱\n"
                     preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
                 elif self.app_data.package_mode == 'set':
-                    # 套盒模式：显示套数和大箱数
-                    preview_text += f"  总套数: {total_small_cases} 套\n"
-                    preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
+                    # 套盒模式：根据超重模式显示不同结果
+                    preview_text += f"  总套数: {total_sets} 套\n"
+                    if is_overweight:
+                        preview_text += f"  总小箱数: {total_small_cases} 小箱（超重模式，每套分{cases_per_set}箱）\n\n"
+                    else:
+                        preview_text += f"  总小箱数: {total_small_cases} 小箱（每套一箱）\n"
+                        preview_text += f"  总大箱数: {total_large_cases} 大箱\n\n"
                 else:
                     # 分盒模式：显示所有计算结果
                     preview_text += f"  总小箱数: {total_small_cases} 小箱\n"
@@ -405,7 +485,8 @@ class ParamInputStep(BaseStep):
         self.app_data.package_params = PackageParams(
             sheets_per_box=self.sheets_per_box_var.get(),
             boxes_per_small_case=self.boxes_per_small_case_var.get(),
-            small_cases_per_large_case=self.small_cases_per_large_case_var.get()
+            small_cases_per_large_case=self.small_cases_per_large_case_var.get(),
+            is_overweight=self.is_overweight_var.get()
         )
     
     def on_show(self):
@@ -421,5 +502,6 @@ class ParamInputStep(BaseStep):
             self.sheets_per_box_var.set(params.sheets_per_box)
             self.boxes_per_small_case_var.set(params.boxes_per_small_case)
             self.small_cases_per_large_case_var.set(params.small_cases_per_large_case)
+            self.is_overweight_var.set(params.is_overweight)
         
         self.update_preview()

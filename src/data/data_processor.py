@@ -18,6 +18,9 @@ class PackagingConfig:
     large_box_capacity: int  # 大箱内的小箱数
     cards_per_box_in_set: int  # 套中每盒张数 (仅套盒模式使用)
     boxes_per_set: int  # 每套盒数 (仅套盒模式使用)
+    is_overweight: bool = False  # 是否超重模式 (仅套盒模式使用)
+    sets_per_large_box: int = 2  # 每大箱套数 (仅套盒非超重模式使用)
+    cases_per_set: int = 1  # 一套分为几箱 (仅套盒超重模式使用)
 
 
 class DataProcessor:
@@ -143,38 +146,69 @@ class DataProcessor:
     def _process_set_box_mode(self, base_data: Dict[str, Any], config: PackagingConfig) -> Dict[str, Any]:
         """
         处理套盒模式
-        套盒箱标（根据用户输入的套中每盒张数和每套盒数计算每套张数）
+        套盒箱标（根据用户输入的套中每盒张数和每套盒数计算每套张数，支持超重和非超重模式）
         """
         box_quantity = config.box_quantity
         cards_per_box_in_set = config.cards_per_box_in_set
         boxes_per_set = config.boxes_per_set
+        is_overweight = config.is_overweight
         
         # 计算每套张数：套中每盒张数 × 每套盒数
         cards_per_set = cards_per_box_in_set * boxes_per_set
         
-        # 套盒模式：根据用户输入计算套数和箱数
-        total_sets = math.ceil(box_quantity / boxes_per_set)  # 总套数
-        small_boxes = total_sets  # 每套一个小箱
-        large_boxes = math.ceil(total_sets / 2)  # 两套入一大箱
+        # 计算总套数
+        total_sets = math.ceil(box_quantity / boxes_per_set)
         
-        result = {
-            **base_data,
-            'box_quantity': box_quantity,
-            'cards_per_box_in_set': cards_per_box_in_set,
-            'boxes_per_set': boxes_per_set,
-            'cards_per_set': cards_per_set,  # 计算得出的每套张数
-            'total_sets': total_sets,
-            'small_box_quantity': small_boxes,
-            'large_box_quantity': large_boxes,
-            'sets_per_small_box': 1,
-            'sets_per_large_box': 2,
-            'label_specifications': {
-                'box_labels': box_quantity,
-                'set_labels': total_sets,
-                'small_box_labels': small_boxes,
-                'large_box_labels': large_boxes
+        if is_overweight:
+            # 超重模式：一套分为几箱
+            cases_per_set = config.cases_per_set
+            total_cases = total_sets * cases_per_set  # 总箱数：每套分为多个箱
+            
+            # 计算每箱中盒数
+            boxes_per_case = math.ceil(boxes_per_set / cases_per_set)
+            
+            result = {
+                **base_data,
+                'box_quantity': box_quantity,
+                'cards_per_box_in_set': cards_per_box_in_set,
+                'boxes_per_set': boxes_per_set,
+                'cards_per_set': cards_per_set,
+                'total_sets': total_sets,
+                'total_cases': total_cases,
+                'is_overweight': is_overweight,
+                'cases_per_set': cases_per_set,
+                'boxes_per_case': boxes_per_case,
+                'label_specifications': {
+                    'box_labels': box_quantity,
+                    'case_labels': total_cases  # 超重模式只有箱标
+                }
             }
-        }
+        else:
+            # 非超重模式：每大箱套数
+            sets_per_large_box = config.sets_per_large_box
+            small_boxes = total_sets  # 每套一个小箱
+            large_boxes = math.ceil(total_sets / sets_per_large_box)  # 根据每大箱套数计算大箱数
+            sets_per_small_box = 1
+            
+            result = {
+                **base_data,
+                'box_quantity': box_quantity,
+                'cards_per_box_in_set': cards_per_box_in_set,
+                'boxes_per_set': boxes_per_set,
+                'cards_per_set': cards_per_set,
+                'total_sets': total_sets,
+                'small_box_quantity': small_boxes,
+                'large_box_quantity': large_boxes,
+                'is_overweight': is_overweight,
+                'sets_per_large_box': sets_per_large_box,
+                'sets_per_small_box': sets_per_small_box,
+                'label_specifications': {
+                    'box_labels': box_quantity,
+                    'set_labels': total_sets,
+                    'small_box_labels': small_boxes,
+                    'large_box_labels': large_boxes
+                }
+            }
         
         return result
     

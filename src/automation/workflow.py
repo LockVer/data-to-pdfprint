@@ -250,5 +250,8 @@ def create_default_config() -> PackagingConfig:
         small_box_capacity=1,  # 默认每小箱盒数（分盒模式可由用户修改）
         large_box_capacity=2,   # 默认每大箱小箱数
         cards_per_box_in_set=6,  # 默认套中每盒张数
-        boxes_per_set=6   # 默认每套盒数
+        boxes_per_set=6,   # 默认每套盒数
+        is_overweight=False,  # 默认非超重模式
+        sets_per_large_box=2,  # 默认每大箱套数（非超重模式）
+        cases_per_set=1   # 默认一套分为几箱（超重模式）
     )
