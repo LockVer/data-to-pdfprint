@@ -147,11 +147,8 @@ class SplitBoxDataProcessor:
         last_main = serial_info['main_number'] + last_main_increments
         last_serial = f"{serial_info['prefix']}{last_main:05d}-{last_suffix:02d}"
         
-        # 如果首尾序列号相同，只显示一个
-        if first_serial == last_serial:
-            serial_range = first_serial
-        else:
-            serial_range = f"{first_serial}-{last_serial}"
+        # 始终显示为范围格式，即使首尾序列号相同
+        serial_range = f"{first_serial}-{last_serial}"
         
         print(f"📝 分盒小箱标 #{small_box_num}: 包含盒{start_box}-{end_box}, 序列号范围={serial_range}")
         return serial_range
@@ -194,11 +191,8 @@ class SplitBoxDataProcessor:
         last_main = serial_info['main_number'] + last_main_increments
         last_serial = f"{serial_info['prefix']}{last_main:05d}-{last_suffix:02d}"
         
-        # 如果首尾序列号相同，只显示一个
-        if first_serial == last_serial:
-            serial_range = first_serial
-        else:
-            serial_range = f"{first_serial}-{last_serial}"
+        # 始终显示为范围格式，即使首尾序列号相同
+        serial_range = f"{first_serial}-{last_serial}"
         
         print(f"📝 分盒大箱标 #{large_box_num}: 包含小箱{start_small_box}-{end_small_box}, 盒{start_box}-{end_box}, 序列号范围={serial_range}")
         return serial_range

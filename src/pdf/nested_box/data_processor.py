@@ -170,11 +170,8 @@ class NestedBoxDataProcessor:
             start_serial = f"{prefix_part}{current_main_number:05d}-{start_suffix:02d}"
             end_serial = f"{prefix_part}{current_main_number:05d}-{end_suffix:02d}"
             
-            # 套盒套标显示序列号范围
-            if start_suffix == end_suffix:
-                serial_range = start_serial
-            else:
-                serial_range = f"{start_serial}-{end_serial}"
+            # 始终显示为范围格式，即使首尾序列号相同
+            serial_range = f"{start_serial}-{end_serial}"
                 
             print(f"📝 套盒套标 #{small_box_num}: 主号{current_main_number}, 副号{start_suffix}-{end_suffix}, 包含盒{start_box}-{end_box} = {serial_range}")
             return serial_range
@@ -222,11 +219,8 @@ class NestedBoxDataProcessor:
             last_suffix = min(boxes_per_small_box, last_box_in_small_box)
             last_end_serial = f"{prefix_part}{last_main_number:05d}-{last_suffix:02d}"
             
-            # 箱标显示完整序列号范围
-            if first_start_serial == last_end_serial:
-                serial_range = first_start_serial
-            else:
-                serial_range = f"{first_start_serial}-{last_end_serial}"
+            # 始终显示为范围格式，即使首尾序列号相同
+            serial_range = f"{first_start_serial}-{last_end_serial}"
                 
             print(f"📝 套盒箱标 #{large_box_num}: 包含套{start_small_box}-{end_small_box}, 盒{start_box}-{end_box}, 序列号范围={serial_range}")
             return serial_range

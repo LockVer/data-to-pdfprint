@@ -28,11 +28,23 @@ class SplitBoxTemplate(PDFBaseUtils):
 
         Args:
             data: Excel数据
-            params: 用户参数 (张/盒, 盒/小箱, 小箱/大箱, 选择外观)
+            params: 用户参数 (张/盒, 盒/小箱, 小箱/大箱, 选择外观, 是否有小箱)
             output_dir: 输出目录
 
         Returns:
             生成的文件路径字典
+        """
+        # 检查是否有小箱
+        has_small_box = params.get("是否有小箱", True)
+        
+        if has_small_box:
+            return self._create_three_level_pdfs(data, params, output_dir, excel_file_path)
+        else:
+            return self._create_two_level_pdfs(data, params, output_dir, excel_file_path)
+    
+    def _create_three_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
+        """
+        创建三级包装的PDF（有小箱）
         """
         # 计算数量 - 三级结构：张→盒→小箱→大箱
         total_pieces = int(float(data["总张数"]))
@@ -86,6 +98,54 @@ class SplitBoxTemplate(PDFBaseUtils):
             data, params, str(large_box_path), total_large_boxes, excel_file_path
         )
         generated_files["大箱标"] = str(large_box_path)
+
+        return generated_files
+    
+    def _create_two_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
+        """
+        创建二级包装的PDF（无小箱）
+        """
+        # 计算数量 - 二级结构：张→盒→箱
+        total_pieces = int(float(data["总张数"]))
+        pieces_per_box = int(params["张/盒"])
+        boxes_per_large_box = int(params["盒/小箱"])  # 在二级模式下，这实际上是盒/箱
+
+        # 计算各级数量
+        total_boxes = math.ceil(total_pieces / pieces_per_box)
+        total_large_boxes = math.ceil(total_boxes / boxes_per_large_box)
+
+        # 创建输出目录
+        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
+        folder_name = f"{data['客户名称编码']}+{clean_theme}+标签"
+        full_output_dir = Path(output_dir) / folder_name
+        full_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # 获取参数和日期时间戳
+        chinese_name = params.get("中文名称", "")
+        english_name = clean_theme  # 英文名称使用清理后的主题
+        customer_code = data['客户名称编码']  # 客户编号
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        generated_files = {}
+
+        # 生成分盒盒标 (分盒模板无外观选择)
+        selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
+        # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
+        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
+        box_label_path = full_output_dir / box_label_filename
+
+        self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
+        generated_files["盒标"] = str(box_label_path)
+
+        # 生成箱标（复用大箱标逻辑但文件名为箱标）
+        # 文件名格式：客户编号_中文名称_英文名称_分盒箱标_日期时间戳
+        large_box_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒箱标_{timestamp}.pdf"
+        large_box_path = full_output_dir / large_box_filename
+        
+        self._create_two_level_large_box_label(
+            data, params, str(large_box_path), total_large_boxes, total_boxes, boxes_per_large_box, excel_file_path
+        )
+        generated_files["箱标"] = str(large_box_path)
 
         return generated_files
 
@@ -345,6 +405,91 @@ class SplitBoxTemplate(PDFBaseUtils):
             else:  # "无纸卡备注"
                 split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_small_box, small_boxes_per_large_box, serial_range, 
+                                               str(large_box_num), remark_text)
+
+        c.save()
+
+    def _create_two_level_large_box_label(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, 
+                                     total_large_boxes: int, total_boxes: int, boxes_per_large_box: int, excel_file_path: str = None):
+        """创建二级模式的箱标（无小箱）"""
+        # 获取Excel数据 - 使用关键字提取，与大箱标相同
+        excel_path = excel_file_path or '/Users/trq/Desktop/project/Python-project/data-to-pdfprint/test.xlsx'
+        
+        # 使用统一数据处理后的标准四字段（优先使用传入的data参数）
+        theme_text = data.get('标签名称') or 'Unknown Title'
+        base_number = data.get('开始号') or 'DEFAULT01001'
+        remark_text = data.get('客户名称编码') or 'Unknown Client'
+        print(f"✅ 分盒箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        
+        # 计算参数 - 箱标专用（二级模式）
+        pieces_per_box = int(params["张/盒"])  # 第一个参数：张/盒
+        print(f"✅ 分盒箱标参数: 盒/箱={boxes_per_large_box}")
+        
+        # 直接创建单个PDF文件，包含所有箱标
+        self._create_single_two_level_large_box_label_file(
+            data, params, output_path, 1, total_large_boxes,
+            theme_text, base_number, remark_text, pieces_per_box, 
+            boxes_per_large_box, total_large_boxes, total_boxes
+        )
+
+    def _create_single_two_level_large_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
+                                                 start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
+                                                 remark_text: str, pieces_per_box: int, boxes_per_large_box: int, 
+                                                 total_large_boxes: int, total_boxes: int):
+        """创建单个分盒箱标PDF文件（二级模式）"""
+        c = canvas.Canvas(output_path, pagesize=self.page_size)
+        width, height = self.page_size
+
+        # 设置PDF/X兼容模式和CMYK颜色
+        c.setPageCompression(1)
+        c.setTitle(f"分盒箱标-{start_large_box}到{end_large_box}")
+        c.setSubject("Fenhe Box Label (Two Level)")
+        c.setCreator("Data-to-PDF Print")
+
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 在第一页添加空箱标签（仅在处理第一个箱时）
+        if start_large_box == 1:
+            # 获取中文名称参数
+            chinese_name = params.get("中文名称", "")
+            # 获取标签模版类型
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 根据标签模版类型选择空箱标签渲染函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.render_empty_box_label(c, width, height, chinese_name)
+            else:  # "无纸卡备注"
+                split_box_renderer.render_empty_box_label_no_paper_card(c, width, height, chinese_name)
+            
+            c.showPage()
+            c.setFillColor(cmyk_black)
+
+        # 生成指定范围的箱标
+        for large_box_num in range(start_large_box, end_large_box + 1):
+            if large_box_num > start_large_box or start_large_box == 1:  # 修改条件，考虑空标签页
+                if not (large_box_num == start_large_box and start_large_box == 1):  # 避免重复showPage
+                    c.showPage()
+                    c.setFillColor(cmyk_black)
+
+            # 计算当前箱的序列号范围，使用分盒模板的特殊逻辑
+            # 二级模式：复用大箱标逻辑，但设置 small_boxes_per_large_box = 1，进位阈值 = boxes_per_large_box
+            serial_range = split_box_data_processor.generate_split_large_box_serial_range(
+                base_number, large_box_num, 1, boxes_per_large_box, total_boxes
+            )
+            
+            # 获取标签模版类型 - 参照常规模版的实现方式
+            template_type = params.get("标签模版", "有纸卡备注")
+            
+            # 绘制箱标表格 - 传入二级包装参数，根据模版类型选择函数
+            if template_type == "有纸卡备注":
+                split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
+                                               boxes_per_large_box, 1, serial_range, 
+                                               str(large_box_num), remark_text)
+            else:  # "无纸卡备注"
+                split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
+                                               boxes_per_large_box, 1, serial_range, 
                                                str(large_box_num), remark_text)
 
         c.save()
