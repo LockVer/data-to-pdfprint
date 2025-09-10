@@ -17,64 +17,95 @@ class FontManager:
         """初始化字体管理器"""
         self.font_name = "MicrosoftYaHei"  # 默认字体名称
         self.chinese_font_name = "MicrosoftYaHei"  # 中文字体名称
+        self.bold_font_name = "MicrosoftYaHei-Bold"  # 粗体字体名称
         self.font_registered = False
+        self.bold_font_registered = False
         
     def register_chinese_font(self):
         """
-        注册中文字体
+        注册中文字体（常规和粗体）
         
         Returns:
             bool: 字体注册是否成功
         """
-        if self.font_registered:
+        if self.font_registered and self.bold_font_registered:
             return True
             
         try:
             # 获取项目字体路径
-            font_paths = self._get_font_paths()
-
-            # 尝试注册第一个可用的字体
-            for font_path in font_paths:
-                if os.path.exists(font_path):
-                    try:
-                        pdfmetrics.registerFont(TTFont(self.font_name, font_path))
-                        print(f"[OK] 成功注册中文字体: {font_path}")
-                        self.font_registered = True
-                        return True
-                    except Exception as e:
-                        print(f"[WARNING] 字体注册失败 {font_path}: {str(e)}")
-                        continue
+            regular_paths, bold_paths = self._get_font_paths()
+            
+            # 注册常规字体
+            if not self.font_registered:
+                for font_path in regular_paths:
+                    if os.path.exists(font_path):
+                        try:
+                            pdfmetrics.registerFont(TTFont(self.font_name, font_path))
+                            print(f"[OK] 成功注册常规中文字体: {font_path}")
+                            self.font_registered = True
+                            break
+                        except Exception as e:
+                            print(f"[WARNING] 常规字体注册失败 {font_path}: {str(e)}")
+                            continue
+            
+            # 注册粗体字体
+            if not self.bold_font_registered:
+                for font_path in bold_paths:
+                    if os.path.exists(font_path):
+                        try:
+                            if font_path.endswith('.ttc'):
+                                # TTC文件需要指定字体索引，微软雅黑粗体通常是索引0
+                                pdfmetrics.registerFont(TTFont(self.bold_font_name, font_path, subfontIndex=0))
+                            else:
+                                pdfmetrics.registerFont(TTFont(self.bold_font_name, font_path))
+                            print(f"[OK] 成功注册粗体中文字体: {font_path}")
+                            self.bold_font_registered = True
+                            break
+                        except Exception as e:
+                            print(f"[WARNING] 粗体字体注册失败 {font_path}: {str(e)}")
+                            continue
 
             # 如果没有找到合适的字体，使用Helvetica作为fallback
-            print("[WARNING] 未找到中文字体，将使用默认字体")
-            self.font_name = "Helvetica"
-            self.chinese_font_name = "Helvetica"
-            return False
+            if not self.font_registered:
+                print("[WARNING] 未找到中文字体，将使用默认字体")
+                self.font_name = "Helvetica"
+                self.chinese_font_name = "Helvetica"
+                
+            if not self.bold_font_registered:
+                print("[WARNING] 未找到粗体字体，粗体将使用常规字体")
+                self.bold_font_name = self.font_name
+                
+            return self.font_registered
 
         except Exception as e:
             print(f"[WARNING] 字体注册过程出错: {str(e)}")
             self.font_name = "Helvetica"
             self.chinese_font_name = "Helvetica"
+            self.bold_font_name = "Helvetica-Bold"
             return False
     
-    def _get_font_paths(self) -> list:
+    def _get_font_paths(self) -> tuple:
         """
         获取项目fonts目录下的字体路径列表
         考虑打包后的路径兼容性
         
         Returns:
-            list: 字体路径列表
+            tuple: (常规字体路径列表, 粗体字体路径列表)
         """
-        font_paths = []
+        regular_paths = []
+        bold_paths = []
         
         # 方法1: PyInstaller打包环境 - 从临时目录读取
         try:
             if getattr(sys, 'frozen', False):
                 # PyInstaller打包后，字体文件在临时目录中
                 base_path = sys._MEIPASS
-                font_path = os.path.join(base_path, "fonts", "msyh.ttf")
-                font_paths.append(font_path)
-                print(f"[INFO] PyInstaller模式，字体路径: {font_path}")
+                regular_path = os.path.join(base_path, "fonts", "msyh.ttf")
+                bold_path = os.path.join(base_path, "fonts", "msyhbd.ttc")
+                regular_paths.append(regular_path)
+                bold_paths.append(bold_path)
+                print(f"[INFO] PyInstaller模式，常规字体路径: {regular_path}")
+                print(f"[INFO] PyInstaller模式，粗体字体路径: {bold_path}")
         except Exception as e:
             print(f"[WARNING] PyInstaller路径查找失败: {e}")
         
@@ -82,28 +113,39 @@ class FontManager:
         try:
             src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             fonts_dir = os.path.join(src_dir, "fonts")
-            font_path = os.path.join(fonts_dir, "msyh.ttf")
-            font_paths.append(font_path)
-            print(f"[INFO] 开发环境，字体路径: {font_path}")
+            regular_path = os.path.join(fonts_dir, "msyh.ttf")
+            bold_path = os.path.join(fonts_dir, "msyhbd.ttc")
+            regular_paths.append(regular_path)
+            bold_paths.append(bold_path)
+            print(f"[INFO] 开发环境，常规字体路径: {regular_path}")
+            print(f"[INFO] 开发环境，粗体字体路径: {bold_path}")
         except Exception as e:
             print(f"[WARNING] 开发环境路径查找失败: {e}")
         
         # 方法3: 相对于当前工作目录
         try:
-            font_path = os.path.join("src", "fonts", "msyh.ttf")
-            font_paths.append(font_path)
-            print(f"[INFO] 相对路径，字体路径: {font_path}")
+            regular_path = os.path.join("src", "fonts", "msyh.ttf")
+            bold_path = os.path.join("src", "fonts", "msyhbd.ttc")
+            regular_paths.append(regular_path)
+            bold_paths.append(bold_path)
+            print(f"[INFO] 相对路径，常规字体路径: {regular_path}")
+            print(f"[INFO] 相对路径，粗体字体路径: {bold_path}")
         except Exception as e:
             print(f"[WARNING] 相对路径查找失败: {e}")
             
         # 去重并返回
-        unique_paths = []
-        for path in font_paths:
-            if path not in unique_paths:
-                unique_paths.append(path)
+        unique_regular = []
+        unique_bold = []
+        for path in regular_paths:
+            if path not in unique_regular:
+                unique_regular.append(path)
+        for path in bold_paths:
+            if path not in unique_bold:
+                unique_bold.append(path)
                 
-        print(f"[INFO] 所有可能的字体路径: {unique_paths}")
-        return unique_paths
+        print(f"[INFO] 所有可能的常规字体路径: {unique_regular}")
+        print(f"[INFO] 所有可能的粗体字体路径: {unique_bold}")
+        return unique_regular, unique_bold
     
     def set_best_font(self, canvas_obj, font_size: int, bold: bool = True):
         """
@@ -115,12 +157,12 @@ class FontManager:
             bold: 是否加粗
         """
         try:
-            if bold:
-                canvas_obj.setFont(self.chinese_font_name + "-Bold", font_size)
+            if bold and self.bold_font_registered:
+                canvas_obj.setFont(self.bold_font_name, font_size)
             else:
                 canvas_obj.setFont(self.chinese_font_name, font_size)
-        except:
-            # 如果加粗字体不存在，使用常规字体
+        except Exception as e:
+            print(f"[WARNING] 设置字体失败 {e}，使用常规字体")
             canvas_obj.setFont(self.chinese_font_name, font_size)
     
     def has_chinese(self, text: str) -> bool:

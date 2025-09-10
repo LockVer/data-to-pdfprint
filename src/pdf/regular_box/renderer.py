@@ -21,7 +21,7 @@ class RegularRenderer:
     
     def render_appearance_one(self, c, width, top_text, serial_number, top_text_y, serial_number_y):
         """渲染外观一：简洁标准样式"""
-        # 使用多次绘制实现加粗效果
+        # 使用粗体字体
         c.setFillColor(CMYKColor(0, 0, 0, 1))
         
         # 设置最适合的字体
@@ -42,19 +42,15 @@ class RegularRenderer:
             
             for i, line in enumerate(top_text_lines):
                 current_y = start_y - i * line_height
-                # 多次绘制增加粗细
-                for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-                    c.drawCentredString(width / 2 + offset[0], current_y + offset[1], line)
+                c.drawCentredString(width / 2, current_y, line)
         else:
             # 单行时使用原字体大小
-            for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-                c.drawCentredString(width / 2 + offset[0], top_text_y + offset[1], top_text_lines[0])
+            c.drawCentredString(width / 2, top_text_y, top_text_lines[0])
 
         # 重置字体大小绘制序列号
         font_manager.set_best_font(c, 22, bold=True)
-        # 下部序列号 - 多次绘制增加粗细  
-        for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-            c.drawCentredString(width / 2 + offset[0], serial_number_y + offset[1], serial_number)
+        # 下部序列号
+        c.drawCentredString(width / 2, serial_number_y, serial_number)
 
     def render_appearance_two(self, c, width, page_size, game_title, ticket_count, serial_number, top_y, bottom_y):
         """渲染外观二：精确的三行布局格式"""
@@ -93,28 +89,24 @@ class RegularRenderer:
         for i, line in enumerate(title_lines):
             current_y = game_title_y - i * 14  # 行间距14点
             if i == 0:
-                # 第一行包含"Game title: "前缀，左对齐，多次绘制加粗
+                # 第一行包含"Game title: "前缀，左对齐
                 full_line = f"{title_prefix}{line}"
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawString(left_margin + offset[0], current_y + offset[1], full_line)
+                c.drawString(left_margin, current_y, full_line)
             else:
-                # 后续换行内容居中显示，多次绘制加粗
+                # 后续换行内容居中显示
                 line_width = c.stringWidth(line, used_font, 12)
                 center_x = (width - line_width) / 2
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawString(center_x + offset[0], current_y + offset[1], line)
+                c.drawString(center_x, current_y, line)
         
-        # Ticket count: 左下区域，增加与Serial的间距，多次绘制加粗
+        # Ticket count: 左下区域，增加与Serial的间距
         ticket_count_y = 15 * mm  # 距离底部15mm
         ticket_text = f"Ticket count: {ticket_count}"
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawString(left_margin + offset[0], ticket_count_y + offset[1], ticket_text)
+        c.drawString(left_margin, ticket_count_y, ticket_text)
         
-        # Serial: 距离底部，多次绘制加粗
+        # Serial: 距离底部
         serial_y = 6 * mm  # 距离底部6mm
         serial_text = f"Serial: {clean_serial_number}"
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawString(left_margin + offset[0], serial_y + offset[1], serial_text)
+        c.drawString(left_margin, serial_y, serial_text)
 
     def draw_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
                             serial_range, carton_no, remark_text, template_type="有纸卡备注"):
@@ -189,8 +181,7 @@ class RegularRenderer:
             # 无纸卡备注模版：4行结构
             # 行1: Item (第4行，从上往下) - 显示主题内容
             item_y = row_positions[3] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+            c.drawCentredString(label_center_x, item_y, "Item:")
             
             # 应用文本清理和换行处理主题内容
             clean_theme_text = text_processor.clean_text_for_font(theme_text)
@@ -207,60 +198,51 @@ class RegularRenderer:
                 multi_text_offset = 8 / 3  # 8号字体的偏移
                 start_y = cell_center_y + total_text_height / 2 - multi_text_offset
                 for i, line in enumerate(theme_lines):
-                    for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                        c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                    c.drawCentredString(data_center_x, start_y - i * line_height, line)
                 font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
             else:
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], item_y + offset[1], theme_lines[0])
+                c.drawCentredString(data_center_x, item_y, theme_lines[0])
             
             # 行2: Quantity (第3行，双倍高度)
             quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+            c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
             # 上层：票数
             upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
             pcs_text = f"{pieces_per_small_box}PCS"
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+            c.drawCentredString(data_center_x, upper_y, pcs_text)
             # 下层：序列号范围
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
             # 行3: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
-                c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+            c.drawCentredString(label_center_x, carton_y, "Carton No:")
+            c.drawCentredString(data_center_x, carton_y, carton_no)
             
             # 行4: Remark (第1行)
             remark_y = row_positions[0] + base_row_height/2 - text_offset
             clean_remark_text = text_processor.clean_text_for_font(remark_text)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-                c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
+            c.drawCentredString(label_center_x, remark_y, "Remark:")
+            c.drawCentredString(data_center_x, remark_y, clean_remark_text)
         
         else:
             # 有纸卡备注模版：5行结构（原有逻辑）
             # 行1: Item (第5行，从上往下) - 显示"Paper Cards"
             item_y = row_positions[4] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
-                c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+            c.drawCentredString(label_center_x, item_y, "Item:")
+            c.drawCentredString(data_center_x, item_y, "Paper Cards")
             
             # 行2: Theme (第4行) - 显示主题内容
             theme_y = row_positions[3] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
+            c.drawCentredString(label_center_x, theme_y, "Theme:")
             
             # 应用文本清理和换行处理
             clean_theme_text = text_processor.clean_text_for_font(theme_text)
             max_theme_width = data_col_width - 4*mm  # 留出边距
             theme_lines = text_processor.wrap_text_to_fit(c, clean_theme_text, max_theme_width, font_manager.get_chinese_font_name(), 10)
             
-            # 绘制主题文本（支持多行） - 多次绘制加粗
+            # 绘制主题文本（支持多行）
             if len(theme_lines) > 1:
                 # 多行：调整字体大小并垂直居中
                 font_manager.set_best_font(c, 8, bold=True)
@@ -273,40 +255,33 @@ class RegularRenderer:
                 multi_text_offset = 8 / 3  # 8号字体的偏移
                 start_y = cell_center_y + total_text_height / 2 - multi_text_offset
                 for i, line in enumerate(theme_lines):
-                    for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                        c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                    c.drawCentredString(data_center_x, start_y - i * line_height, line)
                 font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
             else:
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
+                c.drawCentredString(data_center_x, theme_y, theme_lines[0])
             
-            # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗
+            # 行3: Quantity (第3行，双倍高度)
             quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+            c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
             # 上层：票数（在分隔线上方居中）
             upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
             pcs_text = f"{pieces_per_small_box}PCS"
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+            c.drawCentredString(data_center_x, upper_y, pcs_text)
             # 下层：序列号范围（在分隔线下方居中）
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
-            # 行4: Carton No (第2行) - 多次绘制加粗
+            # 行4: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
-                c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+            c.drawCentredString(label_center_x, carton_y, "Carton No:")
+            c.drawCentredString(data_center_x, carton_y, carton_no)
             
-            # 行5: Remark (第1行) - 多次绘制加粗
+            # 行5: Remark (第1行)
             remark_y = row_positions[0] + base_row_height/2 - text_offset
             clean_remark_text = text_processor.clean_text_for_font(remark_text)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-                c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
+            c.drawCentredString(label_center_x, remark_y, "Remark:")
+            c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
     def render_appearance_two(self, c, width, page_size, game_title, ticket_count, serial_number, top_y, bottom_y):
         """渲染外观二：精确的三行布局格式"""
@@ -345,28 +320,24 @@ class RegularRenderer:
         for i, line in enumerate(title_lines):
             current_y = game_title_y - i * 14  # 行间距14点
             if i == 0:
-                # 第一行包含"Game title: "前缀，左对齐，多次绘制加粗
+                # 第一行包含"Game title: "前缀，左对齐
                 full_line = f"{title_prefix}{line}"
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawString(left_margin + offset[0], current_y + offset[1], full_line)
+                c.drawString(left_margin, current_y, full_line)
             else:
-                # 后续换行内容居中显示，多次绘制加粗
+                # 后续换行内容居中显示
                 line_width = c.stringWidth(line, used_font, 12)
                 center_x = (width - line_width) / 2
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawString(center_x + offset[0], current_y + offset[1], line)
+                c.drawString(center_x, current_y, line)
         
-        # Ticket count: 左下区域，增加与Serial的间距，多次绘制加粗
+        # Ticket count: 左下区域，增加与Serial的间距
         ticket_count_y = 15 * mm  # 距离底部15mm
         ticket_text = f"Ticket count: {ticket_count}"
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawString(left_margin + offset[0], ticket_count_y + offset[1], ticket_text)
+        c.drawString(left_margin, ticket_count_y, ticket_text)
         
-        # Serial: 距离底部，多次绘制加粗
+        # Serial: 距离底部
         serial_y = 6 * mm  # 距离底部6mm
         serial_text = f"Serial: {clean_serial_number}"
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawString(left_margin + offset[0], serial_y + offset[1], serial_text)
+        c.drawString(left_margin, serial_y, serial_text)
 
     def draw_large_box_table(self, c, width, height, theme_text, pieces_per_large_box,
                             serial_range, carton_no, remark_text, template_type="有纸卡备注"):
@@ -441,8 +412,7 @@ class RegularRenderer:
             # 无纸卡备注模版：4行结构
             # 行1: Item (第4行，从上往下) - 显示主题内容
             item_y = row_positions[3] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+            c.drawCentredString(label_center_x, item_y, "Item:")
             
             # 应用文本清理和换行处理主题内容
             clean_theme_text = text_processor.clean_text_for_font(theme_text)
@@ -459,53 +429,44 @@ class RegularRenderer:
                 multi_text_offset = 8 / 3  # 8号字体的偏移
                 start_y = cell_center_y + total_text_height / 2 - multi_text_offset
                 for i, line in enumerate(theme_lines):
-                    for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                        c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                    c.drawCentredString(data_center_x, start_y - i * line_height, line)
                 font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
             else:
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], item_y + offset[1], theme_lines[0])
+                c.drawCentredString(data_center_x, item_y, theme_lines[0])
             
             # 行2: Quantity (第3行，双倍高度)
             quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+            c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
             # 上层：票数
             upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
             pcs_text = f"{pieces_per_large_box}PCS"
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+            c.drawCentredString(data_center_x, upper_y, pcs_text)
             # 下层：序列号范围
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
             # 行3: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
-                c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+            c.drawCentredString(label_center_x, carton_y, "Carton No:")
+            c.drawCentredString(data_center_x, carton_y, carton_no)
             
             # 行4: Remark (第1行)
             remark_y = row_positions[0] + base_row_height/2 - text_offset
             clean_remark_text = text_processor.clean_text_for_font(remark_text)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-                c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
+            c.drawCentredString(label_center_x, remark_y, "Remark:")
+            c.drawCentredString(data_center_x, remark_y, clean_remark_text)
         
         else:
             # 有纸卡备注模版：5行结构（原有逻辑）
             # 行1: Item (第5行，从上往下) - 显示"Paper Cards"
             item_y = row_positions[4] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
-                c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+            c.drawCentredString(label_center_x, item_y, "Item:")
+            c.drawCentredString(data_center_x, item_y, "Paper Cards")
             
             # 行2: Theme (第4行) - 显示主题内容
             theme_y = row_positions[3] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
+            c.drawCentredString(label_center_x, theme_y, "Theme:")
             
             # 应用文本清理和换行处理
             clean_theme_text = text_processor.clean_text_for_font(theme_text)
@@ -525,40 +486,33 @@ class RegularRenderer:
                 multi_text_offset = 8 / 3  # 8号字体的偏移
                 start_y = cell_center_y + total_text_height / 2 - multi_text_offset
                 for i, line in enumerate(theme_lines):
-                    for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                        c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                    c.drawCentredString(data_center_x, start_y - i * line_height, line)
                 font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
             else:
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
+                c.drawCentredString(data_center_x, theme_y, theme_lines[0])
             
-            # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗
+            # 行3: Quantity (第3行，双倍高度)
             quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+            c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
             # 上层：票数（在分隔线上方居中）
             upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
             pcs_text = f"{pieces_per_large_box}PCS"
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+            c.drawCentredString(data_center_x, upper_y, pcs_text)
             # 下层：序列号范围（在分隔线下方居中）
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
-            # 行4: Carton No (第2行) - 多次绘制加粗
+            # 行4: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
-                c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+            c.drawCentredString(label_center_x, carton_y, "Carton No:")
+            c.drawCentredString(data_center_x, carton_y, carton_no)
             
-            # 行5: Remark (第1行) - 多次绘制加粗
+            # 行5: Remark (第1行)
             remark_y = row_positions[0] + base_row_height/2 - text_offset
             clean_remark_text = text_processor.clean_text_for_font(remark_text)
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-                c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
+            c.drawCentredString(label_center_x, remark_y, "Remark:")
+            c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
     def render_empty_box_label(self, c, width, height, chinese_name):
         """渲染空箱标签 - 用于小箱标和大箱标的第一页（有纸卡备注）"""
@@ -612,36 +566,31 @@ class RegularRenderer:
         # 文本偏移量
         text_offset = 3
         
-        # 行1: Item (第5行，从上往下) - 多次绘制加粗
+        # 行1: Item (第5行，从上往下)
         item_y = row_positions[4] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
-            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+        c.drawCentredString(label_center_x, item_y, "Item:")
+        c.drawCentredString(data_center_x, item_y, "Paper Cards")
         
-        # 行2: Theme (第4行) - 多次绘制加粗，使用用户输入的中文名称
+        # 行2: Theme (第4行) - 使用用户输入的中文名称
         theme_y = row_positions[3] + base_row_height/2 - text_offset
         clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
-            c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], clean_chinese_name)
+        c.drawCentredString(label_center_x, theme_y, "Theme:")
+        c.drawCentredString(data_center_x, theme_y, clean_chinese_name)
         
-        # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗，保持空白
+        # 行3: Quantity (第3行，双倍高度) - 保持空白
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
             # 数据列保持空白
         
-        # 行4: Carton No (第2行) - 多次绘制加粗，保持空白
+        # 行4: Carton No (第2行) - 保持空白
         carton_y = row_positions[1] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+        c.drawCentredString(label_center_x, carton_y, "Carton No:")
             # 数据列保持空白
         
-        # 行5: Remark (第1行) - 多次绘制加粗
+        # 行5: Remark (第1行)
         remark_y = row_positions[0] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+        c.drawCentredString(label_center_x, remark_y, "Remark:")
+        c.drawCentredString(data_center_x, remark_y, "KHQC0015")
 
     def render_empty_box_label_no_paper_card(self, c, width, height, chinese_name):
         """渲染空箱标签 - 用于小箱标和大箱标的第一页（无纸卡备注）"""
@@ -696,8 +645,7 @@ class RegularRenderer:
         
         # 行1: Item (第4行，从上往下) - 显示中文名称
         item_y = row_positions[3] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+        c.drawCentredString(label_center_x, item_y, "Item:")
         
         # 应用文本清理和换行处理
         clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
@@ -716,30 +664,25 @@ class RegularRenderer:
             multi_text_offset = 8 / 3  # 8号字体的偏移
             start_y = cell_center_y + total_text_height / 2 - multi_text_offset
             for i, line in enumerate(theme_lines):
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                c.drawCentredString(data_center_x, start_y - i * line_height, line)
             font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
         else:
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], item_y + offset[1], theme_lines[0])
+            c.drawCentredString(data_center_x, item_y, theme_lines[0])
         
-        # 行2: Quantity (第3行，双倍高度) - 多次绘制加粗，保持空白
+        # 行2: Quantity (第3行，双倍高度) - 保持空白
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
             # 数据列保持空白
         
-        # 行3: Carton No (第2行) - 多次绘制加粗，保持空白
+        # 行3: Carton No (第2行) - 保持空白
         carton_y = row_positions[1] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+        c.drawCentredString(label_center_x, carton_y, "Carton No:")
             # 数据列保持空白
         
-        # 行4: Remark (第1行) - 多次绘制加粗
+        # 行4: Remark (第1行)
         remark_y = row_positions[0] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+        c.drawCentredString(label_center_x, remark_y, "Remark:")
+        c.drawCentredString(data_center_x, remark_y, "KHQC0015")
 
 
 # 创建全局实例供regular模板使用  
