@@ -106,14 +106,20 @@ class SplitBoxUIDialog:
         # 保存params_frame引用以便后续使用
         self.params_frame = params_frame
 
-        # 张/盒显示（从Excel提取的值）
-        pieces_per_box_value = self.main_app.current_data.get('张/盒', 'N/A')
+        # 张/盒输入框（预填充Excel提取的值）
         ttk.Label(params_frame, text="张/盒:").grid(
             row=0, column=0, sticky=tk.W, pady=5
         )
-        ttk.Label(params_frame, text=f"{pieces_per_box_value}").grid(
-            row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5
+        self.main_app.pieces_per_box_var = tk.StringVar()
+        pieces_per_box_entry = ttk.Entry(
+            params_frame, textvariable=self.main_app.pieces_per_box_var, width=15
         )
+        pieces_per_box_entry.grid(row=0, column=1, sticky=tk.W, padx=(10, 0), pady=5)
+        
+        # 预填充从Excel提取的值
+        pieces_per_box_value = self.main_app.current_data.get('张/盒', '')
+        if pieces_per_box_value and pieces_per_box_value != 'N/A':
+            self.main_app.pieces_per_box_var.set(str(pieces_per_box_value))
 
         # 第二个参数（根据选择动态调整）
         self.second_param_label = ttk.Label(params_frame, text="盒/小箱:")
@@ -211,18 +217,29 @@ class SplitBoxUIDialog:
         boxes_per_small_box_str = self.main_app.boxes_per_small_box_var.get().strip()
         small_boxes_per_large_box_str = self.main_app.small_boxes_per_large_box_var.get().strip()
         
-        # 从提取的数据中获取张/盒值
-        pieces_per_box = int(self.main_app.current_data.get('张/盒', 0))
+        # 获取张/盒参数值
+        pieces_per_box_str = self.main_app.pieces_per_box_var.get().strip()
+        
+        # 检查张/盒空值
+        if not pieces_per_box_str:
+            messagebox.showerror("参数错误", "请输入'张/盒'参数")
+            return
+            
+        try:
+            pieces_per_box = int(pieces_per_box_str)
+        except ValueError:
+            messagebox.showerror("参数错误", "'张/盒'必须为有效整数\n\n正确格式示例：300")
+            return
         
         # 检查张/盒是否有效
         if pieces_per_box <= 0:
-            messagebox.showerror("参数错误", "提取的'张/盒'数据无效\n\n当前值：{}\n\n请检查Excel文件中的'张/盒'字段".format(pieces_per_box))
+            messagebox.showerror("参数错误", "'张/盒'必须为正整数\n\n当前值：{}".format(pieces_per_box))
             return
         
         # 检查张/盒不能超过总张数
         total_pieces = int(self.main_app.current_data.get('总张数', 0))
         if pieces_per_box > total_pieces:
-            messagebox.showerror("参数错误", "提取的'张/盒'超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请检查Excel文件中的数据是否正确".format(pieces_per_box, total_pieces))
+            messagebox.showerror("参数错误", "'张/盒'不能超过总张数\n\n当前设置：{} 张/盒\n总张数：{} 张\n\n请输入不超过{}的值".format(pieces_per_box, total_pieces, total_pieces))
             return
         
         # 检查空值
