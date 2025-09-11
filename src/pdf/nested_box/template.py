@@ -214,7 +214,17 @@ class NestedBoxTemplate(PDFBaseUtils):
         # 生成套盒盒标 - 基于开始号到结束号的范围
         print(f"📝 开始生成套盒盒标，预计生成 {total_boxes} 个标签")
         
+        # 获取中文名称用于空白首页
+        chinese_name = params.get("中文名称", "")
+        
         for box_num in range(1, total_boxes + 1):
+            # 🔥 新增：在第一个标签时添加空白首页
+            if box_num == 1 and chinese_name:
+                print(f"📝 生成空白首页: {chinese_name}")
+                nested_box_renderer.render_blank_first_page(c, width, height, chinese_name)
+                c.showPage()
+                c.setFillColor(cmyk_black)
+            
             if box_num > 1:
                 c.showPage()
                 c.setFillColor(cmyk_black)

@@ -703,6 +703,90 @@ class SplitBoxRenderer:
             c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
             c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
+    def render_blank_first_page(self, c, width, height, chinese_name):
+        """渲染分盒模版盒标的空白首页 - 仅显示中文标题"""
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+        
+        # 清理中文文本
+        clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
+        
+        # 设置大字体用于首页标题
+        font_size = 35
+        font_manager.set_best_font(c, font_size, bold=True)
+        
+        # 计算页面中央位置
+        center_x = width / 2
+        center_y = height / 2
+        
+        # 计算最大文本宽度（页面宽度的80%）
+        max_width = width * 0.8
+        
+        # 检查文本宽度并进行中文字符级换行
+        current_font_name = font_manager.get_chinese_font_name()
+        text_width = c.stringWidth(clean_chinese_name, current_font_name, font_size)
+        
+        if text_width > max_width:
+            # 需要换行：使用字符级别分割（适用于中文）
+            title_lines = self._wrap_chinese_text_by_chars(c, clean_chinese_name, max_width, current_font_name, font_size)
+            
+            if len(title_lines) > 1:
+                # 多行：调整字体大小
+                smaller_font_size = 25
+                font_manager.set_best_font(c, smaller_font_size, bold=True)
+                # 重新计算换行（基于新的字体大小）
+                title_lines = self._wrap_chinese_text_by_chars(c, clean_chinese_name, max_width, current_font_name, smaller_font_size)
+                
+                # 计算行高和总高度
+                line_height = smaller_font_size * 1.2  # 行高为字体大小的1.2倍
+                total_height = (len(title_lines) - 1) * line_height
+                
+                # 计算起始Y位置（垂直居中）
+                start_y = center_y + total_height / 2
+                
+                # 绘制每一行，居中显示 - 多次绘制实现加粗效果
+                for i, line in enumerate(title_lines):
+                    line_y = start_y - i * line_height
+                    for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
+                        c.drawCentredString(center_x + offset[0], line_y + offset[1], line)
+            else:
+                # 单行但需要小字体
+                for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
+                    c.drawCentredString(center_x + offset[0], center_y + offset[1], title_lines[0])
+        else:
+            # 单行：使用原始大字体，居中显示 - 多次绘制实现加粗效果
+            for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
+                c.drawCentredString(center_x + offset[0], center_y + offset[1], clean_chinese_name)
+
+    def _wrap_chinese_text_by_chars(self, c, text, max_width, font_name, font_size):
+        """按字符级别换行中文文本（适用于没有空格分隔的中文）"""
+        if not text:
+            return [""]
+        
+        lines = []
+        current_line = ""
+        
+        for char in text:
+            test_line = current_line + char
+            text_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if text_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = char
+                else:
+                    # 如果单个字符都超宽，强制添加
+                    lines.append(char)
+                    current_line = ""
+        
+        if current_line:
+            lines.append(current_line)
+        
+        return lines if lines else [text]
+
 
 # 创建全局实例供split_box模板使用
 split_box_renderer = SplitBoxRenderer()

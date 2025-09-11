@@ -195,8 +195,18 @@ class SplitBoxTemplate(PDFBaseUtils):
         top_text_y = height - 1.5 * blank_height      # 产品名称居中在区域2
         serial_number_y = height - 3.5 * blank_height # 序列号居中在区域4
 
+        # 获取中文名称用于空白首页
+        chinese_name = params.get("中文名称", "")
+        
         # 生成指定范围的盒标
         for box_num in range(start_box, end_box + 1):
+            # 🔥 新增：在第一个标签时添加空白首页（只对外观1）
+            if box_num == start_box and style == "外观一" and chinese_name:
+                print(f"📝 生成分盒盒标空白首页: {chinese_name}")
+                split_box_renderer.render_blank_first_page(c, width, height, chinese_name)
+                c.showPage()
+                c.setFillColor(cmyk_black)
+            
             if box_num > start_box:
                 c.showPage()
                 c.setFillColor(cmyk_black)
