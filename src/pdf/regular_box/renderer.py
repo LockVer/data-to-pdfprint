@@ -119,8 +119,6 @@ class RegularRenderer:
     def draw_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
                             serial_range, carton_no, remark_text, template_type="有纸卡备注", serial_font_size=10):
         """绘制小箱标表格"""
-        # 使用用户指定的序列号字体大小，重新计算文字偏移
-        serial_text_offset = serial_font_size / 3
         
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -184,9 +182,8 @@ class RegularRenderer:
         label_center_x = table_x + label_col_width / 2  # 标签列居中
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
-        # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = serial_font_size
-        text_offset = font_size / 3
+        # 调整文字垂直居中位置 - 使用固定10号字体的偏移量来计算所有单元格的位置
+        text_offset = 10 / 3
         
         if template_type == "无纸卡备注":
             # 无纸卡备注模版：4行结构
@@ -233,6 +230,8 @@ class RegularRenderer:
             font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            # 重置字体为10号，避免影响后续单元格
+            font_manager.set_best_font(c, 10, bold=True)
             
             # 行3: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -301,6 +300,8 @@ class RegularRenderer:
             font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            # 重置字体为10号，避免影响后续单元格
+            font_manager.set_best_font(c, 10, bold=True)
             
             # 行4: Carton No (第2行) - 多次绘制加粗
             carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -378,8 +379,6 @@ class RegularRenderer:
     def draw_large_box_table(self, c, width, height, theme_text, pieces_per_large_box,
                             serial_range, carton_no, remark_text, template_type="有纸卡备注", serial_font_size=10):
         """绘制大箱标表格"""
-        # 使用用户指定的序列号字体大小，重新计算文字偏移
-        serial_text_offset = serial_font_size / 3
         
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -443,9 +442,8 @@ class RegularRenderer:
         label_center_x = table_x + label_col_width / 2  # 标签列居中
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
-        # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = serial_font_size
-        text_offset = font_size / 3
+        # 调整文字垂直居中位置 - 使用固定10号字体的偏移量来计算所有单元格的位置
+        text_offset = 10 / 3
         
         if template_type == "无纸卡备注":
             # 无纸卡备注模版：4行结构
@@ -492,6 +490,8 @@ class RegularRenderer:
             font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            # 重置字体为10号，避免影响后续单元格
+            font_manager.set_best_font(c, 10, bold=True)
             
             # 行3: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -560,6 +560,8 @@ class RegularRenderer:
             font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+            # 重置字体为10号，避免影响后续单元格
+            font_manager.set_best_font(c, 10, bold=True)
             
             # 行4: Carton No (第2行) - 多次绘制加粗
             carton_y = row_positions[1] + base_row_height/2 - text_offset
