@@ -393,8 +393,8 @@ class RegularUIDialog:
         
         try:
             serial_font_size = int(serial_font_size_str)
-            if serial_font_size < 6 or serial_font_size > 20:
-                messagebox.showerror("参数错误", "序列号字体大小必须在6-20之间\n\n当前值：{}".format(serial_font_size))
+            if serial_font_size < 6 or serial_font_size > 14:
+                messagebox.showerror("参数错误", "序列号字体大小必须在6-14之间\n\n当前值：{}".format(serial_font_size))
                 return
         except ValueError:
             messagebox.showerror("参数错误", "请输入有效的序列号字体大小\n\n正确格式示例：10")
