@@ -125,6 +125,32 @@ class NestedBoxUIDialog:
         )
         no_small_box_radio.grid(row=0, column=1, sticky=tk.W, padx=(20, 0), pady=5)
 
+        # 盒标类型选择框架
+        box_label_frame = ttk.LabelFrame(main_frame, text="盒标类型选择", padding="15")
+        box_label_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        self.main_app.has_box_label_var = tk.StringVar(value="无盒标")
+        
+        # 居中布局的框架
+        box_label_container = ttk.Frame(box_label_frame)
+        box_label_container.pack(expand=True)
+        
+        no_box_label_radio = ttk.Radiobutton(
+            box_label_container,
+            text="无盒标",
+            variable=self.main_app.has_box_label_var,
+            value="无盒标"
+        )
+        no_box_label_radio.grid(row=0, column=0, sticky=tk.W, pady=5)
+
+        has_box_label_radio = ttk.Radiobutton(
+            box_label_container,
+            text="有盒标",
+            variable=self.main_app.has_box_label_var,
+            value="有盒标"
+        )
+        has_box_label_radio.grid(row=0, column=1, sticky=tk.W, padx=(20, 0), pady=5)
+
         # 参数输入框架
         params_frame = ttk.LabelFrame(main_frame, text="包装参数", padding="15")
         params_frame.pack(fill=tk.X, pady=(0, 20))
@@ -363,6 +389,9 @@ class NestedBoxUIDialog:
         # 获取小箱选择
         has_small_box = self.main_app.has_small_box_var.get() == "有小箱"
         
+        # 获取盒标选择  
+        has_box_label = self.main_app.has_box_label_var.get() == "有盒标"
+        
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,
@@ -374,6 +403,7 @@ class NestedBoxUIDialog:
             "中文名称": self.main_app.chinese_name_var.get(),
             "序列号字体大小": serial_font_size,
             "是否有小箱": has_small_box,
+            "是否有盒标": has_box_label,
         }
 
         dialog.destroy()

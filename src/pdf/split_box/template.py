@@ -71,14 +71,20 @@ class SplitBoxTemplate(PDFBaseUtils):
 
         generated_files = {}
 
-        # 生成分盒盒标 (分盒模板无外观选择)
-        selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
-        # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
-        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
-        box_label_path = full_output_dir / box_label_filename
+        # 检查是否需要生成盒标
+        has_box_label = params.get("是否有盒标", False)
+        
+        if has_box_label:
+            # 生成分盒盒标 (分盒模板无外观选择)
+            selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
+            # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
+            box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
+            box_label_path = full_output_dir / box_label_filename
 
-        self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
-        generated_files["盒标"] = str(box_label_path)
+            self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
+            generated_files["盒标"] = str(box_label_path)
+        else:
+            print("⏭️ 用户选择无盒标，跳过盒标生成")
 
         # 生成小箱标
         # 文件名格式：客户编号_中文名称_英文名称_分盒小箱标_日期时间戳
@@ -128,14 +134,20 @@ class SplitBoxTemplate(PDFBaseUtils):
         
         generated_files = {}
 
-        # 生成分盒盒标 (分盒模板无外观选择)
-        selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
-        # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
-        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
-        box_label_path = full_output_dir / box_label_filename
+        # 检查是否需要生成盒标
+        has_box_label = params.get("是否有盒标", False)
+        
+        if has_box_label:
+            # 生成分盒盒标 (分盒模板无外观选择)
+            selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
+            # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
+            box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
+            box_label_path = full_output_dir / box_label_filename
 
-        self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
-        generated_files["盒标"] = str(box_label_path)
+            self._create_split_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
+            generated_files["盒标"] = str(box_label_path)
+        else:
+            print("⏭️ 用户选择无盒标，跳过盒标生成")
 
         # 生成箱标（复用大箱标逻辑但文件名为箱标）
         # 文件名格式：客户编号_中文名称_英文名称_分盒箱标_日期时间戳

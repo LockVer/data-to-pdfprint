@@ -82,14 +82,20 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         generated_files = {}
 
-        # 生成套盒模板的盒标 - 第二个参数用于结束号
-        selected_appearance = params["选择外观"]
-        # 文件名格式：客户编号_中文名称_英文名称_套盒盒标_日期时间戳
-        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒盒标_{timestamp}.pdf"
-        box_label_path = full_output_dir / box_label_filename
+        # 检查是否需要生成盒标
+        has_box_label = params.get("是否有盒标", False)
+        
+        if has_box_label:
+            # 生成套盒模板的盒标 - 第二个参数用于结束号
+            selected_appearance = params["选择外观"]
+            # 文件名格式：客户编号_中文名称_英文名称_套盒盒标_日期时间戳
+            box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒盒标_{timestamp}.pdf"
+            box_label_path = full_output_dir / box_label_filename
 
-        self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
-        generated_files["盒标"] = str(box_label_path)
+            self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
+            generated_files["盒标"] = str(box_label_path)
+        else:
+            print("⏭️ 用户选择无盒标，跳过盒标生成")
 
         # 只有在有小箱模式下才生成套标
         if has_small_box:
@@ -142,14 +148,20 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         generated_files = {}
 
-        # 生成套盒模板的盒标（与正常模式相同）
-        selected_appearance = params["选择外观"]
-        # 文件名格式：客户编号_中文名称_英文名称_套盒盒标_日期时间戳
-        box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒盒标_{timestamp}.pdf"
-        box_label_path = full_output_dir / box_label_filename
+        # 检查是否需要生成盒标
+        has_box_label = params.get("是否有盒标", False)
+        
+        if has_box_label:
+            # 生成套盒模板的盒标（与正常模式相同）
+            selected_appearance = params["选择外观"]
+            # 文件名格式：客户编号_中文名称_英文名称_套盒盒标_日期时间戳
+            box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒盒标_{timestamp}.pdf"
+            box_label_path = full_output_dir / box_label_filename
 
-        self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
-        generated_files["盒标"] = str(box_label_path)
+            self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
+            generated_files["盒标"] = str(box_label_path)
+        else:
+            print("⏭️ 用户选择无盒标，跳过盒标生成")
 
         # 超重模式不生成套标，直接生成箱标（使用大箱标的逻辑）
         # 文件名格式：客户编号_中文名称_英文名称_套盒箱标_日期时间戳
