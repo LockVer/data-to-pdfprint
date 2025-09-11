@@ -19,7 +19,7 @@ class SplitBoxRenderer:
         """初始化分盒渲染器"""
         self.renderer_type = "split_box"
     
-    def render_appearance_one(self, c, width, top_text, serial_number, top_text_y, serial_number_y, serial_font_size=10):
+    def render_appearance_one(self, c, width, top_text, serial_number, top_text_y, serial_number_y):
         """分盒模板盒标外观一渲染"""
         # 使用多次绘制实现加粗效果
         c.setFillColor(CMYKColor(0, 0, 0, 1))
@@ -50,8 +50,8 @@ class SplitBoxRenderer:
             for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
                 c.drawCentredString(width / 2 + offset[0], top_text_y + offset[1], top_text_lines[0])
 
-        # 重置字体大小绘制序列号，使用用户指定的字体大小
-        font_manager.set_best_font(c, serial_font_size, bold=True)
+        # 重置字体大小绘制序列号，盒标使用固定字体大小
+        font_manager.set_best_font(c, 22, bold=True)
         # 下部序列号 - 多次绘制增加粗细  
         for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
             c.drawCentredString(width / 2 + offset[0], serial_number_y + offset[1], serial_number)

@@ -349,7 +349,7 @@ class NestedBoxRenderer:
         
         # 行1: Item (第5行，从上往下) - 多次绘制加粗
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = serial_font_size
+        font_size = 10  # 空箱标签使用固定字体大小
         text_offset = font_size / 3
         item_y = row_positions[4] + base_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
@@ -451,7 +451,7 @@ class NestedBoxRenderer:
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = serial_font_size
+        font_size = 10  # 空箱标签使用固定字体大小
         text_offset = font_size / 3
         
         # 行1: Item (第4行，从上往下) - 显示中文名称

@@ -164,17 +164,16 @@ class SplitBoxTemplate(PDFBaseUtils):
         # 获取用户输入的包装参数
         boxes_per_small_box = int(params["盒/小箱"])
         small_boxes_per_large_box = int(params["小箱/大箱"])
-        serial_font_size = int(params.get("序列号字体大小", 10))
-        print(f"✅ 分盒盒标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}, 序列号字体大小={serial_font_size}")
+        print(f"✅ 分盒盒标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}")
         
         # 直接创建单个PDF文件，包含所有盒标（移除分页限制）
         self._create_single_split_box_label_file(
             data, params, output_path, style, 
-            1, total_boxes, top_text, base_number, boxes_per_small_box, small_boxes_per_large_box, serial_font_size
+            1, total_boxes, top_text, base_number, boxes_per_small_box, small_boxes_per_large_box
         )
 
     def _create_single_split_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, 
-                                           style: str, start_box: int, end_box: int, top_text: str, base_number: str, boxes_per_small_box: int, small_boxes_per_large_box: int, serial_font_size: int = 10):
+                                           style: str, start_box: int, end_box: int, top_text: str, base_number: str, boxes_per_small_box: int, small_boxes_per_large_box: int):
         """创建单个分盒模板盒标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
         width, height = self.page_size
@@ -208,7 +207,7 @@ class SplitBoxTemplate(PDFBaseUtils):
             )
             
             # 分盒模板只有一种固定外观，使用简洁标准样式
-            split_box_renderer.render_appearance_one(c, width, top_text, current_number, top_text_y, serial_number_y, serial_font_size)
+            split_box_renderer.render_appearance_one(c, width, top_text, current_number, top_text_y, serial_number_y)
 
         c.save()
 
