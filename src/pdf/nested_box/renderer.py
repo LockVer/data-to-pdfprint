@@ -145,8 +145,7 @@ class NestedBoxRenderer:
         font_manager.set_best_font(c, serial_font_size, bold=True)
         lower_y = row_positions[2] + quantity_row_height/4 - serial_font_size/3  # 使用serial字体大小计算偏移
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
         font_manager.set_best_font(c, 10, bold=True)  # 恢复默认字体大小
         
         # 行4: Carton No (第2行) - 多次绘制加粗
@@ -250,8 +249,7 @@ class NestedBoxRenderer:
         font_manager.set_best_font(c, serial_font_size, bold=True)
         lower_y = row_positions[2] + quantity_row_height/4 - serial_font_size/3  # 使用serial字体大小计算偏移
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
         font_manager.set_best_font(c, 10, bold=True)  # 恢复默认字体大小
         
         # 行3: Carton No (第2行) - 多次绘制加粗
