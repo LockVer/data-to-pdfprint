@@ -27,13 +27,19 @@ def build_windows_gui():
         print("ERROR: Cannot find src/gui_app.py")
         return
     
-    # Check font file
-    font_file = "src/fonts/msyh.ttf"
-    if os.path.exists(font_file):
-        file_size = os.path.getsize(font_file) / (1024 * 1024)  # MB
-        print(f"[OK] Font file found: {font_file} ({file_size:.1f}MB)")
-    else:
-        print(f"[ERROR] Font file not found: {font_file}")
+    # Check font files
+    font_files = ["src/fonts/msyh.ttf", "src/fonts/msyhbd.ttc"]
+    missing_fonts = []
+    
+    for font_file in font_files:
+        if os.path.exists(font_file):
+            file_size = os.path.getsize(font_file) / (1024 * 1024)  # MB
+            print(f"[OK] Font file found: {font_file} ({file_size:.1f}MB)")
+        else:
+            print(f"[ERROR] Font file not found: {font_file}")
+            missing_fonts.append(font_file)
+    
+    if missing_fonts:
         print("Available files in src/fonts:")
         if os.path.exists("src/fonts"):
             for f in os.listdir("src/fonts"):
@@ -59,7 +65,8 @@ def build_windows_gui():
             "--name=DataToPDF_GUI",
             "--clean",
             "--noconfirm",
-            "--add-data", f"{font_file};fonts",  # 直接添加字体文件
+            "--add-data", "src/fonts/msyh.ttf;fonts",  # 微软雅黑字体
+            "--add-data", "src/fonts/msyhbd.ttc;fonts",  # 微软雅黑粗体字体
             "src/gui_app.py"
         ]
     
@@ -86,10 +93,11 @@ def build_windows_gui():
                 print(f"File size: {file_size_mb:.1f}MB")
                 
                 # 如果文件大小明显增加，说明字体被打包了
-                if file_size_mb > 60:  # 预期包含字体后会超过60MB
-                    print("[OK] Font file appears to be included (large file size)")
+                # msyh.ttf (14.3MB) + msyhbd.ttc (15.7MB) + 基础程序 ≈ 70MB+
+                if file_size_mb > 70:  # 预期包含两个字体后会超过70MB
+                    print("[OK] Both font files appear to be included (large file size)")
                 else:
-                    print("[WARNING] Font file may not be included (small file size)")
+                    print("[WARNING] Font files may not be included (small file size)")
             
             print()
             print("Windows Usage Instructions:")
@@ -107,7 +115,7 @@ def build_windows_gui():
             print("Distribution Notes:")
             print("  - Can directly copy DataToPDF_GUI.exe to other users")
             print("  - Recommend packaging as ZIP file for distribution")
-            print(f"  - File size: {file_size_mb:.1f}MB (includes Microsoft YaHei font)")
+            print(f"  - File size: {file_size_mb:.1f}MB (includes Microsoft YaHei Regular & Bold fonts)")
             
         else:
             print("ERROR: Build failed:")
