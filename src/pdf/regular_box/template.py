@@ -23,9 +23,9 @@ from src.pdf.regular_box.renderer import regular_renderer
 class RegularTemplate(PDFBaseUtils):
     """常规模板处理类"""
     
-    def __init__(self, max_pages_per_file: int = 100):
+    def __init__(self):
         """初始化常规模板"""
-        super().__init__(max_pages_per_file)
+        super().__init__()
     
     def create_multi_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
         """
@@ -187,32 +187,11 @@ class RegularTemplate(PDFBaseUtils):
         base_number = data.get('开始号') or 'DSK00001'
         print(f"✅ 常规盒标使用统一数据: 主题='{top_text}', 开始号='{base_number}'")
         
-        # 分页生成PDF
-        current_page = 1
-        boxes_processed = 0
-        
-        while boxes_processed < total_boxes:
-            remaining_boxes = total_boxes - boxes_processed
-            boxes_in_current_file = min(self.max_pages_per_file, remaining_boxes)
-            
-            # 构建文件名
-            if total_boxes <= self.max_pages_per_file:
-                current_output_path = output_path
-            else:
-                base_path = Path(output_path)
-                current_output_path = (
-                    base_path.parent / f"{base_path.stem}_第{current_page}部分{base_path.suffix}"
-                )
-            
-            # 创建当前文件
-            self._create_single_box_label_file(
-                data, params, str(current_output_path), style,
-                boxes_processed + 1, boxes_processed + boxes_in_current_file,
-                top_text, base_number
-            )
-            
-            boxes_processed += boxes_in_current_file
-            current_page += 1
+        # 生成单个PDF文件（不分页）
+        self._create_single_box_label_file(
+            data, params, output_path, style,
+            1, total_boxes, top_text, base_number
+        )
 
     def _create_single_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str, 
@@ -299,33 +278,12 @@ class RegularTemplate(PDFBaseUtils):
         boxes_per_small_box = int(params["盒/小箱"])
         pieces_per_small_box = pieces_per_box * boxes_per_small_box
         
-        # 分页生成PDF
-        current_page = 1
-        small_boxes_processed = 0
-        
-        while small_boxes_processed < total_small_boxes:
-            remaining_small_boxes = total_small_boxes - small_boxes_processed
-            small_boxes_in_current_file = min(self.max_pages_per_file, remaining_small_boxes)
-            
-            # 构建文件名
-            if total_small_boxes <= self.max_pages_per_file:
-                current_output_path = output_path
-            else:
-                base_path = Path(output_path)
-                current_output_path = (
-                    base_path.parent / f"{base_path.stem}_第{current_page}部分{base_path.suffix}"
-                )
-            
-            # 创建当前文件
-            self._create_single_small_box_label_file(
-                data, params, str(current_output_path),
-                small_boxes_processed + 1, small_boxes_processed + small_boxes_in_current_file,
-                theme_text, base_number, remark_text, pieces_per_small_box, 
-                boxes_per_small_box, total_small_boxes, total_boxes
-            )
-            
-            small_boxes_processed += small_boxes_in_current_file
-            current_page += 1
+        # 生成单个PDF文件（不分页）
+        self._create_single_small_box_label_file(
+            data, params, output_path,
+            1, total_small_boxes, theme_text, base_number, remark_text, 
+            pieces_per_small_box, boxes_per_small_box, total_small_boxes, total_boxes
+        )
 
     def _create_single_small_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
@@ -424,33 +382,13 @@ class RegularTemplate(PDFBaseUtils):
         
         pieces_per_large_box = pieces_per_box * boxes_per_small_box * small_boxes_per_large_box
         
-        # 分页生成PDF
-        current_page = 1
-        large_boxes_processed = 0
-        
-        while large_boxes_processed < total_large_boxes:
-            remaining_large_boxes = total_large_boxes - large_boxes_processed
-            large_boxes_in_current_file = min(self.max_pages_per_file, remaining_large_boxes)
-            
-            # 构建文件名
-            if total_large_boxes <= self.max_pages_per_file:
-                current_output_path = output_path
-            else:
-                base_path = Path(output_path)
-                current_output_path = (
-                    base_path.parent / f"{base_path.stem}_第{current_page}部分{base_path.suffix}"
-                )
-            
-            # 创建当前文件
-            self._create_single_large_box_label_file(
-                data, params, str(current_output_path),
-                large_boxes_processed + 1, large_boxes_processed + large_boxes_in_current_file,
-                theme_text, base_number, remark_text, pieces_per_large_box, 
-                boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, total_boxes
-            )
-            
-            large_boxes_processed += large_boxes_in_current_file
-            current_page += 1
+        # 生成单个PDF文件（不分页）
+        self._create_single_large_box_label_file(
+            data, params, output_path,
+            1, total_large_boxes,
+            theme_text, base_number, remark_text, pieces_per_large_box, 
+            boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, total_boxes
+        )
 
     def _create_single_large_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
@@ -545,33 +483,13 @@ class RegularTemplate(PDFBaseUtils):
         pieces_per_box = int(params["张/盒"])  
         pieces_per_large_box = pieces_per_box * boxes_per_large_box
         
-        # 分页生成PDF
-        current_page = 1
-        large_boxes_processed = 0
-        
-        while large_boxes_processed < total_large_boxes:
-            remaining_large_boxes = total_large_boxes - large_boxes_processed
-            large_boxes_in_current_file = min(self.max_pages_per_file, remaining_large_boxes)
-            
-            # 构建文件名
-            if total_large_boxes <= self.max_pages_per_file:
-                current_output_path = output_path
-            else:
-                base_path = Path(output_path)
-                current_output_path = (
-                    base_path.parent / f"{base_path.stem}_第{current_page}部分{base_path.suffix}"
-                )
-            
-            # 创建当前文件
-            self._create_single_two_level_large_box_label_file(
-                data, params, str(current_output_path),
-                large_boxes_processed + 1, large_boxes_processed + large_boxes_in_current_file,
-                theme_text, base_number, remark_text, pieces_per_large_box, 
-                boxes_per_large_box, total_large_boxes, total_boxes
-            )
-            
-            large_boxes_processed += large_boxes_in_current_file
-            current_page += 1
+        # 生成单个PDF文件（不分页）
+        self._create_single_two_level_large_box_label_file(
+            data, params, output_path,
+            1, total_large_boxes,
+            theme_text, base_number, remark_text, pieces_per_large_box, 
+            boxes_per_large_box, total_large_boxes, total_boxes
+        )
 
     def _create_single_two_level_large_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,

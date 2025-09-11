@@ -23,9 +23,9 @@ from src.pdf.nested_box.renderer import nested_box_renderer
 class NestedBoxTemplate(PDFBaseUtils):
     """Nested Box Template Handler Class"""
     
-    def __init__(self, max_pages_per_file: int = 100):
+    def __init__(self):
         """Initialize Nested Box Template"""
-        super().__init__(max_pages_per_file)
+        super().__init__()
     
     def create_multi_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
         """

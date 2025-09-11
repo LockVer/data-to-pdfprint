@@ -29,14 +29,10 @@ class PDFGenerator:
     通过委托模式调用不同的模板类
     """
 
-    def __init__(self, max_pages_per_file: int = 100):
+    def __init__(self):
         """
         初始化PDF生成器
-        
-        Args:
-            max_pages_per_file: 每个PDF文件的最大页数限制
         """
-        self.max_pages_per_file = max_pages_per_file
         
         # 模板实例将在需要时延迟创建
         self._regular_template = None
@@ -48,7 +44,7 @@ class PDFGenerator:
         """延迟创建常规模板实例"""
         if self._regular_template is None:
             RegularTemplate = _get_template_class("regular_box")
-            self._regular_template = RegularTemplate(self.max_pages_per_file)
+            self._regular_template = RegularTemplate()
         return self._regular_template
     
     @property
@@ -56,7 +52,7 @@ class PDFGenerator:
         """延迟创建分盒模板实例"""
         if self._split_box_template is None:
             SplitBoxTemplate = _get_template_class("split_box")
-            self._split_box_template = SplitBoxTemplate(self.max_pages_per_file)
+            self._split_box_template = SplitBoxTemplate()
         return self._split_box_template
     
     @property
@@ -64,7 +60,7 @@ class PDFGenerator:
         """延迟创建套盒模板实例"""
         if self._nested_box_template is None:
             NestedBoxTemplate = _get_template_class("nested_box")
-            self._nested_box_template = NestedBoxTemplate(self.max_pages_per_file)
+            self._nested_box_template = NestedBoxTemplate()
         return self._nested_box_template
 
     def create_multi_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:

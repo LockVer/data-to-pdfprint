@@ -18,9 +18,9 @@ from src.pdf.split_box.renderer import split_box_renderer
 class SplitBoxTemplate(PDFBaseUtils):
     """Split Box Template Handler Class"""
     
-    def __init__(self, max_pages_per_file: int = 100):
+    def __init__(self):
         """Initialize Split Box Template"""
-        super().__init__(max_pages_per_file)
+        super().__init__()
     
     def create_multi_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
         """
