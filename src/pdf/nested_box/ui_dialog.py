@@ -99,6 +99,32 @@ class NestedBoxUIDialog:
         )
         overweight_radio.grid(row=0, column=1, sticky=tk.W, padx=(20, 0), pady=5)
 
+        # 小箱选择框架
+        small_box_frame = ttk.LabelFrame(main_frame, text="小箱类型选择", padding="15")
+        small_box_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        self.main_app.has_small_box_var = tk.StringVar(value="有小箱")
+        
+        # 居中布局的框架
+        small_box_container = ttk.Frame(small_box_frame)
+        small_box_container.pack(expand=True)
+        
+        has_small_box_radio = ttk.Radiobutton(
+            small_box_container,
+            text="有小箱（三级包装）",
+            variable=self.main_app.has_small_box_var,
+            value="有小箱"
+        )
+        has_small_box_radio.grid(row=0, column=0, sticky=tk.W, pady=5)
+
+        no_small_box_radio = ttk.Radiobutton(
+            small_box_container,
+            text="无小箱（二级包装）",
+            variable=self.main_app.has_small_box_var,
+            value="无小箱"
+        )
+        no_small_box_radio.grid(row=0, column=1, sticky=tk.W, padx=(20, 0), pady=5)
+
         # 参数输入框架
         params_frame = ttk.LabelFrame(main_frame, text="包装参数", padding="15")
         params_frame.pack(fill=tk.X, pady=(0, 20))
@@ -300,6 +326,9 @@ class NestedBoxUIDialog:
             messagebox.showerror("参数错误", "请输入'中文名称'")
             return
         
+        # 获取小箱选择
+        has_small_box = self.main_app.has_small_box_var.get() == "有小箱"
+        
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,
@@ -309,6 +338,7 @@ class NestedBoxUIDialog:
             "选择外观": "外观一",  # 套盒模板固定使用外观一，但实际不使用
             "标签模版": self.main_app.template_var.get(),
             "中文名称": self.main_app.chinese_name_var.get(),
+            "是否有小箱": has_small_box,
         }
 
         dialog.destroy()

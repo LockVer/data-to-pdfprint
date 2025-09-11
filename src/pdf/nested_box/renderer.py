@@ -18,16 +18,16 @@ class NestedBoxRenderer:
     def __init__(self):
         """初始化套盒渲染器"""
         self.renderer_type = "nested_box"
+        
     
     def render_nested_appearance_one(self, c, width, top_text, current_number, top_text_y, serial_number_y):
         """套盒模板盒标外观一渲染"""
         clean_top_text = text_processor.clean_text_for_font(top_text)
         font_manager.set_best_font(c, 14, bold=True)
         
-        # 绘制Game title和序列号 - 加粗效果
-        for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-            c.drawCentredString(width / 2 + offset[0], top_text_y + offset[1], clean_top_text)
-            c.drawCentredString(width / 2 + offset[0], serial_number_y + offset[1], current_number)
+        # 绘制Game title和序列号
+        c.drawCentredString(width / 2, top_text_y, clean_top_text)
+        c.drawCentredString(width / 2, serial_number_y, current_number)
 
     def render_nested_appearance_two(self, c, width, top_text, current_number, top_text_y, serial_number_y):
         """套盒模板盒标外观二渲染"""
@@ -40,18 +40,14 @@ class NestedBoxRenderer:
         
         if len(title_lines) > 1:
             # 首行左对齐，其他行居中
-            for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-                c.drawString(width * 0.1 + offset[0], top_text_y + 15 + offset[1], title_lines[0])
+            c.drawString(width * 0.1, top_text_y + 15, title_lines[0])
             for i, line in enumerate(title_lines[1:], 1):
-                for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-                    c.drawCentredString(width / 2 + offset[0], top_text_y + 15 - i * 16 + offset[1], line)
+                c.drawCentredString(width / 2, top_text_y + 15 - i * 16, line)
         else:
-            for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-                c.drawString(width * 0.1 + offset[0], top_text_y + offset[1], title_lines[0])
+            c.drawString(width * 0.1, top_text_y, title_lines[0])
         
         # 绘制序列号
-        for offset in [(-0.3, 0), (0.3, 0), (0, -0.3), (0, 0.3), (0, 0)]:
-            c.drawCentredString(width / 2 + offset[0], serial_number_y + offset[1], current_number)
+        c.drawCentredString(width / 2, serial_number_y, current_number)
 
     def draw_nested_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
                                     serial_range, carton_no, remark_text):
@@ -108,14 +104,12 @@ class NestedBoxRenderer:
         font_size = 10
         text_offset = font_size / 3
         item_y = row_positions[4] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
-            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+        c.drawCentredString(label_center_x, item_y, "Item:")
+        c.drawCentredString(data_center_x, item_y, "Paper Cards")
         
         # 行2: Theme (第4行) - 多次绘制加粗
         theme_y = row_positions[3] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
+        c.drawCentredString(label_center_x, theme_y, "Theme:")
         
         # 应用文本清理和换行处理
         clean_theme_text = text_processor.clean_text_for_font(theme_text)
@@ -135,40 +129,33 @@ class NestedBoxRenderer:
             multi_text_offset = 8 / 3  # 8号字体的偏移
             start_y = cell_center_y + total_text_height / 2 - multi_text_offset
             for i, line in enumerate(theme_lines):
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                c.drawCentredString(data_center_x, start_y - i * line_height, line)
             font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
         else:
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
+                c.drawCentredString(data_center_x, theme_y, theme_lines[0])
         
         # 行3: Quantity (第3行，双倍高度) - 多次绘制加粗
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
         # 上层：票数（在分隔线上方居中）
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
         pcs_text = f"{pieces_per_small_box}PCS"
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+        c.drawCentredString(data_center_x, upper_y, pcs_text)
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
         
         # 行4: Carton No (第2行) - 多次绘制加粗
         carton_y = row_positions[1] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
-            c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+        c.drawCentredString(label_center_x, carton_y, "Carton No:")
+        c.drawCentredString(data_center_x, carton_y, carton_no)
         
         # 行5: Remark (第1行) - 多次绘制加粗
         remark_y = row_positions[0] + base_row_height/2 - text_offset
         clean_remark_text = text_processor.clean_text_for_font(remark_text)
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
+        c.drawCentredString(label_center_x, remark_y, "Remark:")
+        c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
     def draw_nested_small_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_small_box, 
                                                   serial_range, carton_no, remark_text):
@@ -225,8 +212,7 @@ class NestedBoxRenderer:
         
         # 行1: Item (第4行，从上往下) - 显示主题内容
         item_y = row_positions[3] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+        c.drawCentredString(label_center_x, item_y, "Item:")
         
         # 应用文本清理和换行处理
         clean_theme_text = text_processor.clean_text_for_font(theme_text)
@@ -245,40 +231,33 @@ class NestedBoxRenderer:
             multi_text_offset = 8 / 3  # 8号字体的偏移
             start_y = cell_center_y + total_text_height / 2 - multi_text_offset
             for i, line in enumerate(theme_lines):
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                c.drawCentredString(data_center_x, start_y - i * line_height, line)
             font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
         else:
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], item_y + offset[1], theme_lines[0])
+            c.drawCentredString(data_center_x, item_y, theme_lines[0])
         
         # 行2: Quantity (第3行，双倍高度) - 多次绘制加粗
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
         # 上层：票数（在分隔线上方居中）
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
         pcs_text = f"{pieces_per_small_box}PCS"
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+        c.drawCentredString(data_center_x, upper_y, pcs_text)
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
         
         # 行3: Carton No (第2行) - 多次绘制加粗
         carton_y = row_positions[1] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
-            c.drawCentredString(data_center_x + offset[0], carton_y + offset[1], carton_no)
+        c.drawCentredString(label_center_x, carton_y, "Carton No:")
+        c.drawCentredString(data_center_x, carton_y, carton_no)
         
         # 行4: Remark (第1行) - 多次绘制加粗
         remark_y = row_positions[0] + base_row_height/2 - text_offset
         clean_remark_text = text_processor.clean_text_for_font(remark_text)
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
+        c.drawCentredString(label_center_x, remark_y, "Remark:")
+        c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
     def draw_nested_large_box_table(self, c, width, height, theme_text, pieces_per_large_box, 
                                     serial_range, carton_no, remark_text):
@@ -294,7 +273,7 @@ class NestedBoxRenderer:
         self.draw_nested_small_box_table_no_paper_card(c, width, height, theme_text, pieces_per_large_box, 
                                                        serial_range, carton_no, remark_text)
 
-    def render_empty_box_label(self, c, width, height, chinese_name):
+    def render_empty_box_label(self, c, width, height, chinese_name, remark_text):
         """渲染空箱标签 - 套盒模板版本（有纸卡备注）"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -348,14 +327,12 @@ class NestedBoxRenderer:
         font_size = 10
         text_offset = font_size / 3
         item_y = row_positions[4] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
-            c.drawCentredString(data_center_x + offset[0], item_y + offset[1], "Paper Cards")
+        c.drawCentredString(label_center_x, item_y, "Item:")
+        c.drawCentredString(data_center_x, item_y, "Paper Cards")
         
         # 行2: Theme (第4行) - 使用用户输入的中文名称
         theme_y = row_positions[3] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], theme_y + offset[1], "Theme:")
+        c.drawCentredString(label_center_x, theme_y, "Theme:")
         
         # 应用文本清理和换行处理
         clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
@@ -375,30 +352,26 @@ class NestedBoxRenderer:
             multi_text_offset = 8 / 3  # 8号字体的偏移
             start_y = cell_center_y + total_text_height / 2 - multi_text_offset
             for i, line in enumerate(theme_lines):
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                c.drawCentredString(data_center_x, start_y - i * line_height, line)
             font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
         else:
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], theme_y + offset[1], theme_lines[0])
+                c.drawCentredString(data_center_x, theme_y, theme_lines[0])
         
         # 行3: Quantity (第3行，双倍高度) - 空白
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
         
         # 行4: Carton No (第2行) - 空白
         carton_y = row_positions[1] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+        c.drawCentredString(label_center_x, carton_y, "Carton No:")
         
-        # 行5: Remark (第1行) - 固定值 KHQC0015
+        # 行5: Remark (第1行) - 使用传入的 remark_text
         remark_y = row_positions[0] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+        clean_remark_text = text_processor.clean_text_for_font(remark_text)
+        c.drawCentredString(label_center_x, remark_y, "Remark:")
+        c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
-    def render_empty_box_label_no_paper_card(self, c, width, height, chinese_name):
+    def render_empty_box_label_no_paper_card(self, c, width, height, chinese_name, remark_text):
         """渲染空箱标签 - 套盒模板版本（无纸卡备注）"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -452,8 +425,7 @@ class NestedBoxRenderer:
         
         # 行1: Item (第4行，从上往下) - 显示中文名称
         item_y = row_positions[3] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], item_y + offset[1], "Item:")
+        c.drawCentredString(label_center_x, item_y, "Item:")
         
         # 应用文本清理和换行处理
         clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
@@ -472,28 +444,108 @@ class NestedBoxRenderer:
             multi_text_offset = 8 / 3  # 8号字体的偏移
             start_y = cell_center_y + total_text_height / 2 - multi_text_offset
             for i, line in enumerate(theme_lines):
-                for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                    c.drawCentredString(data_center_x + offset[0], start_y - i * line_height + offset[1], line)
+                c.drawCentredString(data_center_x, start_y - i * line_height, line)
             font_manager.set_best_font(c, 10, bold=True)  # 恢复字体大小
         else:
-            for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-                c.drawCentredString(data_center_x + offset[0], item_y + offset[1], theme_lines[0])
+            c.drawCentredString(data_center_x, item_y, theme_lines[0])
         
         # 行2: Quantity (第3行，双倍高度) - 空白
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], quantity_label_y + offset[1], "Quantity:")
+        c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
         
         # 行3: Carton No (第2行) - 空白
         carton_y = row_positions[1] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], carton_y + offset[1], "Carton No:")
+        c.drawCentredString(label_center_x, carton_y, "Carton No:")
         
-        # 行4: Remark (第1行) - 固定值 KHQC0015
+        # 行4: Remark (第1行) - 使用传入的 remark_text
         remark_y = row_positions[0] + base_row_height/2 - text_offset
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(label_center_x + offset[0], remark_y + offset[1], "Remark:")
-            c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], "KHQC0015")
+        clean_remark_text = text_processor.clean_text_for_font(remark_text)
+        c.drawCentredString(label_center_x, remark_y, "Remark:")
+        c.drawCentredString(data_center_x, remark_y, clean_remark_text)
+
+    def render_blank_first_page(self, c, width, height, chinese_name):
+        """渲染套盒模板盒标的空白首页 - 仅显示中文标题"""
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+        
+        # 清理中文文本
+        clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
+        
+        # 设置大字体用于首页标题
+        font_size = 35
+        font_manager.set_best_font(c, font_size, bold=True)
+        
+        # 计算页面中央位置
+        center_x = width / 2
+        center_y = height / 2
+        
+        # 计算最大文本宽度（页面宽度的80%）
+        max_width = width * 0.8
+        
+        # 检查文本宽度并进行中文字符级换行
+        current_font_name = font_manager.get_chinese_font_name()
+        text_width = c.stringWidth(clean_chinese_name, current_font_name, font_size)
+        
+        if text_width > max_width:
+            # 需要换行：使用字符级别分割（适用于中文）
+            title_lines = self._wrap_chinese_text_by_chars(c, clean_chinese_name, max_width, current_font_name, font_size)
+            
+            if len(title_lines) > 1:
+                # 多行：调整字体大小
+                smaller_font_size = 25
+                font_manager.set_best_font(c, smaller_font_size, bold=True)
+                # 重新计算换行（基于新的字体大小）
+                title_lines = self._wrap_chinese_text_by_chars(c, clean_chinese_name, max_width, current_font_name, smaller_font_size)
+                
+                # 计算行高和总高度
+                line_height = smaller_font_size * 1.2  # 行高为字体大小的1.2倍
+                total_height = (len(title_lines) - 1) * line_height
+                
+                # 计算起始Y位置（垂直居中）
+                start_y = center_y + total_height / 2
+                
+                # 绘制每一行，居中显示 - 多次绘制实现加粗效果
+                for i, line in enumerate(title_lines):
+                    line_y = start_y - i * line_height
+                    for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
+                        c.drawCentredString(center_x + offset[0], line_y + offset[1], line)
+            else:
+                # 单行但需要小字体
+                for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
+                    c.drawCentredString(center_x + offset[0], center_y + offset[1], title_lines[0])
+        else:
+            # 单行：使用原始大字体，居中显示 - 多次绘制实现加粗效果
+            for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
+                c.drawCentredString(center_x + offset[0], center_y + offset[1], clean_chinese_name)
+
+    def _wrap_chinese_text_by_chars(self, c, text, max_width, font_name, font_size):
+        """按字符级别换行中文文本（适用于没有空格分隔的中文）"""
+        if not text:
+            return [""]
+        
+        lines = []
+        current_line = ""
+        
+        for char in text:
+            test_line = current_line + char
+            text_width = c.stringWidth(test_line, font_name, font_size)
+            
+            if text_width <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                    current_line = char
+                else:
+                    # 如果单个字符都超宽，强制添加
+                    lines.append(char)
+                    current_line = ""
+        
+        if current_line:
+            lines.append(current_line)
+        
+        return lines if lines else [text]
 
 
 # 创建全局实例供nested_box模板使用
