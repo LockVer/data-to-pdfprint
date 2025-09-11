@@ -117,8 +117,11 @@ class RegularRenderer:
             c.drawString(left_margin + offset[0], serial_y + offset[1], serial_text)
 
     def draw_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
-                            serial_range, carton_no, remark_text, template_type="有纸卡备注"):
+                            serial_range, carton_no, remark_text, template_type="有纸卡备注", serial_font_size=10):
         """绘制小箱标表格"""
+        # 使用用户指定的序列号字体大小，重新计算文字偏移
+        serial_text_offset = serial_font_size / 3
+        
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
         table_height = height - 10 * mm
@@ -182,7 +185,7 @@ class RegularRenderer:
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
+        font_size = serial_font_size
         text_offset = font_size / 3
         
         if template_type == "无纸卡备注":
@@ -226,6 +229,8 @@ class RegularRenderer:
             # 下层：序列号范围
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
+            # 为序列号范围设置用户指定的字体大小
+            font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             
@@ -292,6 +297,8 @@ class RegularRenderer:
             # 下层：序列号范围（在分隔线下方居中）
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
+            # 为序列号范围设置用户指定的字体大小
+            font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             
@@ -369,8 +376,11 @@ class RegularRenderer:
             c.drawString(left_margin + offset[0], serial_y + offset[1], serial_text)
 
     def draw_large_box_table(self, c, width, height, theme_text, pieces_per_large_box,
-                            serial_range, carton_no, remark_text, template_type="有纸卡备注"):
+                            serial_range, carton_no, remark_text, template_type="有纸卡备注", serial_font_size=10):
         """绘制大箱标表格"""
+        # 使用用户指定的序列号字体大小，重新计算文字偏移
+        serial_text_offset = serial_font_size / 3
+        
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
         table_height = height - 10 * mm
@@ -434,7 +444,7 @@ class RegularRenderer:
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
+        font_size = serial_font_size
         text_offset = font_size / 3
         
         if template_type == "无纸卡备注":
@@ -478,6 +488,8 @@ class RegularRenderer:
             # 下层：序列号范围
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
+            # 为序列号范围设置用户指定的字体大小
+            font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             
@@ -544,6 +556,8 @@ class RegularRenderer:
             # 下层：序列号范围（在分隔线下方居中）
             lower_y = row_positions[2] + quantity_row_height/4 - text_offset
             clean_serial_range = text_processor.clean_text_for_font(serial_range)
+            # 为序列号范围设置用户指定的字体大小
+            font_manager.set_best_font(c, serial_font_size, bold=True)
             for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             
