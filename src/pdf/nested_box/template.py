@@ -50,7 +50,10 @@ class NestedBoxTemplate(PDFBaseUtils):
     
     def _create_normal_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
         """正常模式：多套装箱，生成盒标+套标+箱标"""
-        # 计算数量 - 三级结构：张→盒→套→箱
+        # 检查是否有小箱
+        has_small_box = params.get("是否有小箱", True)
+        
+        # 计算数量 - 三级结构：张→盒→套→箱 或 二级结构：张→盒→箱
         total_pieces = int(float(data["总张数"]))
         pieces_per_box = int(params["张/盒"])
         boxes_per_small_box = int(params["盒/套"])  # 这个参数用于确定结束号
@@ -58,8 +61,12 @@ class NestedBoxTemplate(PDFBaseUtils):
 
         # 计算各级数量
         total_boxes = math.ceil(total_pieces / pieces_per_box)
-        total_small_boxes = math.ceil(total_boxes / boxes_per_small_box)
-        total_large_boxes = math.ceil(total_small_boxes / small_boxes_per_large_box)
+        if has_small_box:
+            total_small_boxes = math.ceil(total_boxes / boxes_per_small_box)
+            total_large_boxes = math.ceil(total_small_boxes / small_boxes_per_large_box)
+        else:
+            # 无小箱模式：直接从盒到箱
+            total_large_boxes = math.ceil(total_boxes / boxes_per_small_box)
 
         # 创建输出目录
         clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
@@ -84,14 +91,16 @@ class NestedBoxTemplate(PDFBaseUtils):
         self._create_nested_box_label(data, params, str(box_label_path), selected_appearance, excel_file_path)
         generated_files["盒标"] = str(box_label_path)
 
-        # 生成套盒模板套标
-        # 文件名格式：客户编号_中文名称_英文名称_套盒套标_日期时间戳
-        small_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒套标_{timestamp}.pdf"
-        small_box_path = full_output_dir / small_box_filename
-        self._create_nested_small_box_label(
-            data, params, str(small_box_path), excel_file_path
-        )
-        generated_files["套标"] = str(small_box_path)
+        # 只有在有小箱模式下才生成套标
+        if has_small_box:
+            # 生成套盒模板套标
+            # 文件名格式：客户编号_中文名称_英文名称_套盒套标_日期时间戳
+            small_box_filename = f"{customer_code}_{chinese_name}_{english_name}_套盒套标_{timestamp}.pdf"
+            small_box_path = full_output_dir / small_box_filename
+            self._create_nested_small_box_label(
+                data, params, str(small_box_path), excel_file_path
+            )
+            generated_files["套标"] = str(small_box_path)
 
         # 生成套盒模板箱标
         # 文件名格式：客户编号_中文名称_英文名称_套盒箱标_日期时间戳
