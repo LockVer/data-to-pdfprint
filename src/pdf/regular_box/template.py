@@ -292,19 +292,20 @@ class RegularTemplate(PDFBaseUtils):
         pieces_per_box = int(params["张/盒"])
         boxes_per_small_box = int(params["盒/小箱"])
         pieces_per_small_box = pieces_per_box * boxes_per_small_box
+        serial_font_size = int(params.get("序列号字体大小", 10))
         
         # 生成单个PDF文件（不分页）
         self._create_single_small_box_label_file(
             data, params, output_path,
             1, total_small_boxes, theme_text, base_number, remark_text, 
-            pieces_per_small_box, boxes_per_small_box, total_small_boxes, total_boxes
+            pieces_per_small_box, boxes_per_small_box, total_small_boxes, total_boxes, serial_font_size
         )
 
     def _create_single_small_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
         start_small_box: int, end_small_box: int, theme_text: str, base_number: str,
         remark_text: str, pieces_per_small_box: int, boxes_per_small_box: int, 
-        total_small_boxes: int, total_boxes: int
+        total_small_boxes: int, total_boxes: int, serial_font_size: int = 10
     ):
         """创建单个小箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
@@ -362,9 +363,9 @@ class RegularTemplate(PDFBaseUtils):
             # 获取标签模版类型
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制小箱标表格（使用实际张数，传入模版类型）
+            # 绘制小箱标表格（使用实际张数，传入模版类型和序列号字体大小）
             regular_renderer.draw_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                                 serial_range, carton_no, remark_text, template_type)
+                                                 serial_range, carton_no, remark_text, template_type, serial_font_size)
 
         c.save()
 
@@ -397,19 +398,22 @@ class RegularTemplate(PDFBaseUtils):
         
         pieces_per_large_box = pieces_per_box * boxes_per_small_box * small_boxes_per_large_box
         
+        # 获取序列号字体大小参数
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        
         # 生成单个PDF文件（不分页）
         self._create_single_large_box_label_file(
             data, params, output_path,
             1, total_large_boxes,
             theme_text, base_number, remark_text, pieces_per_large_box, 
-            boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, total_boxes
+            boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, total_boxes, serial_font_size
         )
 
     def _create_single_large_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
         start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
         remark_text: str, pieces_per_large_box: int, boxes_per_small_box: int, 
-        small_boxes_per_large_box: int, total_large_boxes: int, total_boxes: int
+        small_boxes_per_large_box: int, total_large_boxes: int, total_boxes: int, serial_font_size: int = 10
     ):
         """创建单个大箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
@@ -468,9 +472,9 @@ class RegularTemplate(PDFBaseUtils):
             # 获取标签模版类型
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制大箱标表格（使用实际张数，传入模版类型）
+            # 绘制大箱标表格（使用实际张数，传入模版类型和序列号字体大小）
             regular_renderer.draw_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box,
-                                                 serial_range, carton_no, remark_text, template_type)
+                                                 serial_range, carton_no, remark_text, template_type, serial_font_size)
 
         c.save()
     
@@ -498,19 +502,22 @@ class RegularTemplate(PDFBaseUtils):
         pieces_per_box = int(params["张/盒"])  
         pieces_per_large_box = pieces_per_box * boxes_per_large_box
         
+        # 获取序列号字体大小参数
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        
         # 生成单个PDF文件（不分页）
         self._create_single_two_level_large_box_label_file(
             data, params, output_path,
             1, total_large_boxes,
             theme_text, base_number, remark_text, pieces_per_large_box, 
-            boxes_per_large_box, total_large_boxes, total_boxes
+            boxes_per_large_box, total_large_boxes, total_boxes, serial_font_size
         )
 
     def _create_single_two_level_large_box_label_file(
         self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
         start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
         remark_text: str, pieces_per_large_box: int, boxes_per_large_box: int, 
-        total_large_boxes: int, total_boxes: int
+        total_large_boxes: int, total_boxes: int, serial_font_size: int = 10
     ):
         """创建单个二级箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
@@ -569,9 +576,9 @@ class RegularTemplate(PDFBaseUtils):
             # 获取标签模版类型
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制箱标表格（使用实际张数，传入模版类型）
+            # 绘制箱标表格（使用实际张数，传入模版类型和序列号字体大小）
             regular_renderer.draw_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box,
-                                                 serial_range, carton_no, remark_text, template_type)
+                                                 serial_range, carton_no, remark_text, template_type, serial_font_size)
 
         c.save()
 

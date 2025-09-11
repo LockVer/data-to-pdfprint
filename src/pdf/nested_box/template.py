@@ -274,7 +274,9 @@ class NestedBoxTemplate(PDFBaseUtils):
         theme_text = data.get('标签名称') or 'Unknown Title'
         base_number = data.get('开始号') or 'DEFAULT01001'
         remark_text = data.get('客户名称编码') or 'Unknown Client'
-        print(f"✅ 套盒套标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        # 获取序列号字体大小参数
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        print(f"✅ 套盒套标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}', 序列号字体大小={serial_font_size}")
         
         # 套盒模板不需要复杂的分组逻辑，直接使用简化逻辑
         
@@ -341,10 +343,10 @@ class NestedBoxTemplate(PDFBaseUtils):
             # 绘制套盒套标表格（使用实际张数，根据模版类型选择函数）
             if template_type == "有纸卡备注":
                 nested_box_renderer.draw_nested_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                                                 serial_range, carton_no, remark_text)
+                                                                 serial_range, carton_no, remark_text, serial_font_size)
             else:  # "无纸卡备注"
                 nested_box_renderer.draw_nested_small_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                                                 serial_range, carton_no, remark_text)
+                                                                 serial_range, carton_no, remark_text, serial_font_size)
 
         c.save()
         print(f"✅ 套盒模板套标PDF已生成: {output_path}")
@@ -358,7 +360,9 @@ class NestedBoxTemplate(PDFBaseUtils):
         theme_text = data.get('标签名称') or 'Unknown Title'
         base_number = data.get('开始号') or 'DEFAULT01001'
         remark_text = data.get('客户名称编码') or 'Unknown Client'
-        print(f"✅ 套盒箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        # 获取序列号字体大小参数
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        print(f"✅ 套盒箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}', 序列号字体大小={serial_font_size}")
         
         # 获取参数
         pieces_per_box = int(params["张/盒"])
@@ -435,10 +439,10 @@ class NestedBoxTemplate(PDFBaseUtils):
             # 绘制套盒箱标表格（使用实际张数，根据模版类型选择函数）
             if template_type == "有纸卡备注":
                 nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box, 
-                                                                 serial_range, carton_range, remark_text)
+                                                                 serial_range, carton_range, remark_text, serial_font_size)
             else:  # "无纸卡备注"
                 nested_box_renderer.draw_nested_large_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_large_box, 
-                                                                 serial_range, carton_range, remark_text)
+                                                                 serial_range, carton_range, remark_text, serial_font_size)
 
         c.save()
         print(f"✅ 套盒模板箱标PDF已生成: {output_path}")
@@ -449,7 +453,9 @@ class NestedBoxTemplate(PDFBaseUtils):
         theme_text = data.get('标签名称') or 'Unknown Title'
         base_number = data.get('开始号') or 'DEFAULT01001'
         remark_text = data.get('客户名称编码') or 'Unknown Client'
-        print(f"✅ 超重模式箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
+        # 获取序列号字体大小参数
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        print(f"✅ 超重模式箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}', 序列号字体大小={serial_font_size}")
         
         # 获取参数
         pieces_per_box = int(params["张/盒"])
@@ -521,10 +527,10 @@ class NestedBoxTemplate(PDFBaseUtils):
             # 绘制超重模式箱标表格
             if template_type == "有纸卡备注":
                 nested_box_renderer.draw_nested_large_box_table(c, width, height, theme_text, actual_pieces_in_large_box, 
-                                                                 serial_range, carton_no, remark_text)
+                                                                 serial_range, carton_no, remark_text, serial_font_size)
             else:  # "无纸卡备注"
                 nested_box_renderer.draw_nested_large_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_large_box, 
-                                                                 serial_range, carton_no, remark_text)
+                                                                 serial_range, carton_no, remark_text, serial_font_size)
 
         c.save()
         print(f"✅ 超重模式箱标PDF已生成: {output_path}")

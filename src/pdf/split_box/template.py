@@ -237,7 +237,8 @@ class SplitBoxTemplate(PDFBaseUtils):
         # 获取用户输入的包装参数
         boxes_per_small_box = int(params["盒/小箱"])
         small_boxes_per_large_box = int(params["小箱/大箱"])
-        print(f"✅ 分盒小箱标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}")
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        print(f"✅ 分盒小箱标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}, 序列号字体大小={serial_font_size}")
         
         # 计算参数
         pieces_per_box = int(params["张/盒"])
@@ -250,13 +251,13 @@ class SplitBoxTemplate(PDFBaseUtils):
         self._create_single_split_box_small_box_label_file(
             data, params, output_path, 1, total_small_boxes,
             theme_text, base_number, remark_text, pieces_per_small_box, 
-            boxes_per_small_box, total_small_boxes, small_boxes_per_large_box, total_boxes
+            boxes_per_small_box, total_small_boxes, small_boxes_per_large_box, total_boxes, serial_font_size
         )
 
     def _create_single_split_box_small_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_small_box: int, end_small_box: int, theme_text: str, base_number: str,
                                                  remark_text: str, pieces_per_small_box: int, boxes_per_small_box: int, 
-                                                 total_small_boxes: int, small_boxes_per_large_box: int, total_boxes: int):
+                                                 total_small_boxes: int, small_boxes_per_large_box: int, total_boxes: int, serial_font_size: int = 10):
         """创建单个分盒小箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
         width, height = self.page_size
@@ -318,10 +319,10 @@ class SplitBoxTemplate(PDFBaseUtils):
             # 绘制分盒小箱标表格（使用实际张数，根据模版类型选择函数）
             if template_type == "有纸卡备注":
                 split_box_renderer.draw_split_box_small_box_table(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                               serial_range, carton_no, remark_text)
+                                               serial_range, carton_no, remark_text, True, serial_font_size)
             else:  # "无纸卡备注"
                 split_box_renderer.draw_split_box_small_box_table_no_paper_card(c, width, height, theme_text, actual_pieces_in_small_box, 
-                                               serial_range, carton_no, remark_text)
+                                               serial_range, carton_no, remark_text, serial_font_size)
 
         c.save()
 
@@ -341,7 +342,8 @@ class SplitBoxTemplate(PDFBaseUtils):
         # 获取用户输入的包装参数
         boxes_per_small_box = int(params["盒/小箱"])
         small_boxes_per_large_box = int(params["小箱/大箱"])
-        print(f"✅ 分盒大箱标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}")
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        print(f"✅ 分盒大箱标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}, 序列号字体大小={serial_font_size}")
         
         # 计算参数 - 大箱标专用
         pieces_per_box = int(params["张/盒"])  # 第一个参数：张/盒
@@ -350,13 +352,13 @@ class SplitBoxTemplate(PDFBaseUtils):
         self._create_single_split_box_large_box_label_file(
             data, params, output_path, 1, total_large_boxes,
             theme_text, base_number, remark_text, pieces_per_box, 
-            boxes_per_small_box, small_boxes_per_large_box, total_large_boxes
+            boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, serial_font_size
         )
 
     def _create_single_split_box_large_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
                                                  remark_text: str, pieces_per_box: int, boxes_per_small_box: int, 
-                                                 small_boxes_per_large_box: int, total_large_boxes: int):
+                                                 small_boxes_per_large_box: int, total_large_boxes: int, serial_font_size: int = 10):
         """创建单个分盒大箱标PDF文件 - 完全参考小箱标"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
         width, height = self.page_size
@@ -411,11 +413,11 @@ class SplitBoxTemplate(PDFBaseUtils):
             if template_type == "有纸卡备注":
                 split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_small_box, small_boxes_per_large_box, serial_range, 
-                                               str(large_box_num), remark_text)
+                                               str(large_box_num), remark_text, serial_font_size)
             else:  # "无纸卡备注"
                 split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_small_box, small_boxes_per_large_box, serial_range, 
-                                               str(large_box_num), remark_text)
+                                               str(large_box_num), remark_text, serial_font_size)
 
         c.save()
 
@@ -433,19 +435,20 @@ class SplitBoxTemplate(PDFBaseUtils):
         
         # 计算参数 - 箱标专用（二级模式）
         pieces_per_box = int(params["张/盒"])  # 第一个参数：张/盒
-        print(f"✅ 分盒箱标参数: 盒/箱={boxes_per_large_box}")
+        serial_font_size = int(params.get("序列号字体大小", 10))
+        print(f"✅ 分盒箱标参数: 盒/箱={boxes_per_large_box}, 序列号字体大小={serial_font_size}")
         
         # 直接创建单个PDF文件，包含所有箱标
         self._create_single_two_level_large_box_label_file(
             data, params, output_path, 1, total_large_boxes,
             theme_text, base_number, remark_text, pieces_per_box, 
-            boxes_per_large_box, total_large_boxes, total_boxes
+            boxes_per_large_box, total_large_boxes, total_boxes, serial_font_size
         )
 
     def _create_single_two_level_large_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
                                                  remark_text: str, pieces_per_box: int, boxes_per_large_box: int, 
-                                                 total_large_boxes: int, total_boxes: int):
+                                                 total_large_boxes: int, total_boxes: int, serial_font_size: int = 10):
         """创建单个分盒箱标PDF文件（二级模式）"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
         width, height = self.page_size
@@ -496,11 +499,11 @@ class SplitBoxTemplate(PDFBaseUtils):
             if template_type == "有纸卡备注":
                 split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_large_box, 1, serial_range, 
-                                               str(large_box_num), remark_text)
+                                               str(large_box_num), remark_text, serial_font_size)
             else:  # "无纸卡备注"
                 split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_large_box, 1, serial_range, 
-                                               str(large_box_num), remark_text)
+                                               str(large_box_num), remark_text, serial_font_size)
 
         c.save()
 

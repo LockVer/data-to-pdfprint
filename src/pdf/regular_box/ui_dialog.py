@@ -175,6 +175,25 @@ class RegularUIDialog:
             params_frame, textvariable=self.main_app.chinese_name_var, width=20, font=("Arial", 11)
         )
         chinese_name_entry.grid(row=3, column=1, sticky=tk.W+tk.E, pady=10)
+
+        # 序列号字体大小输入
+        ttk.Label(params_frame, text="序列号字体大小:", font=("Arial", 11)).grid(
+            row=4, column=0, sticky=tk.E, pady=10, padx=(0, 15)
+        )
+        self.main_app.serial_font_size_var = tk.StringVar(value="10")
+        serial_font_size_entry = ttk.Entry(
+            params_frame, textvariable=self.main_app.serial_font_size_var, width=20, font=("Arial", 11)
+        )
+        serial_font_size_entry.grid(row=4, column=1, sticky=tk.W+tk.E, pady=10)
+        
+        # 添加说明标签
+        serial_font_help = ttk.Label(
+            params_frame, 
+            text="(建议范围: 6-14, 序列号较长时可调小)",
+            font=('Arial', 9),
+            foreground='gray'
+        )
+        serial_font_help.grid(row=4, column=2, sticky=tk.W, padx=(5, 0), pady=10)
         
         # 初始化时设置显示状态
         self.on_small_box_choice_changed()
@@ -366,6 +385,21 @@ class RegularUIDialog:
             messagebox.showerror("参数错误", "请输入'中文名称'")
             return
         
+        # 获取序列号字体大小
+        serial_font_size_str = self.main_app.serial_font_size_var.get().strip()
+        if not serial_font_size_str:
+            messagebox.showerror("参数错误", "请输入'序列号字体大小'")
+            return
+        
+        try:
+            serial_font_size = int(serial_font_size_str)
+            if serial_font_size < 6 or serial_font_size > 20:
+                messagebox.showerror("参数错误", "序列号字体大小必须在6-20之间\n\n当前值：{}".format(serial_font_size))
+                return
+        except ValueError:
+            messagebox.showerror("参数错误", "请输入有效的序列号字体大小\n\n正确格式示例：10")
+            return
+        
         # 参数验证通过，设置参数
         self.main_app.packaging_params = {
             "张/盒": pieces_per_box,
@@ -375,6 +409,7 @@ class RegularUIDialog:
             "标签模版": self.main_app.template_var.get(),
             "中文名称": self.main_app.chinese_name_var.get(),
             "是否有小箱": has_small_box,
+            "序列号字体大小": serial_font_size,
         }
 
         dialog.destroy()

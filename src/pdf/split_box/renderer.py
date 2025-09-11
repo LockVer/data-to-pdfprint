@@ -47,14 +47,15 @@ class SplitBoxRenderer:
             # 单行时使用原字体大小
             c.drawCentredString(width / 2, top_text_y, top_text_lines[0])
 
-        # 重置字体大小绘制序列号
+        # 重置字体大小绘制序列号，盒标使用固定字体大小
         font_manager.set_best_font(c, 22, bold=True)
         # 下部序列号
         c.drawCentredString(width / 2, serial_number_y, serial_number)
 
     def draw_split_box_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
-                                       serial_range, carton_no, remark_text, has_paper_card_note=True):
+                                       serial_range, carton_no, remark_text, has_paper_card_note=True, serial_font_size=10):
         """绘制分盒小箱标表格"""
+        
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
         table_height = height - 10 * mm
@@ -155,7 +156,11 @@ class SplitBoxRenderer:
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
+        # 为序列号范围设置用户指定的字体大小
+        font_manager.set_best_font(c, serial_font_size, bold=True)
         c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        # 重置字体为10号，避免影响后续单元格
+        font_manager.set_best_font(c, 10, bold=True)
         
         # 行4: Carton No (第2行)
         carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -169,7 +174,7 @@ class SplitBoxRenderer:
         c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
     def draw_split_box_small_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_small_box, 
-                                                      serial_range, carton_no, remark_text):
+                                                      serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制分盒小箱标表格 - 无纸卡备注模版"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -217,9 +222,8 @@ class SplitBoxRenderer:
         label_center_x = table_x + label_col_width / 2  # 标签列居中
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
-        # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
-        text_offset = font_size / 3
+        # 调整文字垂直居中位置 - 使用固定10号字体的偏移量来计算所有单元格的位置
+        text_offset = 10 / 3
         
         # 行1: Item (第4行，从上往下) - 显示主题内容
         item_y = row_positions[3] + base_row_height/2 - text_offset
@@ -257,7 +261,11 @@ class SplitBoxRenderer:
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
+        # 为序列号范围设置用户指定的字体大小
+        font_manager.set_best_font(c, serial_font_size, bold=True)
         c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        # 重置字体为10号，避免影响后续单元格
+        font_manager.set_best_font(c, 10, bold=True)
         
         # 行3: Carton No (第2行)
         carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -271,7 +279,7 @@ class SplitBoxRenderer:
         c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
     def draw_split_box_large_box_table(self, c, width, height, theme_text, pieces_per_box,
-                                       boxes_per_small_box, small_boxes_per_large_box, serial_range, carton_no, remark_text):
+                                       boxes_per_small_box, small_boxes_per_large_box, serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制分盒大箱标表格"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -366,7 +374,11 @@ class SplitBoxRenderer:
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
+        # 为序列号范围设置用户指定的字体大小
+        font_manager.set_best_font(c, serial_font_size, bold=True)
         c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        # 重置字体为10号，避免影响后续单元格
+        font_manager.set_best_font(c, 10, bold=True)
         
         # 行4: Carton No (第2行)
         carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -380,7 +392,7 @@ class SplitBoxRenderer:
         c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
     def draw_split_box_large_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_box,
-                                                      boxes_per_small_box, small_boxes_per_large_box, serial_range, carton_no, remark_text):
+                                                      boxes_per_small_box, small_boxes_per_large_box, serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制分盒大箱标表格 - 无纸卡备注模版"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -428,9 +440,8 @@ class SplitBoxRenderer:
         label_center_x = table_x + label_col_width / 2  # 标签列居中
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
-        # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
-        text_offset = font_size / 3
+        # 调整文字垂直居中位置 - 使用固定10号字体的偏移量来计算所有单元格的位置
+        text_offset = 10 / 3
         
         # 行1: Item (第4行，从上往下) - 显示主题内容
         item_y = row_positions[3] + base_row_height/2 - text_offset
@@ -469,7 +480,11 @@ class SplitBoxRenderer:
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
+        # 为序列号范围设置用户指定的字体大小
+        font_manager.set_best_font(c, serial_font_size, bold=True)
         c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        # 重置字体为10号，避免影响后续单元格
+        font_manager.set_best_font(c, 10, bold=True)
         
         # 行3: Carton No (第2行)
         carton_y = row_positions[1] + base_row_height/2 - text_offset
