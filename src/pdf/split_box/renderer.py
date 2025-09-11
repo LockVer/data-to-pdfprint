@@ -158,7 +158,8 @@ class SplitBoxRenderer:
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
         # 为序列号范围设置用户指定的字体大小
         font_manager.set_best_font(c, serial_font_size, bold=True)
-        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
         # 重置字体为10号，避免影响后续单元格
         font_manager.set_best_font(c, 10, bold=True)
         
@@ -263,7 +264,8 @@ class SplitBoxRenderer:
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
         # 为序列号范围设置用户指定的字体大小
         font_manager.set_best_font(c, serial_font_size, bold=True)
-        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
         # 重置字体为10号，避免影响后续单元格
         font_manager.set_best_font(c, 10, bold=True)
         
@@ -376,7 +378,8 @@ class SplitBoxRenderer:
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
         # 为序列号范围设置用户指定的字体大小
         font_manager.set_best_font(c, serial_font_size, bold=True)
-        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
         # 重置字体为10号，避免影响后续单元格
         font_manager.set_best_font(c, 10, bold=True)
         
@@ -482,7 +485,8 @@ class SplitBoxRenderer:
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
         # 为序列号范围设置用户指定的字体大小
         font_manager.set_best_font(c, serial_font_size, bold=True)
-        c.drawCentredString(data_center_x, lower_y, clean_serial_range)
+        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
+            c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
         # 重置字体为10号，避免影响后续单元格
         font_manager.set_best_font(c, 10, bold=True)
         

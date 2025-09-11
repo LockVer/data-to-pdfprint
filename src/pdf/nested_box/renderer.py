@@ -272,8 +272,7 @@ class NestedBoxRenderer:
         # 上层：票数（在分隔线上方居中）
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
         pcs_text = f"{pieces_per_small_box}PCS"
-        for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
-            c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
+        c.drawCentredString(data_center_x, upper_y, pcs_text)
         # 下层：序列号范围（在分隔线下方居中）- 使用自定义字体大小
         font_manager.set_best_font(c, serial_font_size, bold=True)
         lower_y = row_positions[2] + quantity_row_height/4 - serial_font_size/3  # 使用serial字体大小计算偏移
