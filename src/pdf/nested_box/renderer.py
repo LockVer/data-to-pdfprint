@@ -25,8 +25,35 @@ class NestedBoxRenderer:
         clean_top_text = text_processor.clean_text_for_font(top_text)
         font_manager.set_best_font(c, 14, bold=True)
         
-        # 绘制Game title和序列号
-        c.drawCentredString(width / 2, top_text_y, clean_top_text)
+        # 计算最大文本宽度（页面宽度的80%）
+        max_width = width * 0.8
+        
+        # 检查文本宽度并进行换行处理
+        current_font_name = font_manager.get_chinese_font_name()
+        text_width = c.stringWidth(clean_top_text, current_font_name, 14)
+        
+        if text_width > max_width:
+            # 需要换行：使用text_processor进行换行
+            title_lines = text_processor.wrap_text_to_fit(c, clean_top_text, max_width, font_manager.get_chinese_font_name(), 14)
+            
+            if len(title_lines) > 1:
+                # 多行：计算垂直居中位置
+                line_height = 16  # 行间距
+                total_height = (len(title_lines) - 1) * line_height
+                start_y = top_text_y + total_height / 2
+                
+                # 绘制每一行，居中显示
+                for i, line in enumerate(title_lines):
+                    line_y = start_y - i * line_height
+                    c.drawCentredString(width / 2, line_y, line)
+            else:
+                # 单行但需要处理
+                c.drawCentredString(width / 2, top_text_y, title_lines[0])
+        else:
+            # 单行：直接绘制
+            c.drawCentredString(width / 2, top_text_y, clean_top_text)
+        
+        # 绘制序列号
         c.drawCentredString(width / 2, serial_number_y, current_number)
 
     def render_nested_appearance_two(self, c, width, top_text, current_number, top_text_y, serial_number_y):
