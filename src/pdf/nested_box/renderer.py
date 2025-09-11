@@ -54,7 +54,7 @@ class NestedBoxRenderer:
             c.drawCentredString(width / 2 + offset[0], serial_number_y + offset[1], current_number)
 
     def draw_nested_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
-                                    serial_range, carton_no, remark_text):
+                                    serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制套盒套标表格 - 借鉴分盒模板的表格绘制逻辑"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -105,7 +105,7 @@ class NestedBoxRenderer:
         
         # 行1: Item (第5行，从上往下) - 多次绘制加粗
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
+        font_size = serial_font_size
         text_offset = font_size / 3
         item_y = row_positions[4] + base_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
@@ -151,11 +151,13 @@ class NestedBoxRenderer:
         pcs_text = f"{pieces_per_small_box}PCS"
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
-        # 下层：序列号范围（在分隔线下方居中）
-        lower_y = row_positions[2] + quantity_row_height/4 - text_offset
+        # 下层：序列号范围（在分隔线下方居中）- 使用自定义字体大小
+        font_manager.set_best_font(c, serial_font_size, bold=True)
+        lower_y = row_positions[2] + quantity_row_height/4 - serial_font_size/3  # 使用serial字体大小计算偏移
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        font_manager.set_best_font(c, 10, bold=True)  # 恢复默认字体大小
         
         # 行4: Carton No (第2行) - 多次绘制加粗
         carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -171,7 +173,7 @@ class NestedBoxRenderer:
             c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
     def draw_nested_small_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_small_box, 
-                                                  serial_range, carton_no, remark_text):
+                                                  serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制套盒套标表格 - 无纸卡备注模版"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -220,7 +222,7 @@ class NestedBoxRenderer:
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
+        font_size = serial_font_size
         text_offset = font_size / 3
         
         # 行1: Item (第4行，从上往下) - 显示主题内容
@@ -261,11 +263,13 @@ class NestedBoxRenderer:
         pcs_text = f"{pieces_per_small_box}PCS"
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(data_center_x + offset[0], upper_y + offset[1], pcs_text)
-        # 下层：序列号范围（在分隔线下方居中）
-        lower_y = row_positions[2] + quantity_row_height/4 - text_offset
+        # 下层：序列号范围（在分隔线下方居中）- 使用自定义字体大小
+        font_manager.set_best_font(c, serial_font_size, bold=True)
+        lower_y = row_positions[2] + quantity_row_height/4 - serial_font_size/3  # 使用serial字体大小计算偏移
         clean_serial_range = text_processor.clean_text_for_font(serial_range)
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
             c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
+        font_manager.set_best_font(c, 10, bold=True)  # 恢复默认字体大小
         
         # 行3: Carton No (第2行) - 多次绘制加粗
         carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -281,18 +285,18 @@ class NestedBoxRenderer:
             c.drawCentredString(data_center_x + offset[0], remark_y + offset[1], clean_remark_text)
 
     def draw_nested_large_box_table(self, c, width, height, theme_text, pieces_per_large_box, 
-                                    serial_range, carton_no, remark_text):
+                                    serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制套盒箱标表格"""
         # 复用套标的表格绘制逻辑
         self.draw_nested_small_box_table(c, width, height, theme_text, pieces_per_large_box, 
-                                         serial_range, carton_no, remark_text)
+                                         serial_range, carton_no, remark_text, serial_font_size)
 
     def draw_nested_large_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_large_box, 
-                                                  serial_range, carton_no, remark_text):
+                                                  serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制套盒箱标表格 - 无纸卡备注模版"""
         # 复用套标无纸卡备注的表格绘制逻辑
         self.draw_nested_small_box_table_no_paper_card(c, width, height, theme_text, pieces_per_large_box, 
-                                                       serial_range, carton_no, remark_text)
+                                                       serial_range, carton_no, remark_text, serial_font_size)
 
     def render_empty_box_label(self, c, width, height, chinese_name):
         """渲染空箱标签 - 套盒模板版本（有纸卡备注）"""
@@ -345,7 +349,7 @@ class NestedBoxRenderer:
         
         # 行1: Item (第5行，从上往下) - 多次绘制加粗
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
+        font_size = serial_font_size
         text_offset = font_size / 3
         item_y = row_positions[4] + base_row_height/2 - text_offset
         for offset in [(-0.2, 0), (0.2, 0), (0, -0.2), (0, 0.2), (0, 0)]:
@@ -447,7 +451,7 @@ class NestedBoxRenderer:
         data_center_x = col_x + data_col_width / 2      # 数据列居中
         
         # 调整文字垂直居中位置 - 减去字体大小的1/3来补偿基线偏移
-        font_size = 10
+        font_size = serial_font_size
         text_offset = font_size / 3
         
         # 行1: Item (第4行，从上往下) - 显示中文名称
