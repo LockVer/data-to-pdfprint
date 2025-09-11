@@ -663,8 +663,8 @@ class SplitBoxRenderer:
         # 清理中文文本
         clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
         
-        # 设置大字体用于首页标题
-        font_size = 35
+        # 设置字体用于首页标题 - 与正常分盒盒标保持一致
+        font_size = 22
         font_manager.set_best_font(c, font_size, bold=True)
         
         # 计算页面中央位置
@@ -683,8 +683,8 @@ class SplitBoxRenderer:
             title_lines = self._wrap_chinese_text_by_chars(c, clean_chinese_name, max_width, current_font_name, font_size)
             
             if len(title_lines) > 1:
-                # 多行：调整字体大小
-                smaller_font_size = 25
+                # 多行：保持相同字体大小
+                smaller_font_size = 22
                 font_manager.set_best_font(c, smaller_font_size, bold=True)
                 # 重新计算换行（基于新的字体大小）
                 title_lines = self._wrap_chinese_text_by_chars(c, clean_chinese_name, max_width, current_font_name, smaller_font_size)
@@ -696,19 +696,16 @@ class SplitBoxRenderer:
                 # 计算起始Y位置（垂直居中）
                 start_y = center_y + total_height / 2
                 
-                # 绘制每一行，居中显示 - 多次绘制实现加粗效果
+                # 绘制每一行，居中显示 - 与正常分盒盒标保持一致的单次绘制
                 for i, line in enumerate(title_lines):
                     line_y = start_y - i * line_height
-                    for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
-                        c.drawCentredString(center_x + offset[0], line_y + offset[1], line)
+                    c.drawCentredString(center_x, line_y, line)
             else:
-                # 单行但需要小字体
-                for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
-                    c.drawCentredString(center_x + offset[0], center_y + offset[1], title_lines[0])
+                # 单行但需要小字体 - 与正常分盒盒标保持一致的单次绘制
+                c.drawCentredString(center_x, center_y, title_lines[0])
         else:
-            # 单行：使用原始大字体，居中显示 - 多次绘制实现加粗效果
-            for offset in [(-0.5, 0), (0.5, 0), (0, -0.5), (0, 0.5), (0, 0)]:
-                c.drawCentredString(center_x + offset[0], center_y + offset[1], clean_chinese_name)
+            # 单行：使用原始大字体，居中显示 - 与正常分盒盒标保持一致的单次绘制
+            c.drawCentredString(center_x, center_y, clean_chinese_name)
 
     def _wrap_chinese_text_by_chars(self, c, text, max_width, font_name, font_size):
         """按字符级别换行中文文本（适用于没有空格分隔的中文）"""
