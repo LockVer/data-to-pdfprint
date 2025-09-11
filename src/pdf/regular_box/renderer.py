@@ -219,7 +219,6 @@ class RegularRenderer:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             # 重置字体为10号，避免影响后续单元格
             font_manager.set_best_font(c, 10, bold=True)
-            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
             # 行3: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -282,7 +281,6 @@ class RegularRenderer:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             # 重置字体为10号，避免影响后续单元格
             font_manager.set_best_font(c, 10, bold=True)
-            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
             # 行4: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -462,7 +460,6 @@ class RegularRenderer:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             # 重置字体为10号，避免影响后续单元格
             font_manager.set_best_font(c, 10, bold=True)
-            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
             # 行3: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
@@ -525,7 +522,6 @@ class RegularRenderer:
                 c.drawCentredString(data_center_x + offset[0], lower_y + offset[1], clean_serial_range)
             # 重置字体为10号，避免影响后续单元格
             font_manager.set_best_font(c, 10, bold=True)
-            c.drawCentredString(data_center_x, lower_y, clean_serial_range)
             
             # 行4: Carton No (第2行)
             carton_y = row_positions[1] + base_row_height/2 - text_offset
