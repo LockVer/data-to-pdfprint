@@ -52,13 +52,13 @@ data-to-pdf --input data.xlsx --template basic --output output_dir/
 #### macOS版本（当前系统）
 ```bash
 # 构建macOS版本
-python build_gui.py
+python scripts/build_gui.py
 ```
 
 #### Windows版本（跨平台构建）
 ```bash
 # 构建Windows版本（最好在Windows系统上运行）
-python build_windows.py
+python scripts/build_windows.py
 
 # 或直接使用PyInstaller和Windows配置文件
 pyinstaller DataToPDF_GUI_Windows.spec --clean --noconfirm
@@ -66,7 +66,7 @@ pyinstaller DataToPDF_GUI_Windows.spec --clean --noconfirm
 
 #### 分发方式
 - **macOS**: `dist/DataToPDF_GUI` (ARM64架构，适用于M1/M2 Mac)
-- **Windows**: `dist/DataToPDF_GUI.exe` (使用 `build_windows.py`)
+- **Windows**: `dist/DataToPDF_GUI.exe` (使用 `scripts/build_windows.py`)
 - **跨平台**: 使用源代码分发配合 `requirements.txt`
 
 ## 架构设计

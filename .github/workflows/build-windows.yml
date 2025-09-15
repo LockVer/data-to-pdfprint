@@ -47,7 +47,7 @@ jobs:
     
     - name: Build Windows executable
       run: |
-        python build_windows.py
+        python scripts/build_windows.py
       shell: cmd
     
     - name: Check build output

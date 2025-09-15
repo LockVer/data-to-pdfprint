@@ -1,76 +1,48 @@
 # Data to PDF Print
 
-一个用于读取Excel数据并生成PDF标签的Python命令行工具。支持自定义模板，可以根据相同的数据生成不同风格的PDF标签。
-
-## 功能特性
-
-- 📊 **Excel数据读取**: 支持读取Excel文件并提取指定字段
-- 🎨 **模板系统**: 支持自定义PDF模板，实现不同风格的标签输出
-- 📄 **PDF生成**: 使用ReportLab库生成高质量PDF文档
-- ⚡ **批量处理**: 支持批量生成多个PDF标签
-- 🖥️ **命令行界面**: 简单易用的命令行操作
+一个用于读取Excel数据并生成PDF标签的Python GUI/CLI工具。支持多种标签类型（常规盒标、分盒标、嵌套盒标），可以根据Excel数据快速生成专业的PDF标签文件。
 
 ## 项目结构
 
 ```
 data-to-pdfprint/
-├── src/                        # 源代码目录
-│   ├── __init__.py             # 包初始化文件
-│   ├── cli/                    # 命令行界面模块
-│   │   ├── __init__.py
-│   │   └── main.py             # CLI主程序入口
-│   ├── data/                   # 数据处理模块
-│   │   ├── __init__.py
-│   │   ├── excel_reader.py     # Excel文件读取器
-│   │   └── data_processor.py   # 数据处理器
-│   ├── pdf/                    # PDF生成模块
-│   │   ├── __init__.py
-│   │   └── generator.py        # PDF生成器
-│   ├── config/                 # 配置管理模块
-│   │   ├── __init__.py
-│   │   └── settings.py         # 项目配置管理
-│   └── utils/                  # 工具函数模块
-│       ├── __init__.py
-│       └── helpers.py          # 通用工具函数
-├── requirements.txt            # 项目依赖
-├── setup.py                    # 安装配置
-├── .gitignore                  # Git忽略文件
-└── README.md                   # 项目说明文档
+├── scripts/                     # 构建脚本目录
+│   ├── build_gui.py             # macOS GUI构建脚本
+│   └── build_windows.py         # Windows GUI构建脚本
+├── src/                         # 源代码目录
+│   ├── gui_app.py               # GUI主程序 (直接运行此文件进行调试)
+│   ├── fonts/                   # 字体文件目录
+│   │   ├── msyh.ttf             # 微软雅黑字体
+│   │   └── msyhbd.ttc           # 微软雅黑粗体字体
+│   ├── data/                    # 数据处理模块
+│   ├── pdf/                     # PDF生成模块
+│   │   ├── regular_box/         # 常规盒标
+│   │   ├── split_box/           # 分盒标
+│   │   └── nested_box/          # 嵌套盒标
+│   └── utils/                   # 工具函数模块
+├── requirements.txt             # Python依赖包列表
+├── .gitignore                   # Git忽略文件配置
+├── CLAUDE.md                    # 开发指导文档
+└── README.md                    # 项目说明文档
 ```
-
-## 模块说明
-
-### CLI模块 (`src/cli/`)
-- **main.py**: 命令行主程序入口，负责处理命令行参数解析和主要流程控制
-
-### 数据模块 (`src/data/`)
-- **excel_reader.py**: Excel文件读取器，负责读取Excel文件并解析数据
-- **data_processor.py**: 数据处理器，负责处理和转换Excel中的原始数据
-
-### PDF模块 (`src/pdf/`)
-- **generator.py**: PDF生成器，使用ReportLab生成PDF文档
-
-### 配置模块 (`src/config/`)
-- **settings.py**: 项目配置管理，管理项目的各种配置选项
-
-### 工具模块 (`src/utils/`)
-- **helpers.py**: 通用工具函数，提供项目中常用的工具函数
-
-## 设计原则
-
-1. **单一职责**: 每个模块和类都只负责一个具体的功能
-2. **模块化设计**: 功能模块之间松耦合，易于维护和扩展
-3. **可扩展性**: 支持自定义模板，可以轻松添加新的PDF样式
-4. **可测试性**: 每个模块都有对应的测试文件
-5. **配置管理**: 统一的配置管理，方便部署和维护
 
 ## 快速开始
 
-### 1. 环境准备
+### 方法一：直接运行源代码（推荐用于开发调试）
 
-首先确保你的系统已安装 Python 3.8 或更高版本。
+#### 1. 环境准备
+确保系统已安装 Python 3.8 或更高版本：
+```bash
+python3 --version
+```
 
-### 2. 创建虚拟环境
+#### 2. 克隆或下载项目
+```bash
+git clone https://github.com/yourusername/data-to-pdfprint.git
+cd data-to-pdfprint
+```
+
+#### 3. 创建虚拟环境
 ```bash
 # 创建虚拟环境
 python3 -m venv venv
@@ -79,102 +51,122 @@ python3 -m venv venv
 # macOS/Linux:
 source venv/bin/activate
 # Windows:
-# venv\Scripts\activate
+venv\Scripts\activate
 ```
 
-### 3. 安装依赖
+#### 4. 安装依赖
 ```bash
-# 安装项目依赖
 pip install -r requirements.txt
 ```
 
-### 4. 安装项目
+#### 5. 直接运行GUI程序
 ```bash
-# 开发模式安装 (推荐，修改代码无需重新安装)
-pip install -e .
+# 进入源码目录运行GUI程序
+python3 src/gui_app.py
 ```
 
-### 5. 验证安装
+### 方法二：构建独立可执行文件
+
+#### macOS版本构建
 ```bash
-# 查看命令帮助
-data-to-pdf --help
+# 1. 确保已安装依赖
+pip install -r requirements.txt
 
-# 查看版本信息
-data-to-pdf --version
+# 2. 运行macOS构建脚本
+python3 scripts/build_gui.py
 
-# 运行基本功能测试
-data-to-pdf
+# 3. 运行生成的应用
+./dist/DataToPDF_GUI
 ```
 
-### 6. 基本使用
+#### Windows版本构建
 ```bash
-# 使用默认模板处理Excel文件
-data-to-pdf --input data.xlsx --template basic
+# 1. 确保已安装依赖（最好在Windows系统上运行）
+pip install -r requirements.txt
 
-# 指定输出目录
-data-to-pdf --input data.xlsx --template basic --output output/
+# 2. 运行Windows构建脚本
+python scripts/build_windows.py
 
-# 快速测试（无参数运行查看使用提示）
-data-to-pdf
-
-# 选择1：在Windows系统上构建（推荐）
-# 这会生成 dist/DataToPDF_GUI.exe，可以直接在 Windows 上运行。
-
-python build_windows.py
-
+# 3. 运行生成的程序
+dist/DataToPDF_GUI.exe
 ```
 
-## setup.py 说明
+### Excel文件格式要求
 
-`setup.py` 是Python项目的配置文件，具有以下作用：
+程序支持标准的Excel格式(.xlsx, .xls)，具体的数据格式要求请参考各标签类型的说明：
 
-- **项目元数据**: 定义项目名称、版本、作者等信息
-- **依赖管理**: 自动读取requirements.txt中的依赖包
-- **命令行工具注册**: 创建 `data-to-pdf` 命令行工具
-- **包安装**: 支持 `pip install` 安装项目
-- **开发模式**: 支持 `pip install -e .` 可编辑安装
+- **常规盒标**：需要包含产品名称、规格、批次等基本信息
+- **分盒标**：除基本信息外，还需包含分装相关数据
+- **嵌套盒标**：需要包含层级结构信息
 
-## 打包成可执行文件
+## 依赖包说明
 
-### 使用 PyInstaller 打包
-
-项目已配置好 PyInstaller 支持，可以将Python项目打包成独立的可执行文件：
-
-```bash
-# 1. 激活虚拟环境
-source venv/bin/activate
-
-# 2. 安装打包工具 (如果尚未安装)
-pip install pyinstaller
-
-# 3. 使用预配置的spec文件打包
-pyinstaller data-to-pdf.spec
+```
+click>=8.1.0          # 命令行框架
+reportlab>=3.6.0      # PDF生成库
+pandas>=1.5.0         # 数据处理库
+openpyxl>=3.1.0       # Excel文件读取库
+pytest>=7.0.0         # 测试框架
+black>=22.0.0         # 代码格式化工具
+flake8>=5.0.0         # 代码质量检查工具
+pyinstaller>=5.0.0    # 程序打包工具
 ```
 
-打包完成后，可执行文件位于 `dist/data-to-pdf`
+## 开发说明
 
-### 测试可执行文件
+### 项目架构
 
-```bash
-# 查看帮助
-./dist/data-to-pdf --help
+- **数据层** (`src/data/`): 负责Excel数据的读取和处理
+- **PDF生成层** (`src/pdf/`): 按不同标签类型生成PDF文件
+  - `regular_box/`: 常规盒标相关代码
+  - `split_box/`: 分盒标相关代码  
+  - `nested_box/`: 嵌套盒标相关代码
+- **工具层** (`src/utils/`): 提供通用的工具函数
+- **GUI层** (`src/gui_app.py`): 图形用户界面
 
-# 查看版本
-./dist/data-to-pdf --version
+### 调试和开发
 
-# 运行程序
-./dist/data-to-pdf
-```
+1. **直接运行GUI进行调试**：
+   ```bash
+   python3 src/gui_app.py
+   ```
 
-### 打包配置说明
+2. **代码格式化**：
+   ```bash
+   black src/
+   ```
 
-- **`data-to-pdf.spec`**: PyInstaller配置文件，包含所有打包设置
-- **`build_exe.py`**: 可选的Python脚本，提供编程方式的打包
-- **单文件输出**: 生成单个可执行文件，无需额外依赖
-- **文件大小**: 约32MB (包含所有Python运行环境和依赖)
+3. **代码质量检查**：
+   ```bash
+   flake8 src/
+   ```
 
-### 跨平台支持
+4. **运行测试**（如果有测试文件）：
+   ```bash
+   pytest tests/
+   ```
 
-- **macOS**: 生成 `data-to-pdf` 可执行文件
-- **Windows**: 需要在Windows环境下打包生成 `data-to-pdf.exe`
-- **Linux**: 需要在Linux环境下打包生成相应的可执行文件
+### 构建脚本说明
+
+- `scripts/build_gui.py`: macOS版本构建脚本，生成适用于macOS的应用程序
+- `scripts/build_windows.py`: Windows版本构建脚本，生成适用于Windows的exe文件
+
+构建后的文件包含完整的运行环境和字体文件，可以在目标系统上独立运行，无需安装Python。
+
+## 字体支持
+
+项目内置了微软雅黑字体文件：
+- `src/fonts/msyh.ttf`: 微软雅黑常规字体
+- `src/fonts/msyhbd.ttc`: 微软雅黑粗体字体
+
+这些字体会被自动打包到可执行文件中，确保在任何系统上都能正确显示中文内容。
+
+## 分发说明
+
+### 文件大小
+- macOS版本：约70MB（包含字体文件）
+- Windows版本：约110MB（包含字体文件）
+
+### 系统兼容性
+- **macOS**: macOS 10.14+ (支持Intel和Apple Silicon)
+- **Windows**: Windows 7/8/10/11 (32/64位)
