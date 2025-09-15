@@ -52,10 +52,10 @@ jobs:
     - name: Check build output
       run: |
         if (Test-Path "dist\DataToPDF_GUI.exe") {
-          echo "✅ Build successful: DataToPDF_GUI.exe created"
+          echo "Build successful: DataToPDF_GUI.exe created"
           echo "File size: $((Get-Item 'dist\DataToPDF_GUI.exe').length / 1MB) MB"
         } else {
-          echo "❌ Build failed: DataToPDF_GUI.exe not found"
+          echo "Build failed: DataToPDF_GUI.exe not found"
           exit 1
         }
       shell: powershell
@@ -111,15 +111,15 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| 项目 | 状态 |" >> $GITHUB_STEP_SUMMARY
         echo "|------|------|" >> $GITHUB_STEP_SUMMARY
-        echo "| Windows可执行文件 | ${{ needs.build-windows.result == 'success' && '✅ 成功' || '❌ 失败' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Windows可执行文件 | ${{ needs.build-windows.result == 'success' && '成功' || '失败' }} |" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [[ "${{ needs.build-windows.result }}" == "success" ]]; then
-          echo "### 📥 下载方式" >> $GITHUB_STEP_SUMMARY
+          echo "###下载方式" >> $GITHUB_STEP_SUMMARY
           echo "1. 前往 [Actions](https://github.com/${{ github.repository }}/actions) 页面" >> $GITHUB_STEP_SUMMARY
           echo "2. 找到本次构建记录" >> $GITHUB_STEP_SUMMARY
           echo "3. 下载 'DataToPDF-Windows-${{ github.sha }}' 制品" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 使用说明" >> $GITHUB_STEP_SUMMARY
+          echo "###使用说明" >> $GITHUB_STEP_SUMMARY
           echo "- 解压下载的ZIP文件" >> $GITHUB_STEP_SUMMARY
           echo "- 双击运行 DataToPDF_GUI.exe" >> $GITHUB_STEP_SUMMARY
           echo "- 无需安装Python环境即可使用" >> $GITHUB_STEP_SUMMARY

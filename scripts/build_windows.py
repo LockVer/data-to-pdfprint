@@ -19,7 +19,7 @@ def build_windows_gui():
     print("Building Windows GUI application...")
     
     # Ensure we're in project root directory
-    project_root = Path(__file__).parent
+    project_root = Path(__file__).parent.parent  # Go up one level from scripts/
     os.chdir(project_root)
     
     # Check required files

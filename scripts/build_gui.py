@@ -16,7 +16,7 @@ def build_gui_app():
     print(f"在{system}系统上构建GUI应用...")
     
     # 确保在项目根目录
-    project_root = Path(__file__).parent
+    project_root = Path(__file__).parent.parent  # Go up one level from scripts/
     os.chdir(project_root)
     
     # GUI应用名称
