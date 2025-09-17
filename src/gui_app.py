@@ -106,19 +106,17 @@ class DataToPDFApp:
         )
         split_radio.pack(side=tk.LEFT)
 
-        # 中文名称输入区域
-        chinese_name_section = ttk.Frame(content_frame)
-        chinese_name_section.pack(pady=(0, 25))
+        # 中文名称输入区域 - LabelFrame样式
+        chinese_name_frame = ttk.LabelFrame(content_frame, text="中文名称", padding="10")
+        chinese_name_frame.pack(fill=tk.X, pady=(0, 25))
 
-        ttk.Label(chinese_name_section, text="中文名称", font=("Arial", 11)).pack(side=tk.LEFT, padx=(0, 10))
         self.chinese_name_var = tk.StringVar(value="你好世界")
         chinese_name_entry = ttk.Entry(
-            chinese_name_section, 
+            chinese_name_frame, 
             textvariable=self.chinese_name_var, 
-            font=("Arial", 11),
-            width=25
+            font=("Arial", 11)
         )
-        chinese_name_entry.pack(side=tk.LEFT)
+        chinese_name_entry.pack(fill=tk.X)
 
         # 下一步按钮
         button_frame = ttk.Frame(content_frame)
@@ -132,18 +130,10 @@ class DataToPDFApp:
         )
         self.next_btn.pack()
 
-        # 选择文件按钮（在content_frame底部）
-        select_btn_frame = ttk.Frame(main_frame)
-        select_btn_frame.grid(row=2, column=0, pady=(0, 20))
-
-        select_btn = ttk.Button(
-            select_btn_frame, text="📂 选择Excel文件", command=self.select_file
-        )
-        select_btn.pack()
 
         # 文件信息显示
         info_frame = ttk.LabelFrame(main_frame, text="文件信息", padding="10")
-        info_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
+        info_frame.grid(row=2, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
 
         self.info_text = tk.Text(info_frame, height=8, width=70, font=("Consolas", 10))
         self.info_text.pack(fill=tk.BOTH, expand=True)
@@ -157,7 +147,7 @@ class DataToPDFApp:
 
         # 状态栏
         status_frame = ttk.Frame(main_frame)
-        status_frame.grid(row=4, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
+        status_frame.grid(row=3, column=0, sticky=(tk.W, tk.E), pady=(10, 0))
 
         self.status_var = tk.StringVar()
         self.status_var.set("📋 准备就绪 - 请选择Excel文件")
@@ -167,7 +157,7 @@ class DataToPDFApp:
         # 配置网格权重
         self.root.grid_rowconfigure(0, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(3, weight=1)
+        main_frame.grid_rowconfigure(2, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
         self.current_file = None
