@@ -346,8 +346,10 @@ class NestedBoxTemplate(PDFBaseUtils):
             actual_boxes_in_small_box = end_box - start_box + 1
             actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
 
-            # 计算套盒套标的Carton No（简单的套编号）
-            carton_no = str(small_box_num)
+            # 计算套盒套标的Carton No - 基于最新逻辑整理
+            carton_no = nested_box_data_processor.calculate_carton_number_for_small_box(
+                small_box_num, boxes_per_small_box, 1  # nested_box中每套1个小箱，所以boxes_per_small_box=盒/套
+            )
 
             # 获取标签模版类型 - 参照分盒模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
@@ -440,10 +442,11 @@ class NestedBoxTemplate(PDFBaseUtils):
             actual_boxes_in_large_box = end_box - start_box + 1
             actual_pieces_in_large_box = actual_boxes_in_large_box * pieces_per_box
 
-            # 计算套盒箱标的Carton No（套范围格式）
-            start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
-            end_small_box = start_small_box + small_boxes_per_large_box - 1
-            carton_range = f"{start_small_box}-{end_small_box}"
+            # 计算套盒箱标的Carton No - 基于最新逻辑整理
+            total_sets = math.ceil(total_boxes / boxes_per_small_box)
+            carton_range = nested_box_data_processor.calculate_carton_range_for_large_box(
+                large_box_num, boxes_per_small_box, boxes_per_large_box, total_sets
+            )
 
             # 获取标签模版类型 - 参照分盒模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")

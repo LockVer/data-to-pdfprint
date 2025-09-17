@@ -227,15 +227,48 @@ class NestedBoxDataProcessor:
         else:
             return f"DSK{large_box_num:05d}-DSK{large_box_num:05d}"
     
-    def calculate_carton_number_for_small_box(self, small_box_num: int) -> str:
-        """计算套盒套标的Carton No - 与原有逻辑完全一致"""
-        return str(small_box_num)
+    def calculate_carton_number_for_small_box(self, small_box_num: int, boxes_per_set: int, boxes_per_small_box: int) -> str:
+        """
+        计算套盒套标的Carton No - 基于最新逻辑整理
+        根据每套小箱数量判断渲染模式
+        """
+        # 计算每套小箱数量
+        small_boxes_per_set = boxes_per_set / boxes_per_small_box
+        
+        if small_boxes_per_set > 1:
+            # 一套分多个小箱：多级编号 (套号-小箱号)
+            set_num = ((small_box_num - 1) // int(small_boxes_per_set)) + 1
+            small_box_in_set = ((small_box_num - 1) % int(small_boxes_per_set)) + 1
+            return f"{set_num}-{small_box_in_set}"
+        elif small_boxes_per_set == 1:
+            # 一套分一个小箱：单级编号 (01, 02, 03...)
+            return f"{small_box_num:02d}"
+        else:
+            # 没有小箱标 (每套小箱数量 = null/0)
+            return None
     
-    def calculate_carton_range_for_large_box(self, large_box_num: int, small_boxes_per_large_box: int) -> str:
-        """计算套盒箱标的Carton No范围 - 与原有逻辑完全一致"""
-        start_small_box = (large_box_num - 1) * small_boxes_per_large_box + 1
-        end_small_box = start_small_box + small_boxes_per_large_box - 1
-        return f"{start_small_box}-{end_small_box}"
+    def calculate_carton_range_for_large_box(self, large_box_num: int, boxes_per_set: int, boxes_per_large_box: int, total_sets: int) -> str:
+        """
+        计算套盒箱标的Carton No - 基于最新逻辑整理
+        根据每套大箱数量判断渲染模式
+        """
+        # 计算每套大箱数量
+        large_boxes_per_set = boxes_per_set / boxes_per_large_box
+        
+        if large_boxes_per_set > 1:
+            # 一套分多个大箱：多级编号 (套号-大箱号)
+            set_num = ((large_box_num - 1) // int(large_boxes_per_set)) + 1
+            large_box_in_set = ((large_box_num - 1) % int(large_boxes_per_set)) + 1
+            return f"{set_num}-{large_box_in_set}"
+        elif large_boxes_per_set == 1:
+            # 一套分一个大箱：单级编号 (1, 2, 3...)
+            return str(large_box_num)
+        else:
+            # 多套分一个大箱：多级编号 (起始套号-结束套号)
+            sets_per_large_box = int(1 / large_boxes_per_set)
+            start_set = (large_box_num - 1) * sets_per_large_box + 1
+            end_set = min(start_set + sets_per_large_box - 1, total_sets)
+            return f"{start_set}-{end_set}"
     
     def calculate_overweight_box_distribution(self, boxes_per_set: int, boxes_per_large_box: int, box_in_set: int) -> int:
         """

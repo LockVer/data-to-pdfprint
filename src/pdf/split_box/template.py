@@ -28,12 +28,17 @@ class SplitBoxTemplate(PDFBaseUtils):
 
         Args:
             data: Excel数据
-            params: 用户参数 (张/盒, 盒/小箱, 小箱/大箱, 选择外观, 是否有小箱)
+            params: 用户参数 (张/盒, 盒/套, 盒/小箱, 小箱/大箱, 选择外观, 是否有小箱)
             output_dir: 输出目录
 
         Returns:
             生成的文件路径字典
         """
+        # 🔧 临时修复：确保"盒/套"参数存在
+        print(f"🔍 主入口调试：params内容 = {params}")
+        if "盒/套" not in params:
+            print("⚠️ 警告：缺少'盒/套'参数，使用默认值1")
+            params["盒/套"] = 1
         # 检查是否有小箱
         has_small_box = params.get("是否有小箱", True)
         
@@ -247,10 +252,18 @@ class SplitBoxTemplate(PDFBaseUtils):
         print(f"✅ 分盒小箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 获取用户输入的包装参数
+        print(f"🔍 调试：params内容 = {params}")
+        print(f"🔍 调试：params.keys() = {list(params.keys())}")
+        print(f"🔍 调试：'盒/套' in params = {'盒/套' in params}")
+        if '盒/套' in params:
+            print(f"🔍 调试：params['盒/套'] = {params['盒/套']}")
+        
+        boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))  # 兼容处理
+        print(f"🔍 调试：最终 boxes_per_set = {boxes_per_set}")
         boxes_per_small_box = int(params["盒/小箱"])
         small_boxes_per_large_box = int(params["小箱/大箱"])
         serial_font_size = int(params.get("序列号字体大小", 10))
-        print(f"✅ 分盒小箱标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}, 序列号字体大小={serial_font_size}")
+        print(f"✅ 分盒小箱标参数: 盒/套={boxes_per_set}, 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}, 序列号字体大小={serial_font_size}")
         
         # 计算参数
         pieces_per_box = int(params["张/盒"])
@@ -320,9 +333,9 @@ class SplitBoxTemplate(PDFBaseUtils):
             actual_boxes_in_small_box = end_box - start_box + 1
             actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
 
-            # 计算分盒小箱标的Carton No（大箱号-小箱号格式，小箱号每大箱内重置）
+            # 计算分盒小箱标的Carton No - 基于最新逻辑整理
             carton_no = split_box_data_processor.calculate_carton_number_for_small_box(
-                small_box_num, small_boxes_per_large_box
+                small_box_num, boxes_per_set, boxes_per_small_box
             )
 
             # 获取标签模版类型 - 参照常规模版的实现方式
@@ -352,25 +365,34 @@ class SplitBoxTemplate(PDFBaseUtils):
         print(f"✅ 分盒大箱标使用统一数据: 主题='{theme_text}', 开始号='{base_number}', 客户编码='{remark_text}'")
         
         # 获取用户输入的包装参数
+        print(f"🔍 调试：大箱标params内容 = {params}")
+        boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))  # 兼容处理
         boxes_per_small_box = int(params["盒/小箱"])
         small_boxes_per_large_box = int(params["小箱/大箱"])
         serial_font_size = int(params.get("序列号字体大小", 10))
-        print(f"✅ 分盒大箱标参数: 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}, 序列号字体大小={serial_font_size}")
+        print(f"✅ 分盒大箱标参数: 盒/套={boxes_per_set}, 盒/小箱={boxes_per_small_box}, 小箱/大箱={small_boxes_per_large_box}, 序列号字体大小={serial_font_size}")
         
         # 计算参数 - 大箱标专用
         pieces_per_box = int(params["张/盒"])  # 第一个参数：张/盒
+        
+        # 从remainder_info获取total_boxes
+        total_pieces = int(float(data["总张数"]))
+        total_boxes = math.ceil(total_pieces / pieces_per_box)
+        
+        # 计算总套数
+        total_sets = math.ceil(total_boxes / boxes_per_set)
         
         # 直接创建单个PDF文件，包含所有大箱标
         self._create_single_split_box_large_box_label_file(
             data, params, output_path, 1, total_large_boxes,
             theme_text, base_number, remark_text, pieces_per_box, 
-            boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, serial_font_size
+            boxes_per_set, boxes_per_small_box, small_boxes_per_large_box, total_large_boxes, total_sets, serial_font_size
         )
 
     def _create_single_split_box_large_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
-                                                 remark_text: str, pieces_per_box: int, boxes_per_small_box: int, 
-                                                 small_boxes_per_large_box: int, total_large_boxes: int, serial_font_size: int = 10):
+                                                 remark_text: str, pieces_per_box: int, boxes_per_set: int, boxes_per_small_box: int, 
+                                                 small_boxes_per_large_box: int, total_large_boxes: int, total_sets: int, serial_font_size: int = 10):
         """创建单个分盒大箱标PDF文件 - 完全参考小箱标"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
         width, height = self.page_size
@@ -418,6 +440,11 @@ class SplitBoxTemplate(PDFBaseUtils):
                 base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
             )
             
+            # 计算大箱标的Carton No - 基于最新逻辑整理
+            carton_no = split_box_data_processor.calculate_carton_range_for_large_box(
+                large_box_num, boxes_per_set, boxes_per_small_box * small_boxes_per_large_box, total_sets
+            )
+            
             # 获取标签模版类型 - 参照常规模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
             
@@ -425,11 +452,11 @@ class SplitBoxTemplate(PDFBaseUtils):
             if template_type == "有纸卡备注":
                 split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_small_box, small_boxes_per_large_box, serial_range, 
-                                               str(large_box_num), remark_text, serial_font_size)
+                                               carton_no, remark_text, serial_font_size)
             else:  # "无纸卡备注"
                 split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_small_box, small_boxes_per_large_box, serial_range, 
-                                               str(large_box_num), remark_text, serial_font_size)
+                                               carton_no, remark_text, serial_font_size)
 
         c.save()
 

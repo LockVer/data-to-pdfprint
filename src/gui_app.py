@@ -451,9 +451,9 @@ class DataToPDFApp:
         if template_type == "常规":
             get_regular_ui_dialog(self).show_parameters_dialog()
         elif template_type == "分/套盒": 
+            # 统一使用split_box UI界面处理所有分/套盒场景
             get_split_box_ui_dialog(self).show_parameters_dialog()
-        elif template_type == "套盒":
-            get_nested_box_ui_dialog(self).show_parameters_dialog()
+        # 移除nested_box UI路由，统一使用split_box模块
 
     def generate_multi_level_pdfs(self):
         """生成多级标签PDF"""
@@ -484,13 +484,11 @@ class DataToPDFApp:
                         self.current_data, self.packaging_params, output_dir, self.current_file
                     )
                 elif template_choice == "分/套盒":
+                    # 统一使用split_box模块处理所有分/套盒场景
                     generated_files = generator.create_split_box_multi_level_pdfs(
                         self.current_data, self.packaging_params, output_dir, self.current_file
                     )
-                elif template_choice == "套盒":
-                    generated_files = generator.create_nested_box_multi_level_pdfs(
-                        self.current_data, self.packaging_params, output_dir, self.current_file
-                    )
+                # 移除nested_box路由，统一使用split_box模块
 
                 self.status_var.set(f"✅ {template_choice}模板PDF生成成功!")
 
