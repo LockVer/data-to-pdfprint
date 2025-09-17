@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.pdf.generator import PDFGenerator
 from src.pdf.regular_box.ui_dialog import get_regular_ui_dialog
 from src.pdf.split_box.ui_dialog import get_split_box_ui_dialog
-from src.pdf.nested_box.ui_dialog import get_nested_box_ui_dialog
+# nested_box模块已移至_archived/nested_box（已弃用）
 from src.utils.text_processor import text_processor
 from src.utils.excel_data_extractor import ExcelDataExtractor
 from src.utils.font_manager import font_manager
