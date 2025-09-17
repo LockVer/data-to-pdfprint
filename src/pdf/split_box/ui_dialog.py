@@ -169,7 +169,9 @@ class SplitBoxUIDialog:
         ttk.Label(params_frame, text="中文名称:").grid(
             row=3, column=0, sticky=tk.W, pady=5
         )
-        self.main_app.chinese_name_var = tk.StringVar()
+        # 从主题数据设置中文名称默认值
+        default_chinese_name = self.main_app.current_data.get('主题', '') if self.main_app.current_data else ''
+        self.main_app.chinese_name_var = tk.StringVar(value=default_chinese_name)
         chinese_name_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.chinese_name_var, width=15
         )

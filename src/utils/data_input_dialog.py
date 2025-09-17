@@ -23,7 +23,7 @@ class DataInputDialog:
         self.result_data = None
         self.input_vars = {}
         
-        # 定义五个核心字段及其格式要求
+        # 定义六个核心字段及其格式要求
         self.required_fields = {
             "客户名称编码": {
                 "format_hint": "如：14KH0149、ABC123",
@@ -44,6 +44,10 @@ class DataInputDialog:
             "张/盒": {
                 "format_hint": "正整数，如：300、500",
                 "validation": self._validate_pieces_per_box
+            },
+            "主题": {
+                "format_hint": "如：女士夜、产品主题",
+                "validation": self._validate_theme_field
             }
         }
     
@@ -284,6 +288,13 @@ class DataInputDialog:
         except ValueError:
             messagebox.showerror("格式错误", "张/盒必须为数字\n\n正确格式：300、500")
             return False
+    
+    def _validate_theme_field(self, value):
+        """验证主题字段"""
+        if len(value.strip()) < 1:
+            messagebox.showerror("格式错误", "主题不能为空\n\n正确格式：女士夜、产品主题")
+            return False
+        return True
 
 
 def show_data_input_dialog(parent, extracted_data):
