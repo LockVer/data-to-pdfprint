@@ -46,57 +46,106 @@ class DataToPDFApp:
 
     def setup_ui(self):
         # 主框架
-        main_frame = ttk.Frame(self.root, padding="20")
+        main_frame = ttk.Frame(self.root, padding="30")
         main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
 
         # 标题
         title_label = ttk.Label(
             main_frame, text="Excel数据到PDF转换工具", font=("Arial", 16, "bold")
         )
-        title_label.grid(row=0, column=0, pady=(0, 20))
+        title_label.grid(row=0, column=0, pady=(0, 30))
+
+        # 中央内容框架
+        content_frame = ttk.LabelFrame(main_frame, text="标签程序", padding="30")
+        content_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
 
         # 文件选择区域
         self.select_frame = tk.Frame(
-            main_frame, bg="#f0f0f0", relief="ridge", bd=2, height=120
+            content_frame, bg="#f8f8f8", relief="solid", bd=1, height=80
         )
-        self.select_frame.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 20))
-        self.select_frame.grid_propagate(False)
+        self.select_frame.pack(fill=tk.X, pady=(0, 25))
+        self.select_frame.pack_propagate(False)
 
         # 文件选择提示
         self.select_label = tk.Label(
             self.select_frame,
-            text="📁 点击此区域选择Excel文件\n\n支持 .xlsx 和 .xls 格式",
-            bg="#f0f0f0",
+            text="点击此区域选择 Excel 文件\n支持 .xlsx 和 .xls 格式",
+            bg="#f8f8f8",
             font=("Arial", 11),
             fg="#666666",
             cursor="hand2",
         )
         self.select_label.place(relx=0.5, rely=0.5, anchor="center")
 
-        # 按钮框架
-        button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=2, column=0, pady=(0, 20))
+        # 模板选择区域
+        template_section = ttk.Frame(content_frame)
+        template_section.pack(fill=tk.X, pady=(0, 25))
 
-        # 选择文件按钮
-        select_btn = ttk.Button(
-            button_frame, text="📂 选择Excel文件", command=self.select_file
+        # 模板选择变量
+        self.template_choice = tk.StringVar(value="常规")
+
+        # 模板选项居中布局
+        template_options_frame = ttk.Frame(template_section)
+        template_options_frame.pack(expand=True)
+
+        # 常规模板选项
+        regular_radio = ttk.Radiobutton(
+            template_options_frame,
+            text="常规",
+            variable=self.template_choice,
+            value="常规"
         )
-        select_btn.pack(side=tk.LEFT, padx=(0, 10))
+        regular_radio.pack(side=tk.LEFT, padx=(0, 40))
 
-        # 生成PDF按钮
-        self.generate_btn = ttk.Button(
+        # 分/套盒模板选项  
+        split_radio = ttk.Radiobutton(
+            template_options_frame,
+            text="分/套盒",
+            variable=self.template_choice,
+            value="分/套盒"
+        )
+        split_radio.pack(side=tk.LEFT)
+
+        # 中文名称输入区域
+        chinese_name_section = ttk.Frame(content_frame)
+        chinese_name_section.pack(pady=(0, 25))
+
+        ttk.Label(chinese_name_section, text="中文名称", font=("Arial", 11)).pack(side=tk.LEFT, padx=(0, 10))
+        self.chinese_name_var = tk.StringVar(value="你好世界")
+        chinese_name_entry = ttk.Entry(
+            chinese_name_section, 
+            textvariable=self.chinese_name_var, 
+            font=("Arial", 11),
+            width=25
+        )
+        chinese_name_entry.pack(side=tk.LEFT)
+
+        # 下一步按钮
+        button_frame = ttk.Frame(content_frame)
+        button_frame.pack(fill=tk.X)
+
+        self.next_btn = ttk.Button(
             button_frame,
-            text="🔄 选择模板并生成PDF",
-            command=self.start_generation_workflow,
-            state="disabled",
+            text="下一步",
+            command=self.next_step,
+            state="disabled"
         )
-        self.generate_btn.pack(side=tk.LEFT)
+        self.next_btn.pack()
+
+        # 选择文件按钮（在content_frame底部）
+        select_btn_frame = ttk.Frame(main_frame)
+        select_btn_frame.grid(row=2, column=0, pady=(0, 20))
+
+        select_btn = ttk.Button(
+            select_btn_frame, text="📂 选择Excel文件", command=self.select_file
+        )
+        select_btn.pack()
 
         # 文件信息显示
         info_frame = ttk.LabelFrame(main_frame, text="文件信息", padding="10")
-        info_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 20))
+        info_frame.grid(row=3, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10))
 
-        self.info_text = tk.Text(info_frame, height=10, width=70, font=("Consolas", 10))
+        self.info_text = tk.Text(info_frame, height=8, width=70, font=("Consolas", 10))
         self.info_text.pack(fill=tk.BOTH, expand=True)
 
         # 滚动条
@@ -217,13 +266,13 @@ class DataToPDFApp:
             self.info_text.insert(tk.END, info_text)
 
             self.current_file = file_path
-            self.generate_btn.config(state="normal")
+            self.next_btn.config(state="normal")
             self.status_var.set("✅ 文件处理完成")
 
-            # 更新选择区域显示 - 不再显示总张数（避免重复）
+            # 更新选择区域显示
             display_text = (
                 f"✅ 已选择文件: {Path(file_path).name}"
-                f"\n\n点击生成多级标签PDF按钮继续"
+                f"\n\n请选择模板类型并填写中文名称"
             )
             self.select_label.config(text=display_text, fg="green")
 
@@ -322,11 +371,10 @@ class DataToPDFApp:
         template_frame = ttk.LabelFrame(main_frame, text="模板类型", padding="15")
         template_frame.pack(fill=tk.X, pady=(0, 20))
 
-        # 三个模板选项
+        # 两个模板选项
         templates = [
             ("常规", "适用于普通包装标签"),
-            ("分盒", "适用于分盒包装标签"),
-            ("套盒", "适用于套盒包装标签")
+            ("分/套盒", "适用于分盒包装标签")
         ]
 
         for i, (template_name, description) in enumerate(templates):
@@ -360,6 +408,27 @@ class DataToPDFApp:
         dialog.wait_window()
         return self.selected_template
 
+    def next_step(self):
+        """处理下一步按钮点击"""
+        if not self.current_data:
+            messagebox.showwarning("警告", "请先选择Excel文件")
+            return
+            
+        # 检查中文名称是否填写
+        chinese_name = self.chinese_name_var.get().strip()
+        if not chinese_name:
+            messagebox.showwarning("警告", "请填写中文名称")
+            return
+            
+        # 获取选择的模板类型
+        template_choice = self.template_choice.get()
+        
+        # 保存模板选择和中文名称
+        self.selected_main_template = template_choice
+        
+        # 根据模板类型显示对应的参数设置对话框
+        self.show_parameters_dialog_for_template(template_choice)
+
     def start_generation_workflow(self):
         """开始生成工作流：先选择模板，再设置参数"""
         if not self.current_data:
@@ -381,7 +450,7 @@ class DataToPDFApp:
         """根据模板类型显示对应的参数设置对话框"""
         if template_type == "常规":
             get_regular_ui_dialog(self).show_parameters_dialog()
-        elif template_type == "分盒": 
+        elif template_type == "分/套盒": 
             get_split_box_ui_dialog(self).show_parameters_dialog()
         elif template_type == "套盒":
             get_nested_box_ui_dialog(self).show_parameters_dialog()
@@ -414,7 +483,7 @@ class DataToPDFApp:
                     generated_files = generator.create_multi_level_pdfs(
                         self.current_data, self.packaging_params, output_dir, self.current_file
                     )
-                elif template_choice == "分盒":
+                elif template_choice == "分/套盒":
                     generated_files = generator.create_split_box_multi_level_pdfs(
                         self.current_data, self.packaging_params, output_dir, self.current_file
                     )

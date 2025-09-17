@@ -148,6 +148,58 @@ class RegularUIDialog:
         )
         has_box_label_radio.pack(side=tk.LEFT)
         
+        # 左侧：外观选择框架
+        appearance_frame = ttk.LabelFrame(left_column, text="盒标外观选择", padding="12")
+        appearance_frame.pack(fill=tk.X, pady=(0, 10))
+
+        self.main_app.appearance_var = tk.StringVar(value="外观一")
+        
+        # 居中布局的框架
+        radio_container = ttk.Frame(appearance_frame)
+        radio_container.pack(expand=True)
+        
+        appearance_radio1 = ttk.Radiobutton(
+            radio_container,
+            text="外观一",
+            variable=self.main_app.appearance_var,
+            value="外观一"
+        )
+        appearance_radio1.pack(side=tk.LEFT, padx=(0, 30))
+
+        appearance_radio2 = ttk.Radiobutton(
+            radio_container,
+            text="外观二",
+            variable=self.main_app.appearance_var,
+            value="外观二"
+        )
+        appearance_radio2.pack(side=tk.LEFT)
+
+        # 左侧：标签模版选择框架
+        template_frame = ttk.LabelFrame(left_column, text="标签模版选择", padding="12")
+        template_frame.pack(fill=tk.X, pady=(0, 10))
+
+        self.main_app.template_var = tk.StringVar(value="无纸卡备注")
+        
+        # 居中布局的框架
+        template_container = ttk.Frame(template_frame)
+        template_container.pack(expand=True)
+        
+        template_radio1 = ttk.Radiobutton(
+            template_container,
+            text="无纸卡备注",
+            variable=self.main_app.template_var,
+            value="无纸卡备注"
+        )
+        template_radio1.pack(side=tk.LEFT, padx=(0, 30))
+
+        template_radio2 = ttk.Radiobutton(
+            template_container,
+            text="有纸卡备注",
+            variable=self.main_app.template_var,
+            value="有纸卡备注"
+        )
+        template_radio2.pack(side=tk.LEFT)
+
         # 左侧：参数输入框架
         params_frame = ttk.LabelFrame(left_column, text="包装参数", padding="12")
         params_frame.pack(fill=tk.X, pady=(0, 10))
@@ -192,25 +244,15 @@ class RegularUIDialog:
         )
         self.third_param_entry.grid(row=2, column=1, sticky=tk.W+tk.E, pady=10)
 
-        # 中文名称输入
-        ttk.Label(params_frame, text="中文名称:", font=("Arial", 11)).grid(
-            row=3, column=0, sticky=tk.E, pady=10, padx=(0, 15)
-        )
-        self.main_app.chinese_name_var = tk.StringVar()
-        chinese_name_entry = ttk.Entry(
-            params_frame, textvariable=self.main_app.chinese_name_var, width=20, font=("Arial", 11)
-        )
-        chinese_name_entry.grid(row=3, column=1, sticky=tk.W+tk.E, pady=10)
-
         # 序列号字体大小输入
         ttk.Label(params_frame, text="序列号字体大小:", font=("Arial", 11)).grid(
-            row=4, column=0, sticky=tk.E, pady=10, padx=(0, 15)
+            row=3, column=0, sticky=tk.E, pady=10, padx=(0, 15)
         )
         self.main_app.serial_font_size_var = tk.StringVar(value="10")
         serial_font_size_entry = ttk.Entry(
             params_frame, textvariable=self.main_app.serial_font_size_var, width=20, font=("Arial", 11)
         )
-        serial_font_size_entry.grid(row=4, column=1, sticky=tk.W+tk.E, pady=10)
+        serial_font_size_entry.grid(row=3, column=1, sticky=tk.W+tk.E, pady=10)
         
         # 添加说明标签
         serial_font_help = ttk.Label(
@@ -219,62 +261,10 @@ class RegularUIDialog:
             font=('Arial', 9),
             foreground='gray'
         )
-        serial_font_help.grid(row=4, column=2, sticky=tk.W, padx=(5, 0), pady=10)
+        serial_font_help.grid(row=3, column=2, sticky=tk.W, padx=(5, 0), pady=10)
         
         # 初始化时设置显示状态
         self.on_small_box_choice_changed()
-
-        # 左侧：外观选择框架
-        appearance_frame = ttk.LabelFrame(left_column, text="盒标外观选择", padding="12")
-        appearance_frame.pack(fill=tk.X, pady=(0, 10))
-
-        self.main_app.appearance_var = tk.StringVar(value="外观一")
-        
-        # 居中布局的框架
-        radio_container = ttk.Frame(appearance_frame)
-        radio_container.pack(expand=True)
-        
-        appearance_radio1 = ttk.Radiobutton(
-            radio_container,
-            text="外观一",
-            variable=self.main_app.appearance_var,
-            value="外观一"
-        )
-        appearance_radio1.pack(side=tk.LEFT, padx=(0, 30))
-
-        appearance_radio2 = ttk.Radiobutton(
-            radio_container,
-            text="外观二",
-            variable=self.main_app.appearance_var,
-            value="外观二"
-        )
-        appearance_radio2.pack(side=tk.LEFT)
-
-        # 左侧：标签模版选择框架
-        template_frame = ttk.LabelFrame(left_column, text="标签模版选择", padding="12")
-        template_frame.pack(fill=tk.X)
-
-        self.main_app.template_var = tk.StringVar(value="无纸卡备注")
-        
-        # 居中布局的框架
-        template_container = ttk.Frame(template_frame)
-        template_container.pack(expand=True)
-        
-        template_radio1 = ttk.Radiobutton(
-            template_container,
-            text="无纸卡备注",
-            variable=self.main_app.template_var,
-            value="无纸卡备注"
-        )
-        template_radio1.pack(side=tk.LEFT, padx=(0, 30))
-
-        template_radio2 = ttk.Radiobutton(
-            template_container,
-            text="有纸卡备注",
-            variable=self.main_app.template_var,
-            value="有纸卡备注"
-        )
-        template_radio2.pack(side=tk.LEFT)
 
         # 右侧：当前数据显示
         info_frame = ttk.LabelFrame(right_column, text="当前数据", padding="12")
@@ -370,7 +360,7 @@ class RegularUIDialog:
             if has_small_box:
                 messagebox.showerror("参数错误", "请输入'盒/小箱'参数")
             else:
-                messagebox.showerror("参数错误", "请输入'盒/箱'参数")
+                messagebox.showerror("参数错误", "请输入'盒/大箱'参数")
             return
         if has_small_box and not small_boxes_per_large_box_str:
             messagebox.showerror("参数错误", "请输入'小箱/大箱'参数")
@@ -396,20 +386,15 @@ class RegularUIDialog:
             if has_small_box:
                 messagebox.showerror("参数错误", "'盒/小箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
             else:
-                messagebox.showerror("参数错误", "'盒/箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
+                messagebox.showerror("参数错误", "'盒/大箱'必须为正整数\n\n当前值：{}".format(boxes_per_small_box))
             return
         if has_small_box and small_boxes_per_large_box <= 0:
             messagebox.showerror("参数错误", "'小箱/大箱'必须为正整数\n\n当前值：{}".format(small_boxes_per_large_box))
             return
         
             
-        # 获取中文名称
+        # 获取中文名称（从主界面获取）
         chinese_name = self.main_app.chinese_name_var.get().strip()
-        
-        # 检查中文名称是否为空
-        if not chinese_name:
-            messagebox.showerror("参数错误", "请输入'中文名称'")
-            return
         
         # 获取序列号字体大小
         serial_font_size_str = self.main_app.serial_font_size_var.get().strip()
@@ -436,7 +421,7 @@ class RegularUIDialog:
             "小箱/大箱": small_boxes_per_large_box,
             "选择外观": self.main_app.appearance_var.get(),
             "标签模版": self.main_app.template_var.get(),
-            "中文名称": self.main_app.chinese_name_var.get(),
+            "中文名称": chinese_name,
             "是否有小箱": has_small_box,
             "序列号字体大小": serial_font_size,
             "是否有盒标": has_box_label,
@@ -456,7 +441,7 @@ class RegularUIDialog:
             self.third_param_entry.grid()
         else:
             # 无小箱：二级包装
-            self.second_param_label.config(text="盒/箱:")
+            self.second_param_label.config(text="盒/大箱:")
             self.third_param_label.grid_remove()
             self.third_param_entry.grid_remove()
 
