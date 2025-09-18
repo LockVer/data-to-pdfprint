@@ -52,16 +52,17 @@ def test_your_scenario():
     print(f"   总大箱数: {total_large_boxes} = {total_sets} × {large_boxes_per_set}")
     
     print(f"\n📦 生成Carton No (前10个):")
+    large_boxes_per_set_ratio = boxes_per_set / boxes_per_large_box
     carton_nos = []
     for i in range(1, min(total_large_boxes + 1, 11)):
-        carton_no = processor.calculate_carton_range_for_large_box(i, boxes_per_set, boxes_per_large_box, total_sets)
+        carton_no = processor.calculate_carton_range_for_large_box(i, large_boxes_per_set_ratio, total_sets)
         carton_nos.append(carton_no)
         print(f"   大箱 #{i}: {carton_no}")
     
     print(f"\n📦 最后几个Carton No:")
     if total_large_boxes > 10:
         for i in range(max(total_large_boxes - 2, 11), total_large_boxes + 1):
-            carton_no = processor.calculate_carton_range_for_large_box(i, boxes_per_set, boxes_per_large_box, total_sets)
+            carton_no = processor.calculate_carton_range_for_large_box(i, large_boxes_per_set_ratio, total_sets)
             print(f"   大箱 #{i}: {carton_no}")
     
     # 验证结果
@@ -86,7 +87,7 @@ def test_your_scenario():
     # 生成完整的Carton No序列
     all_carton_nos = []
     for i in range(1, total_large_boxes + 1):
-        carton_no = processor.calculate_carton_range_for_large_box(i, boxes_per_set, boxes_per_large_box, total_sets)
+        carton_no = processor.calculate_carton_range_for_large_box(i, large_boxes_per_set_ratio, total_sets)
         all_carton_nos.append(carton_no)
     
     # 返回测试结果
@@ -152,8 +153,9 @@ def test_three_level_mode():
         carton_no = processor.calculate_carton_number_for_small_box(i, boxes_per_set, boxes_per_small_box)
         small_carton_nos.append(carton_no)
     
+    large_boxes_per_set_ratio = boxes_per_set / boxes_per_large_box
     for i in range(1, total_large_boxes + 1):
-        carton_no = processor.calculate_carton_range_for_large_box(i, boxes_per_set, boxes_per_large_box, total_sets)
+        carton_no = processor.calculate_carton_range_for_large_box(i, large_boxes_per_set_ratio, total_sets)
         large_carton_nos.append(carton_no)
         print(f"   大箱 #{i}: {carton_no}")
     
