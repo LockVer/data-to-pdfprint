@@ -57,10 +57,29 @@ class SplitBoxTemplate(PDFBaseUtils):
         boxes_per_small_box = int(params["盒/小箱"])
         small_boxes_per_large_box = int(params["小箱/大箱"])
 
-        # 计算各级数量 (使用向上取整处理余数)
+        # 🔧 修复：计算各级数量，基于套数计算而非简单除法
         total_boxes = math.ceil(total_pieces / pieces_per_box)
-        total_small_boxes = math.ceil(total_boxes / boxes_per_small_box)
-        total_large_boxes = math.ceil(total_small_boxes / small_boxes_per_large_box)
+        
+        # 基于套数的正确计算
+        boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))
+        total_sets = math.ceil(total_boxes / boxes_per_set)
+        
+        # 计算每套需要的小箱数和大箱数
+        small_boxes_per_set = math.ceil(boxes_per_set / boxes_per_small_box)
+        large_boxes_per_set = math.ceil(small_boxes_per_set / small_boxes_per_large_box)
+        
+        # 基于套数计算总数量
+        total_small_boxes = total_sets * small_boxes_per_set
+        total_large_boxes = total_sets * large_boxes_per_set
+        
+        print(f"🔍 三级模式数量计算 (修复后的正确逻辑):")
+        print(f"    总张数: {total_pieces}, 张/盒: {pieces_per_box}")
+        print(f"    总盒数: {total_boxes} = ceil({total_pieces} ÷ {pieces_per_box})")
+        print(f"    盒/套: {boxes_per_set}, 总套数: {total_sets} = ceil({total_boxes} ÷ {boxes_per_set})")
+        print(f"    每套小箱数: {small_boxes_per_set} = ceil({boxes_per_set} ÷ {boxes_per_small_box})")
+        print(f"    每套大箱数: {large_boxes_per_set} = ceil({small_boxes_per_set} ÷ {small_boxes_per_large_box})")
+        print(f"    总小箱数: {total_small_boxes} = {total_sets} × {small_boxes_per_set}")
+        print(f"    总大箱数: {total_large_boxes} = {total_sets} × {large_boxes_per_set}")
 
         # 创建输出目录
         clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
@@ -119,11 +138,39 @@ class SplitBoxTemplate(PDFBaseUtils):
         # 计算数量 - 二级结构：张→盒→箱
         total_pieces = int(float(data["总张数"]))
         pieces_per_box = int(params["张/盒"])
-        boxes_per_large_box = int(params["盒/小箱"])  # 在二级模式下，这实际上是盒/箱
+        # 🔧 修复：二级模式下的参数映射问题
+        # 在UI的"无小箱"模式下，"盒/小箱"实际存储的是"盒/大箱"的值
+        has_small_box = params.get("是否有小箱", True)
+        if has_small_box:
+            # 三级模式：盒/箱 = 盒/小箱 × 小箱/大箱
+            boxes_per_small_box = int(params["盒/小箱"]) 
+            small_boxes_per_large_box = int(params["小箱/大箱"])
+            boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+            print(f"✅ 三级模式计算: 盒/大箱 = 盒/小箱({boxes_per_small_box}) × 小箱/大箱({small_boxes_per_large_box}) = {boxes_per_large_box}")
+        else:
+            # 二级模式：直接使用"盒/小箱"中存储的"盒/大箱"值
+            boxes_per_large_box = int(params["盒/小箱"])  # 注意：这里存储的实际是"盒/大箱"
+            print(f"✅ 二级模式计算: 盒/大箱 = {boxes_per_large_box} (直接从UI获取)")
 
         # 计算各级数量
         total_boxes = math.ceil(total_pieces / pieces_per_box)
-        total_large_boxes = math.ceil(total_boxes / boxes_per_large_box)
+        
+        # 🔧 修复：大箱数应该基于套数计算，而不是简单的总盒数除法
+        boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))
+        total_sets = math.ceil(total_boxes / boxes_per_set)
+        large_boxes_per_set = math.ceil(boxes_per_set / boxes_per_large_box)  # 每套需要多少大箱
+        total_large_boxes = total_sets * large_boxes_per_set  # 总套数 × 每套大箱数
+        
+        print(f"🔍 二级模式数量计算 (修复后的正确逻辑):")
+        print(f"    总张数: {total_pieces}")
+        print(f"    张/盒: {pieces_per_box}")
+        print(f"    总盒数: {total_boxes} = ceil({total_pieces} ÷ {pieces_per_box}) = ceil({total_pieces / pieces_per_box})")
+        print(f"    盒/套: {boxes_per_set}")
+        print(f"    总套数: {total_sets} = ceil({total_boxes} ÷ {boxes_per_set}) = ceil({total_boxes / boxes_per_set})")
+        print(f"    盒/大箱: {boxes_per_large_box}")
+        print(f"    每套大箱数: {large_boxes_per_set} = ceil({boxes_per_set} ÷ {boxes_per_large_box}) = ceil({boxes_per_set / boxes_per_large_box})")
+        print(f"    总大箱数: {total_large_boxes} = {total_sets} × {large_boxes_per_set} (套数 × 每套大箱数)")
+        print(f"✅ 修复：使用基于套数的计算方式，而非简单的总盒数除法")
 
         # 创建输出目录
         clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
@@ -276,12 +323,12 @@ class SplitBoxTemplate(PDFBaseUtils):
         self._create_single_split_box_small_box_label_file(
             data, params, output_path, 1, total_small_boxes,
             theme_text, base_number, remark_text, pieces_per_small_box, 
-            boxes_per_small_box, total_small_boxes, small_boxes_per_large_box, total_boxes, serial_font_size
+            boxes_per_set, boxes_per_small_box, total_small_boxes, small_boxes_per_large_box, total_boxes, serial_font_size
         )
 
     def _create_single_split_box_small_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_small_box: int, end_small_box: int, theme_text: str, base_number: str,
-                                                 remark_text: str, pieces_per_small_box: int, boxes_per_small_box: int, 
+                                                 remark_text: str, pieces_per_small_box: int, boxes_per_set: int, boxes_per_small_box: int, 
                                                  total_small_boxes: int, small_boxes_per_large_box: int, total_boxes: int, serial_font_size: int = 10):
         """创建单个分盒小箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
@@ -334,9 +381,11 @@ class SplitBoxTemplate(PDFBaseUtils):
             actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
 
             # 计算分盒小箱标的Carton No - 基于最新逻辑整理
+            print(f"\n📦 准备计算小箱标 #{small_box_num} 的Carton No")
             carton_no = split_box_data_processor.calculate_carton_number_for_small_box(
                 small_box_num, boxes_per_set, boxes_per_small_box
             )
+            print(f"📦 小箱标 #{small_box_num} Carton No计算完成: {carton_no}\n")
 
             # 获取标签模版类型 - 参照常规模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
@@ -440,10 +489,13 @@ class SplitBoxTemplate(PDFBaseUtils):
                 base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
             )
             
-            # 计算大箱标的Carton No - 基于最新逻辑整理
+            # 计算大箱标的Carton No - 基于最新逻辑整理  
+            boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+            print(f"\n📦 准备计算大箱标 #{large_box_num} 的Carton No")
             carton_no = split_box_data_processor.calculate_carton_range_for_large_box(
-                large_box_num, boxes_per_set, boxes_per_small_box * small_boxes_per_large_box, total_sets
+                large_box_num, boxes_per_set, boxes_per_large_box, total_sets
             )
+            print(f"📦 大箱标 #{large_box_num} Carton No计算完成: {carton_no}\n")
             
             # 获取标签模版类型 - 参照常规模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
@@ -531,18 +583,28 @@ class SplitBoxTemplate(PDFBaseUtils):
                 base_number, large_box_num, 1, boxes_per_large_box, total_boxes
             )
             
+            # 🔧 计算二级模式箱标的Carton No - 使用新的逻辑
+            boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))
+            total_pieces = int(float(data["总张数"]))
+            total_sets = math.ceil(math.ceil(total_pieces / pieces_per_box) / boxes_per_set)
+            print(f"\n📦 准备计算二级箱标 #{large_box_num} 的Carton No")
+            carton_no = split_box_data_processor.calculate_carton_range_for_large_box(
+                large_box_num, boxes_per_set, boxes_per_large_box, total_sets
+            )
+            print(f"📦 二级箱标 #{large_box_num} Carton No计算完成: {carton_no}\n")
+            
             # 获取标签模版类型 - 参照常规模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制箱标表格 - 传入二级包装参数，根据模版类型选择函数
+            # 绘制箱标表格 - 传入二级包装参数，根据模版类型选择函数，使用计算出的carton_no
             if template_type == "有纸卡备注":
                 split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_large_box, 1, serial_range, 
-                                               str(large_box_num), remark_text, serial_font_size)
+                                               carton_no, remark_text, serial_font_size)
             else:  # "无纸卡备注"
                 split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
                                                boxes_per_large_box, 1, serial_range, 
-                                               str(large_box_num), remark_text, serial_font_size)
+                                               carton_no, remark_text, serial_font_size)
 
         c.save()
 

@@ -202,19 +202,36 @@ class SplitBoxDataProcessor:
         计算分盒小箱标的Carton No - 基于最新逻辑整理
         根据每套小箱数量判断渲染模式
         """
+        print(f"🔍 [小箱标Carton计算] 输入参数：")
+        print(f"    小箱编号: {small_box_num}")
+        print(f"    盒/套: {boxes_per_set}")
+        print(f"    盒/小箱: {boxes_per_small_box}")
+        
         # 计算每套小箱数量
         small_boxes_per_set = boxes_per_set / boxes_per_small_box
+        print(f"    计算得出每套小箱数量: {small_boxes_per_set} (盒/套 ÷ 盒/小箱 = {boxes_per_set} ÷ {boxes_per_small_box})")
         
         if small_boxes_per_set > 1:
             # 一套分多个小箱：多级编号 (套号-小箱号)
-            set_num = ((small_box_num - 1) // int(small_boxes_per_set)) + 1
-            small_box_in_set = ((small_box_num - 1) % int(small_boxes_per_set)) + 1
-            return f"{set_num}-{small_box_in_set}"
+            # 🔧 修复：使用向上取整确保正确的每套小箱数量
+            actual_small_boxes_per_set = math.ceil(small_boxes_per_set)
+            set_num = ((small_box_num - 1) // actual_small_boxes_per_set) + 1
+            small_box_in_set = ((small_box_num - 1) % actual_small_boxes_per_set) + 1
+            result = f"{set_num}-{small_box_in_set}"
+            print(f"    渲染模式: 一套分多个小箱 (每套{small_boxes_per_set}个小箱 → 实际每套{actual_small_boxes_per_set}个小箱)")
+            print(f"    计算: 套号={(small_box_num - 1) // actual_small_boxes_per_set + 1}={set_num}, 小箱号={(small_box_num - 1) % actual_small_boxes_per_set + 1}={small_box_in_set}")
+            print(f"    ✅ 结果: {result}")
+            return result
         elif small_boxes_per_set == 1:
             # 一套分一个小箱：单级编号 (01, 02, 03...)
-            return f"{small_box_num:02d}"
+            result = f"{small_box_num:02d}"
+            print(f"    渲染模式: 一套分一个小箱")
+            print(f"    ✅ 结果: {result}")
+            return result
         else:
             # 没有小箱标 (每套小箱数量 = null/0)
+            print(f"    渲染模式: 没有小箱标 (每套小箱数量 < 1)")
+            print(f"    ✅ 结果: None")
             return None
     
     def calculate_carton_range_for_large_box(self, large_box_num: int, boxes_per_set: int, boxes_per_large_box: int, total_sets: int) -> str:
@@ -222,23 +239,43 @@ class SplitBoxDataProcessor:
         计算分盒大箱标的Carton No - 基于最新逻辑整理
         根据每套大箱数量判断渲染模式
         """
+        print(f"🔍 [大箱标Carton计算] 输入参数：")
+        print(f"    大箱编号: {large_box_num}")
+        print(f"    盒/套: {boxes_per_set}")
+        print(f"    盒/大箱: {boxes_per_large_box}")
+        print(f"    总套数: {total_sets}")
+        
         # 计算每套大箱数量
         large_boxes_per_set = boxes_per_set / boxes_per_large_box
+        print(f"    计算得出每套大箱数量: {large_boxes_per_set} (盒/套 ÷ 盒/大箱 = {boxes_per_set} ÷ {boxes_per_large_box})")
         
         if large_boxes_per_set > 1:
             # 一套分多个大箱：多级编号 (套号-大箱号)
-            set_num = ((large_box_num - 1) // int(large_boxes_per_set)) + 1
-            large_box_in_set = ((large_box_num - 1) % int(large_boxes_per_set)) + 1
-            return f"{set_num}-{large_box_in_set}"
+            # 🔧 修复：使用向上取整确保正确的每套大箱数量
+            actual_large_boxes_per_set = math.ceil(large_boxes_per_set)
+            set_num = ((large_box_num - 1) // actual_large_boxes_per_set) + 1
+            large_box_in_set = ((large_box_num - 1) % actual_large_boxes_per_set) + 1
+            result = f"{set_num}-{large_box_in_set}"
+            print(f"    渲染模式: 一套分多个大箱 (每套{large_boxes_per_set}个大箱 → 实际每套{actual_large_boxes_per_set}个大箱)")
+            print(f"    计算: 套号={(large_box_num - 1) // actual_large_boxes_per_set + 1}={set_num}, 大箱号={(large_box_num - 1) % actual_large_boxes_per_set + 1}={large_box_in_set}")
+            print(f"    ✅ 结果: {result}")
+            return result
         elif large_boxes_per_set == 1:
             # 一套分一个大箱：单级编号 (1, 2, 3...)
-            return str(large_box_num)
+            result = str(large_box_num)
+            print(f"    渲染模式: 一套分一个大箱")
+            print(f"    ✅ 结果: {result}")
+            return result
         else:
             # 多套分一个大箱：多级编号 (起始套号-结束套号)
             sets_per_large_box = int(1 / large_boxes_per_set)
             start_set = (large_box_num - 1) * sets_per_large_box + 1
             end_set = min(start_set + sets_per_large_box - 1, total_sets)
-            return f"{start_set}-{end_set}"
+            result = f"{start_set}-{end_set}"
+            print(f"    渲染模式: 多套分一个大箱 (每{sets_per_large_box}套分1个大箱)")
+            print(f"    计算: 起始套号={(large_box_num - 1) * sets_per_large_box + 1}={start_set}, 结束套号=min({start_set + sets_per_large_box - 1}, {total_sets})={end_set}")
+            print(f"    ✅ 结果: {result}")
+            return result
     
     def calculate_group_size(self, boxes_per_small_box: int, small_boxes_per_large_box: int) -> int:
         """
