@@ -261,6 +261,10 @@ class ExcelDataExtractor:
             '张/盒': {
                 'keyword': '张/盒',
                 'direction': 'down'
+            },
+            '主题': {
+                'keyword': '主题',
+                'direction': 'down'
             }
         }
         
@@ -274,7 +278,7 @@ class ExcelDataExtractor:
         
         # 清理提取的数据：只保留真正有效的数据，无效或空的设为None
         cleaned_data = {}
-        for field in ['客户名称编码', '标签名称', '开始号', '总张数', '张/盒']:
+        for field in ['客户名称编码', '标签名称', '开始号', '总张数', '张/盒', '主题']:
             value = extracted_data.get(field)
             if value is not None and str(value).strip() != '' and str(value) != '0':
                 cleaned_data[field] = value
@@ -291,7 +295,7 @@ class ExcelDataExtractor:
     
     def get_unified_standard_data(self, user_supplemented_data=None):
         """
-        获取统一标准化的五个字段数据
+        获取统一标准化的六个字段数据
         优先使用Excel提取的数据，用户输入数据补充缺失字段
         确保三个模板获得格式一致的标准数据
         
@@ -299,20 +303,21 @@ class ExcelDataExtractor:
             user_supplemented_data: 用户补充的数据字典（可选）
             
         Returns:
-            包含五个标准字段的字典，格式统一，供三个模板使用
+            包含六个标准字段的字典，格式统一，供三个模板使用
         """
         print("🔄 开始统一数据处理...")
         
         # 首先从Excel提取基础数据
         excel_data = self.extract_common_data()
         
-        # 创建标准化的五字段数据结构（统一使用Excel原始字段名）
+        # 创建标准化的六字段数据结构（统一使用Excel原始字段名）
         standard_data = {
             "客户名称编码": None,
             "标签名称": None, 
             "开始号": None,
             "总张数": None,
-            "张/盒": None
+            "张/盒": None,
+            "主题": None
         }
         
         # 第一步：填入Excel中提取的有效数据（严格验证数据有效性）
@@ -335,10 +340,14 @@ class ExcelDataExtractor:
         if excel_data.get('张/盒') is not None and excel_data.get('张/盒') != 0:
             standard_data["张/盒"] = int(excel_data['张/盒'])
             print(f"✅ 张/盒: 从Excel提取 = {standard_data['张/盒']}")
+            
+        if excel_data.get('主题') is not None and str(excel_data['主题']).strip():
+            standard_data["主题"] = str(excel_data['主题']).strip()
+            print(f"✅ 主题: 从Excel提取 = '{standard_data['主题']}'")
         
         # 第二步：用户补充数据填补缺失字段
         if user_supplemented_data:
-            for field in ["客户名称编码", "标签名称", "开始号", "总张数", "张/盒"]:
+            for field in ["客户名称编码", "标签名称", "开始号", "总张数", "张/盒", "主题"]:
                 # 检查Excel数据是否缺失，以及用户是否提供了补充数据
                 excel_has_data = standard_data[field] is not None
                 user_has_data = user_supplemented_data.get(field) and str(user_supplemented_data.get(field)).strip()
@@ -356,7 +365,7 @@ class ExcelDataExtractor:
         if missing_fields:
             print(f"⚠️ 仍有缺失字段: {missing_fields}")
         else:
-            print("✅ 五个标准字段数据完整")
+            print("✅ 六个标准字段数据完整")
         
         print("🔄 统一数据处理完成")
         print(f"📋 最终标准数据: {standard_data}")

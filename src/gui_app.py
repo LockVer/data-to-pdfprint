@@ -110,7 +110,7 @@ class DataToPDFApp:
         chinese_name_frame = ttk.LabelFrame(content_frame, text="中文名称", padding="10")
         chinese_name_frame.pack(fill=tk.X, pady=(0, 25))
 
-        self.chinese_name_var = tk.StringVar(value="你好世界")
+        self.chinese_name_var = tk.StringVar(value="")
         chinese_name_entry = ttk.Entry(
             chinese_name_frame, 
             textvariable=self.chinese_name_var, 
@@ -258,6 +258,16 @@ class DataToPDFApp:
             self.current_file = file_path
             self.next_btn.config(state="normal")
             self.status_var.set("✅ 文件处理完成")
+
+            # 动态设置中文名称为提取的主题
+            theme_value = self.current_data.get('主题')
+            if theme_value and str(theme_value).strip():
+                self.chinese_name_var.set(str(theme_value).strip())
+                print(f"✅ 中文名称自动设为提取的主题: '{theme_value}'")
+            else:
+                # 如果没有主题，保持空白
+                self.chinese_name_var.set("")
+                print("⚠️ 未提取到主题，中文名称保持空白")
 
             # 更新选择区域显示
             display_text = (
