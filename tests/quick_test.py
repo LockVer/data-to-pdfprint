@@ -10,7 +10,7 @@ import os
 from datetime import datetime
 
 # 添加项目路径
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.pdf.split_box.data_processor import SplitBoxDataProcessor
 
