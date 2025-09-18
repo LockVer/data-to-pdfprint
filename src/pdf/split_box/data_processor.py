@@ -283,6 +283,205 @@ class SplitBoxDataProcessor:
         group_size = boxes_per_small_box * small_boxes_per_large_box
         print(f"✅ 分盒模板副号进位阈值: {group_size} (盒/小箱{boxes_per_small_box} × 小箱/大箱{small_boxes_per_large_box})")
         return group_size
+    
+    # ========== 新增：基于套盒逻辑的Serial生成函数 ==========
+    
+    def generate_set_based_box_serial(self, box_num: int, base_number: str, boxes_per_set: int) -> str:
+        """
+        生成基于套盒逻辑的单个盒子Serial号
+        
+        参数:
+            box_num: 盒子编号 (1-based)
+            base_number: 基准序列号 (如 DSK01001-01)
+            boxes_per_set: 盒/套数量
+            
+        返回:
+            Serial号，格式：DSK{套号主号}-{套内盒号}
+            
+        逻辑:
+            - 每套使用独立的主号：主号 = 基准主号 + (套号-1)
+            - 副号为套内盒子编号：副号 = ((盒号-1) % 盒/套) + 1
+        """
+        # 计算套号和套内盒号
+        set_num = math.ceil(box_num / boxes_per_set)
+        box_in_set = ((box_num - 1) % boxes_per_set) + 1
+        
+        # 解析基准序列号
+        serial_info = self.parse_serial_number_format(base_number)
+        
+        # 计算当前套的主号：基准主号 + (套号-1)
+        current_main = serial_info['main_number'] + (set_num - 1)
+        
+        # 生成Serial号
+        result = f"{serial_info['prefix']}{current_main:05d}-{box_in_set:02d}"
+        
+        print(f"📝 [套盒Serial] 盒#{box_num} → 套{set_num}盒{box_in_set} → {result}")
+        return result
+    
+    def generate_set_based_small_box_serial_range(self, small_box_num: int, base_number: str, 
+                                                boxes_per_set: int, boxes_per_small_box: int, 
+                                                total_boxes: int = None) -> str:
+        """
+        生成基于套盒逻辑的小箱标Serial范围
+        
+        参数:
+            small_box_num: 小箱编号 (1-based)
+            base_number: 基准序列号
+            boxes_per_set: 盒/套数量
+            boxes_per_small_box: 盒/小箱数量 (小箱容量)
+            total_boxes: 总盒数 (用于边界检查)
+            
+        返回:
+            Serial范围，格式：起始Serial~结束Serial
+            
+        逻辑:
+            - 判断是一套分多箱还是多套分一箱
+            - 一套分多小箱：Serial在套内显示
+            - 多套分一小箱：Serial跨套显示
+        """
+        print(f"🔍 [小箱标套盒Serial] 输入参数：")
+        print(f"    小箱编号: {small_box_num}")
+        print(f"    盒/套: {boxes_per_set}")
+        print(f"    盒/小箱: {boxes_per_small_box}")
+        print(f"    总盒数: {total_boxes}")
+        
+        # 判断是一套分多小箱还是多套分一小箱
+        if boxes_per_small_box >= boxes_per_set:
+            # 多套分一小箱：小箱容量 >= 一套的盒数
+            print(f"    模式: 多套分一小箱 (小箱容量{boxes_per_small_box} >= 盒/套{boxes_per_set})")
+            
+            # 计算全局盒子范围
+            start_box_global = (small_box_num - 1) * boxes_per_small_box + 1
+            end_box_global = start_box_global + boxes_per_small_box - 1
+            
+            # 边界检查
+            if total_boxes is not None:
+                end_box_global = min(end_box_global, total_boxes)
+            
+            print(f"    全局盒子范围: {start_box_global}-{end_box_global}")
+            
+            # 生成跨套Serial范围
+            start_serial = self.generate_set_based_box_serial(start_box_global, base_number, boxes_per_set)
+            end_serial = self.generate_set_based_box_serial(end_box_global, base_number, boxes_per_set)
+            
+        else:
+            # 一套分多小箱：小箱容量 < 一套的盒数
+            print(f"    模式: 一套分多小箱 (小箱容量{boxes_per_small_box} < 盒/套{boxes_per_set})")
+            
+            small_boxes_per_set = math.ceil(boxes_per_set / boxes_per_small_box)  # 每套小箱数量
+            
+            # 确定小箱所属套号
+            set_num = math.ceil(small_box_num / small_boxes_per_set)
+            
+            # 确定套内小箱编号（1-based）
+            small_box_in_set = (small_box_num - 1) % small_boxes_per_set + 1
+            
+            # 计算套内盒子范围
+            start_box_in_set = (small_box_in_set - 1) * boxes_per_small_box + 1
+            end_box_in_set = min(start_box_in_set + boxes_per_small_box - 1, boxes_per_set)
+            
+            print(f"    每套小箱数: {small_boxes_per_set}")
+            print(f"    所属套号: {set_num}")
+            print(f"    套内小箱编号: {small_box_in_set}")
+            print(f"    套内盒子范围: {start_box_in_set}-{end_box_in_set}")
+            
+            # 生成套内Serial范围
+            serial_info = self.parse_serial_number_format(base_number)
+            set_main_number = serial_info['main_number'] + (set_num - 1)
+            
+            start_serial = f"{serial_info['prefix']}{set_main_number:05d}-{start_box_in_set:02d}"
+            end_serial = f"{serial_info['prefix']}{set_main_number:05d}-{end_box_in_set:02d}"
+        
+        # 生成范围格式 - 始终显示为范围形式
+        result = f"{start_serial}-{end_serial}"
+        
+        print(f"    ✅ 小箱#{small_box_num} Serial范围: {result}")
+        return result
+    
+    def generate_set_based_large_box_serial_range(self, large_box_num: int, base_number: str,
+                                                boxes_per_set: int, boxes_per_small_box: int, 
+                                                small_boxes_per_large_box: int, total_boxes: int = None) -> str:
+        """
+        生成基于套盒逻辑的大箱标Serial范围
+        
+        参数:
+            large_box_num: 大箱编号 (1-based)
+            base_number: 基准序列号
+            boxes_per_set: 盒/套数量
+            boxes_per_small_box: 盒/小箱数量
+            small_boxes_per_large_box: 小箱/大箱数量
+            total_boxes: 总盒数 (用于边界检查)
+            
+        返回:
+            Serial范围，格式：起始Serial~结束Serial
+            
+        逻辑:
+            - 判断是一套分多箱还是多套分一箱
+            - 一套分多箱：Serial在套内显示
+            - 多套分一箱：Serial跨套显示
+        """
+        print(f"🔍 [大箱标套盒Serial] 输入参数：")
+        print(f"    大箱编号: {large_box_num}")
+        print(f"    盒/套: {boxes_per_set}")
+        print(f"    盒/小箱: {boxes_per_small_box}")
+        print(f"    小箱/大箱: {small_boxes_per_large_box}")
+        print(f"    总盒数: {total_boxes}")
+        
+        # 1. 计算基础参数
+        boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box  # 大箱容量
+        
+        # 2. 判断是一套分多箱还是多套分一箱
+        if boxes_per_large_box >= boxes_per_set:
+            # 多套分一箱：大箱容量 >= 一套的盒数
+            print(f"    模式: 多套分一箱 (大箱容量{boxes_per_large_box} >= 盒/套{boxes_per_set})")
+            
+            # 计算全局盒子范围
+            start_box_global = (large_box_num - 1) * boxes_per_large_box + 1
+            end_box_global = start_box_global + boxes_per_large_box - 1
+            
+            # 边界检查
+            if total_boxes is not None:
+                end_box_global = min(end_box_global, total_boxes)
+            
+            print(f"    全局盒子范围: {start_box_global}-{end_box_global}")
+            
+            # 生成跨套Serial范围
+            start_serial = self.generate_set_based_box_serial(start_box_global, base_number, boxes_per_set)
+            end_serial = self.generate_set_based_box_serial(end_box_global, base_number, boxes_per_set)
+            
+        else:
+            # 一套分多箱：大箱容量 < 一套的盒数
+            print(f"    模式: 一套分多箱 (大箱容量{boxes_per_large_box} < 盒/套{boxes_per_set})")
+            
+            large_boxes_per_set = math.ceil(boxes_per_set / boxes_per_large_box)   # 每套大箱数量
+            
+            # 确定大箱所属套号
+            set_num = math.ceil(large_box_num / large_boxes_per_set)
+            
+            # 确定套内大箱编号（1-based）
+            large_box_in_set = (large_box_num - 1) % large_boxes_per_set + 1
+            
+            # 计算套内盒子范围
+            start_box_in_set = (large_box_in_set - 1) * boxes_per_large_box + 1
+            end_box_in_set = min(start_box_in_set + boxes_per_large_box - 1, boxes_per_set)
+            
+            print(f"    每套大箱数: {large_boxes_per_set}")
+            print(f"    所属套号: {set_num}")
+            print(f"    套内大箱编号: {large_box_in_set}")
+            print(f"    套内盒子范围: {start_box_in_set}-{end_box_in_set}")
+            
+            # 生成套内Serial范围
+            serial_info = self.parse_serial_number_format(base_number)
+            set_main_number = serial_info['main_number'] + (set_num - 1)
+            
+            start_serial = f"{serial_info['prefix']}{set_main_number:05d}-{start_box_in_set:02d}"
+            end_serial = f"{serial_info['prefix']}{set_main_number:05d}-{end_box_in_set:02d}"
+        
+        # 生成范围格式 - 始终显示为范围形式
+        result = f"{start_serial}-{end_serial}"
+        
+        print(f"    ✅ 大箱#{large_box_num} Serial范围: {result}")
+        return result
 
 
 # 创建全局实例供split_box模板使用

@@ -389,10 +389,15 @@ class SplitBoxTemplate(PDFBaseUtils):
                     c.showPage()
                     c.setFillColor(cmyk_black)
 
-            # 🔧 使用修复后的数据处理器计算序列号范围（包含边界检查）
-            serial_range = split_box_data_processor.generate_split_small_box_serial_range(
-                base_number, small_box_num, boxes_per_small_box, small_boxes_per_large_box, total_boxes
-            )
+            # 🔧 根据模式选择Serial生成逻辑
+            if boxes_per_set > 1:  # 分/套盒模式
+                serial_range = split_box_data_processor.generate_set_based_small_box_serial_range(
+                    small_box_num, base_number, boxes_per_set, boxes_per_small_box, total_boxes
+                )
+            else:  # 传统分盒模式
+                serial_range = split_box_data_processor.generate_split_small_box_serial_range(
+                    base_number, small_box_num, boxes_per_small_box, small_boxes_per_large_box, total_boxes
+                )
 
             # 🔧 计算当前小箱的实际张数（考虑最后一小箱的边界情况）
             pieces_per_box = int(params["张/盒"])
@@ -516,10 +521,15 @@ class SplitBoxTemplate(PDFBaseUtils):
             total_pieces = int(float(data["总张数"]))
             total_boxes = math.ceil(total_pieces / pieces_per_box)
             
-            # 使用数据处理器计算序列号范围
-            serial_range = split_box_data_processor.generate_split_large_box_serial_range(
-                base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
-            )
+            # 🔧 根据模式选择Serial生成逻辑
+            if boxes_per_set > 1:  # 分/套盒模式
+                serial_range = split_box_data_processor.generate_set_based_large_box_serial_range(
+                    large_box_num, base_number, boxes_per_set, boxes_per_small_box, small_boxes_per_large_box, total_boxes
+                )
+            else:  # 传统分盒模式
+                serial_range = split_box_data_processor.generate_split_large_box_serial_range(
+                    base_number, large_box_num, small_boxes_per_large_box, boxes_per_small_box, total_boxes
+                )
             
             # 计算大箱标的Carton No - 基于最新逻辑整理  
             boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
@@ -561,17 +571,21 @@ class SplitBoxTemplate(PDFBaseUtils):
         serial_font_size = int(params.get("序列号字体大小", 10))
         print(f"✅ 分盒箱标参数: 盒/箱={boxes_per_large_box}, 序列号字体大小={serial_font_size}")
         
+        # 计算large_boxes_per_set_ratio参数
+        boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))
+        large_boxes_per_set_ratio = boxes_per_set / boxes_per_large_box
+        
         # 直接创建单个PDF文件，包含所有箱标
         self._create_single_two_level_large_box_label_file(
             data, params, output_path, 1, total_large_boxes,
             theme_text, base_number, remark_text, pieces_per_box, 
-            boxes_per_large_box, total_large_boxes, total_boxes, serial_font_size
+            boxes_per_large_box, total_large_boxes, total_boxes, serial_font_size, large_boxes_per_set_ratio
         )
 
     def _create_single_two_level_large_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_large_box: int, end_large_box: int, theme_text: str, base_number: str,
                                                  remark_text: str, pieces_per_box: int, boxes_per_large_box: int, 
-                                                 total_large_boxes: int, total_boxes: int, serial_font_size: int = 10):
+                                                 total_large_boxes: int, total_boxes: int, serial_font_size: int = 10, large_boxes_per_set_ratio: float = None):
         """创建单个分盒箱标PDF文件（无小箱模式）"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
         width, height = self.page_size
@@ -609,14 +623,19 @@ class SplitBoxTemplate(PDFBaseUtils):
                     c.showPage()
                     c.setFillColor(cmyk_black)
 
-            # 计算当前箱的序列号范围，使用分盒模板的特殊逻辑
-            # 无小箱模式：复用大箱标逻辑，但设置 small_boxes_per_large_box = 1，进位阈值 = boxes_per_large_box
-            serial_range = split_box_data_processor.generate_split_large_box_serial_range(
-                base_number, large_box_num, 1, boxes_per_large_box, total_boxes
-            )
-            
             # 计算无小箱模式箱标的Carton No - 使用新的逻辑
             boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))
+            
+            # 🔧 根据模式选择Serial生成逻辑（无小箱模式）
+            if boxes_per_set > 1:  # 分/套盒模式
+                serial_range = split_box_data_processor.generate_set_based_large_box_serial_range(
+                    large_box_num, base_number, boxes_per_set, boxes_per_large_box, 1, total_boxes
+                )
+            else:  # 传统分盒模式
+                # 无小箱模式：复用大箱标逻辑，但设置 small_boxes_per_large_box = 1，进位阈值 = boxes_per_large_box
+                serial_range = split_box_data_processor.generate_split_large_box_serial_range(
+                    base_number, large_box_num, 1, boxes_per_large_box, total_boxes
+                )
             total_pieces = int(float(data["总张数"]))
             total_sets = math.ceil(math.ceil(total_pieces / pieces_per_box) / boxes_per_set)
             
