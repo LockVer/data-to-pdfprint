@@ -417,6 +417,7 @@ class SplitBoxUIDialog:
             "是否有小箱": has_small_box,
             "序列号字体大小": serial_font_size,
             "是否有盒标": has_box_label,
+            "选择外观": "外观一",  # 分/套盒模板固定使用外观一，无需用户选择
         }
 
         dialog.destroy()

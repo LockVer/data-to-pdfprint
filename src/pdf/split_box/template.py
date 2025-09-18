@@ -99,8 +99,8 @@ class SplitBoxTemplate(PDFBaseUtils):
         has_box_label = params.get("是否有盒标", False)
         
         if has_box_label:
-            # 生成分盒盒标 (分盒模板无外观选择)
-            selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
+            # 生成分盒盒标 (分盒模板固定使用外观一，无需用户选择)
+            selected_appearance = params["选择外观"]  # 固定为外观一
             # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
             box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
             box_label_path = full_output_dir / box_label_filename
@@ -190,8 +190,8 @@ class SplitBoxTemplate(PDFBaseUtils):
         has_box_label = params.get("是否有盒标", False)
         
         if has_box_label:
-            # 生成分盒盒标 (分盒模板无外观选择)
-            selected_appearance = params["选择外观"]  # 保留参数传递，但文件名不使用
+            # 生成分盒盒标 (分盒模板固定使用外观一，无需用户选择)
+            selected_appearance = params["选择外观"]  # 固定为外观一
             # 文件名格式：客户编号_中文名称_英文名称_分盒盒标_日期时间戳
             box_label_filename = f"{customer_code}_{chinese_name}_{english_name}_分盒盒标_{timestamp}.pdf"
             box_label_path = full_output_dir / box_label_filename
