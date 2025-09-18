@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Carton Number Logic Test Suite
+Carton Number Logic Test Suite - 修复版本
 测试分盒/套盒模板的Carton No计算逻辑
 
 使用方法:
-python test_carton_logic.py
+python test_carton_logic_fixed.py
 """
 
 import math
@@ -32,7 +32,7 @@ class CartonLogicTester:
         
     def run_all_tests(self):
         """运行所有测试用例"""
-        print("🧪 开始运行Carton Number逻辑测试")
+        print("🧪 开始运行Carton Number逻辑测试 (修复版)")
         print("=" * 60)
         
         # 无小箱模式测试
@@ -109,7 +109,8 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 25,
                 "total_sets": 5,
-                "large_boxes_per_set": 1,     # ceil(5/5) = 1
+                "large_boxes_per_set_ratio": 1.0,   # 5/5 = 1.0
+                "actual_large_boxes_per_set": 1,    # ceil(1.0) = 1
                 "total_large_boxes": 5,       # 5套 × 1箱/套
                 "carton_no_sample": ["1", "2", "3", "4", "5"]
             }
@@ -117,9 +118,9 @@ class CartonLogicTester:
         
         # 1.3 多套分一个大箱（每套大箱数 < 1）
         
-        # 测试用例1.3a：2套分1个大箱
+        # 测试用例1.3a：多套分1个大箱（每3套分1箱）
         self._run_test({
-            "name": "二级_2套分1个大箱",
+            "name": "二级_多套分1个大箱",
             "params": {
                 "张/盒": 500, "盒/套": 3, "盒/小箱": 8, "是否有小箱": False,
                 "标签模版": "无纸卡备注", "中文名称": "测试", "序列号字体大小": 10, "是否有盒标": False
@@ -128,16 +129,16 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 24,            # ceil(12000/500)
                 "total_sets": 8,              # ceil(24/3)
-                "large_boxes_per_set": 0.375, # 3/8 = 0.375，即8/3 ≈ 2.67套/箱
-                "sets_per_large_box": 2,      # floor(8/3) = 2套/箱  
-                "total_large_boxes": 4,       # ceil(8套 ÷ 2套/箱) = 4箱
-                "carton_no_sample": ["1-2", "3-4", "5-6", "7-8"]
+                "large_boxes_per_set_ratio": 0.375, # 3/8 = 0.375
+                "actual_large_boxes_per_set": 1,    # ceil(0.375) = 1，但由于<1所以是多套分1箱
+                "total_large_boxes": 3,       # ceil(8套 ÷ 3套/箱) = 3箱
+                "carton_no_sample": ["1-3", "4-6", "7-8"]  # 第1箱装1-3套，第2箱装4-6套，第3箱装7-8套
             }
         })
         
-        # 测试用例1.3b：5套分1个大箱
+        # 测试用例1.3b：多套分1个大箱（每6套分1箱）
         self._run_test({
-            "name": "二级_5套分1个大箱",
+            "name": "二级_多套分1个大箱_6套一箱",
             "params": {
                 "张/盒": 200, "盒/套": 1, "盒/小箱": 6, "是否有小箱": False,
                 "标签模版": "无纸卡备注", "中文名称": "测试", "序列号字体大小": 10, "是否有盒标": False
@@ -146,10 +147,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 10,            # ceil(2000/200)
                 "total_sets": 10,             # ceil(10/1)
-                "large_boxes_per_set": 0.167, # 1/6 = 0.167，即6套/箱
-                "sets_per_large_box": 6,      # 6套/箱（但最后一箱只有4套）
+                "large_boxes_per_set_ratio": 0.167, # 1/6 = 0.167 (0.1667)
+                "actual_large_boxes_per_set": 1,    # ceil(0.167) = 1，但由于<1所以是多套分1箱
                 "total_large_boxes": 2,       # ceil(10套 ÷ 6套/箱) = 2箱
-                "carton_no_sample": ["1-6", "7-10"]
+                "carton_no_sample": ["1-6", "7-10"]  # 第1箱装1-6套，第2箱装7-10套
             }
         })
     
@@ -169,8 +170,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 12,
                 "total_sets": 2,              # ceil(12/6)
-                "small_boxes_per_set": 3,     # ceil(6/2) = 3
-                "large_boxes_per_set": 2,     # ceil(3/2) = 2  
+                "small_boxes_per_set_ratio": 3.0,   # 6/2 = 3.0
+                "actual_small_boxes_per_set": 3,    # ceil(3.0) = 3
+                "large_boxes_per_set_ratio": 1.5,   # 3/2 = 1.5  
+                "actual_large_boxes_per_set": 2,    # ceil(1.5) = 2
                 "total_small_boxes": 6,       # 2套 × 3小箱/套
                 "total_large_boxes": 4,       # 2套 × 2大箱/套
                 "small_carton_no_sample": ["1-1", "1-2", "1-3", "2-1", "2-2", "2-3"],
@@ -189,8 +192,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 8,
                 "total_sets": 2,              # ceil(8/4)
-                "small_boxes_per_set": 1,     # ceil(4/4) = 1
-                "large_boxes_per_set": 1,     # ceil(1/2) = 1
+                "small_boxes_per_set_ratio": 1.0,   # 4/4 = 1.0
+                "actual_small_boxes_per_set": 1,    # ceil(1.0) = 1
+                "large_boxes_per_set_ratio": 0.5,   # 1/2 = 0.5
+                "actual_large_boxes_per_set": 1,    # ceil(0.5) = 1
                 "total_small_boxes": 2,       # 2套 × 1小箱/套
                 "total_large_boxes": 2,       # 2套 × 1大箱/套
                 "small_carton_no_sample": ["01", "02"],  # 单级编号
@@ -198,7 +203,7 @@ class CartonLogicTester:
             }
         })
         
-        # 测试用例2.1c：没有小箱标（每套小箱数 < 1）
+        # 测试用例2.1c：没有小箱标（小箱比例<1）
         self._run_test({
             "name": "三级_没有小箱标",
             "params": {
@@ -209,9 +214,11 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 8,
                 "total_sets": 4,              # ceil(8/2)
-                "small_boxes_per_set": 0.25,  # 2/8 = 0.25 < 1
+                "small_boxes_per_set_ratio": 0.25,  # 2/8 = 0.25 < 1
+                "actual_small_boxes_per_set": 1,    # ceil(0.25) = 1，但由于<1不生成小箱
                 "should_generate_small_box": False,  # 不生成小箱标
-                "large_boxes_per_set": 1,     # ceil(0.25/1) = 1
+                "large_boxes_per_set_ratio": 1.0,   # 1/1 = 1.0 (小箱/大箱=1)
+                "actual_large_boxes_per_set": 1,    # ceil(1.0) = 1
                 "total_large_boxes": 4,       # 4套 × 1大箱/套
                 "large_carton_no_sample": ["1", "2", "3", "4"]
             }
@@ -230,8 +237,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 16,
                 "total_sets": 2,              # ceil(16/8)
-                "small_boxes_per_set": 4,     # ceil(8/2) = 4
-                "large_boxes_per_set": 2,     # ceil(4/2) = 2
+                "small_boxes_per_set_ratio": 4.0,   # 8/2 = 4.0
+                "actual_small_boxes_per_set": 4,    # ceil(4.0) = 4
+                "large_boxes_per_set_ratio": 2.0,   # 4/2 = 2.0
+                "actual_large_boxes_per_set": 2,    # ceil(2.0) = 2
                 "total_small_boxes": 8,       # 2套 × 4小箱/套
                 "total_large_boxes": 4,       # 2套 × 2大箱/套
                 "large_carton_no_sample": ["1-1", "1-2", "2-1", "2-2"]
@@ -249,8 +258,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 18,
                 "total_sets": 3,              # ceil(18/6)
-                "small_boxes_per_set": 3,     # ceil(6/2) = 3
-                "large_boxes_per_set": 1,     # ceil(3/3) = 1
+                "small_boxes_per_set_ratio": 3.0,   # 6/2 = 3.0
+                "actual_small_boxes_per_set": 3,    # ceil(3.0) = 3
+                "large_boxes_per_set_ratio": 1.0,   # 3/3 = 1.0
+                "actual_large_boxes_per_set": 1,    # ceil(1.0) = 1
                 "total_small_boxes": 9,       # 3套 × 3小箱/套
                 "total_large_boxes": 3,       # 3套 × 1大箱/套
                 "large_carton_no_sample": ["1", "2", "3"]
@@ -268,9 +279,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 12,
                 "total_sets": 6,              # ceil(12/2)
-                "small_boxes_per_set": 2,     # ceil(2/1) = 2
-                "large_boxes_per_set": 0.33,  # 2/6 = 0.33，即3套/大箱
-                "sets_per_large_box": 3,      # 3套/大箱
+                "small_boxes_per_set_ratio": 2.0,   # 2/1 = 2.0
+                "actual_small_boxes_per_set": 2,    # ceil(2.0) = 2
+                "large_boxes_per_set_ratio": 0.33,  # 2/6 = 0.333...，多套分1箱
+                "actual_large_boxes_per_set": 1,    # ceil(0.33) = 1，但由于<1是多套分1箱
                 "total_small_boxes": 12,      # 6套 × 2小箱/套
                 "total_large_boxes": 2,       # ceil(6套 ÷ 3套/箱) = 2箱
                 "large_carton_no_sample": ["1-3", "4-6"]
@@ -291,7 +303,8 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 1,
                 "total_sets": 1,
-                "large_boxes_per_set": 1,
+                "large_boxes_per_set_ratio": 1.0,   # 1/1 = 1.0
+                "actual_large_boxes_per_set": 1,    # ceil(1.0) = 1
                 "total_large_boxes": 1,
                 "carton_no_sample": ["1"]
             }
@@ -308,9 +321,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 50,
                 "total_sets": 5,
-                "large_boxes_per_set": 2,     # ceil(10/5)
+                "large_boxes_per_set_ratio": 2.0,   # 10/5 = 2.0
+                "actual_large_boxes_per_set": 2,    # ceil(2.0) = 2
                 "total_large_boxes": 10,      # 5套 × 2箱/套
-                "carton_no_sample": ["1-1", "1-2", "2-1", "2-2", "3-1", "3-2", "4-1", "4-2", "5-1", "5-2"]
+                "carton_no_sample": ["1-1", "1-2", "2-1", "2-2", "3-1", "3-2"]  # 前6个
             }
         })
         
@@ -325,9 +339,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 22,            # ceil(22000/1000)
                 "total_sets": 4,              # ceil(22/7) = 4套（余数为1盒）
-                "large_boxes_per_set": 3,     # ceil(7/3) = 3
+                "large_boxes_per_set_ratio": 2.333,  # 7/3 = 2.333...
+                "actual_large_boxes_per_set": 3,     # ceil(2.333) = 3
                 "total_large_boxes": 12,      # 4套 × 3箱/套
-                "carton_no_sample": ["1-1", "1-2", "1-3", "2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "4-3"]
+                "carton_no_sample": ["1-1", "1-2", "1-3", "2-1", "2-2", "2-3"]  # 前6个
             }
         })
     
@@ -345,9 +360,10 @@ class CartonLogicTester:
             "expected": {
                 "total_boxes": 1000,          # ceil(10000000/10000)
                 "total_sets": 10,             # ceil(1000/100)
-                "large_boxes_per_set": 2,     # ceil(100/50) = 2
+                "large_boxes_per_set_ratio": 2.0,   # 100/50 = 2.0
+                "actual_large_boxes_per_set": 2,    # ceil(2.0) = 2
                 "total_large_boxes": 20,      # 10套 × 2箱/套
-                "carton_no_sample": ["1-1", "1-2", "2-1", "2-2", "10-1", "10-2"]
+                "carton_no_sample": ["1-1", "1-2", "2-1", "2-2", "3-1", "3-2"]  # 前6个
             }
         })
     
@@ -414,14 +430,22 @@ class CartonLogicTester:
                         if actual_carton != expected_carton:
                             errors.append(f"大箱Carton No[{i}]不匹配: 期望'{expected_carton}', 实际'{actual_carton}'")
             
-            # 验证小箱数量相关字段
-            if 'small_boxes_per_set' in expected:
-                if abs(actual.get('small_boxes_per_set', 0) - expected['small_boxes_per_set']) > 0.01:
-                    errors.append(f"每套小箱数不匹配: 期望{expected['small_boxes_per_set']}, 实际{actual.get('small_boxes_per_set', 0)}")
+            # 验证比例和实际箱数字段（新逻辑）
+            if 'small_boxes_per_set_ratio' in expected:
+                if abs(actual.get('small_boxes_per_set_ratio', 0) - expected['small_boxes_per_set_ratio']) > 0.01:
+                    errors.append(f"每套小箱数比例不匹配: 期望{expected['small_boxes_per_set_ratio']}, 实际{actual.get('small_boxes_per_set_ratio', 0)}")
             
-            if 'large_boxes_per_set' in expected:
-                if abs(actual.get('large_boxes_per_set', 0) - expected['large_boxes_per_set']) > 0.01:
-                    errors.append(f"每套大箱数不匹配: 期望{expected['large_boxes_per_set']}, 实际{actual.get('large_boxes_per_set', 0)}")
+            if 'actual_small_boxes_per_set' in expected:
+                if actual.get('actual_small_boxes_per_set', 0) != expected['actual_small_boxes_per_set']:
+                    errors.append(f"实际每套小箱数不匹配: 期望{expected['actual_small_boxes_per_set']}, 实际{actual.get('actual_small_boxes_per_set', 0)}")
+                    
+            if 'large_boxes_per_set_ratio' in expected:
+                if abs(actual.get('large_boxes_per_set_ratio', 0) - expected['large_boxes_per_set_ratio']) > 0.01:
+                    errors.append(f"每套大箱数比例不匹配: 期望{expected['large_boxes_per_set_ratio']}, 实际{actual.get('large_boxes_per_set_ratio', 0)}")
+            
+            if 'actual_large_boxes_per_set' in expected:
+                if actual.get('actual_large_boxes_per_set', 0) != expected['actual_large_boxes_per_set']:
+                    errors.append(f"实际每套大箱数不匹配: 期望{expected['actual_large_boxes_per_set']}, 实际{actual.get('actual_large_boxes_per_set', 0)}")
             
             # 验证特殊情况标识
             if 'should_generate_small_box' in expected:
@@ -515,9 +539,9 @@ class CartonLogicTester:
                 "actual_large_boxes_per_set": actual_large_boxes_per_set
             })
             
-            # 计算小箱Carton No (只有当small_boxes_per_set >= 1时才生成)
+            # 计算小箱Carton No (只有当small_boxes_per_set_ratio >= 1时才生成)
             small_carton_nos = []
-            if small_boxes_per_set >= 1:
+            if small_boxes_per_set_ratio >= 1:
                 for i in range(1, total_small_boxes + 1):
                     carton_no = self.processor.calculate_carton_number_for_small_box(i, boxes_per_set, boxes_per_small_box)
                     small_carton_nos.append(carton_no)
@@ -583,8 +607,8 @@ class CartonLogicTester:
         
         # 生成文件名
         timestamp = self.start_time.strftime("%Y%m%d_%H%M%S")
-        json_filename = f"test_results_{timestamp}.json"
-        md_filename = f"test_report_{timestamp}.md"
+        json_filename = f"test_results_fixed_{timestamp}.json"
+        md_filename = f"test_report_fixed_{timestamp}.md"
         
         # 准备导出数据
         export_data = {
@@ -621,7 +645,7 @@ class CartonLogicTester:
         
         with open(filename, 'w', encoding='utf-8') as f:
             # 报告标题
-            f.write(f"# Carton Number Logic 测试报告\n\n")
+            f.write(f"# Carton Number Logic 测试报告 (修复版)\n\n")
             f.write(f"**生成时间**: {session['end_time']}\n\n")
             
             # 测试概览
@@ -703,7 +727,7 @@ class CartonLogicTester:
             else:
                 f.write(f"发现{session['failed_tests']}个测试失败，建议检查相关计算逻辑。\n")
             
-            f.write(f"\n**测试工具**: Carton Logic Test Suite v1.0\n")
+            f.write(f"\n**测试工具**: Carton Logic Test Suite v1.0 (修复版)\n")
             f.write(f"**生成时间**: {session['end_time']}\n")
 
 
