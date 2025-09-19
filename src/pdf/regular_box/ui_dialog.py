@@ -122,18 +122,19 @@ class RegularUIDialog:
         )
         no_small_box_radio.pack(side=tk.LEFT)
         
-        # 左侧：盒标类型选择框架
-        box_label_frame = ttk.LabelFrame(left_column, text="盒标类型选择", padding="12")
+        # 合并后的盒标选择框架
+        box_label_frame = ttk.LabelFrame(left_column, text="盒标类型与外观选择", padding="12")
         box_label_frame.pack(fill=tk.X, pady=(0, 10))
-        
+
+        # 盒标类型选择（保持原有变量名）
         self.main_app.has_box_label_var = tk.StringVar(value="无盒标")
-        
-        # 居中布局的框架
-        box_label_container = ttk.Frame(box_label_frame)
-        box_label_container.pack(expand=True)
-        
+
+        # 第一行：盒标类型
+        type_container = ttk.Frame(box_label_frame)
+        type_container.pack(expand=True, pady=(0, 10))
+
         no_box_label_radio = ttk.Radiobutton(
-            box_label_container,
+            type_container,
             text="无盒标",
             variable=self.main_app.has_box_label_var,
             value="无盒标"
@@ -141,25 +142,22 @@ class RegularUIDialog:
         no_box_label_radio.pack(side=tk.LEFT, padx=(0, 30))
 
         has_box_label_radio = ttk.Radiobutton(
-            box_label_container,
+            type_container,
             text="有盒标",
             variable=self.main_app.has_box_label_var,
             value="有盒标"
         )
         has_box_label_radio.pack(side=tk.LEFT)
-        
-        # 左侧：外观选择框架
-        appearance_frame = ttk.LabelFrame(left_column, text="盒标外观选择", padding="12")
-        appearance_frame.pack(fill=tk.X, pady=(0, 10))
 
+        # 外观选择（保持原有变量名）
         self.main_app.appearance_var = tk.StringVar(value="外观一")
-        
-        # 居中布局的框架
-        radio_container = ttk.Frame(appearance_frame)
-        radio_container.pack(expand=True)
-        
+
+        # 第二行：外观选择
+        appearance_container = ttk.Frame(box_label_frame)
+        appearance_container.pack(expand=True)
+
         appearance_radio1 = ttk.Radiobutton(
-            radio_container,
+            appearance_container,
             text="外观一",
             variable=self.main_app.appearance_var,
             value="外观一"
@@ -167,7 +165,7 @@ class RegularUIDialog:
         appearance_radio1.pack(side=tk.LEFT, padx=(0, 30))
 
         appearance_radio2 = ttk.Radiobutton(
-            radio_container,
+            appearance_container,
             text="外观二",
             variable=self.main_app.appearance_var,
             value="外观二"
