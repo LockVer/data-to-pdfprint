@@ -336,7 +336,6 @@ class SplitBoxTemplate(PDFBaseUtils):
         
         # 计算参数
         pieces_per_box = int(params["张/盒"])
-        pieces_per_small_box = pieces_per_box * boxes_per_small_box
         
         # 从remainder_info获取total_boxes
         total_boxes = remainder_info.get("total_boxes", 0)
@@ -344,13 +343,13 @@ class SplitBoxTemplate(PDFBaseUtils):
         # 直接创建单个PDF文件，包含所有小箱标
         self._create_single_split_box_small_box_label_file(
             data, params, output_path, 1, total_small_boxes,
-            theme_text, base_number, remark_text, pieces_per_small_box, 
+            theme_text, base_number, remark_text, pieces_per_box, 
             boxes_per_set, boxes_per_small_box, total_small_boxes, small_boxes_per_large_box, total_boxes, serial_font_size
         )
 
     def _create_single_split_box_small_box_label_file(self, data: Dict[str, Any], params: Dict[str, Any], output_path: str,
                                                  start_small_box: int, end_small_box: int, theme_text: str, base_number: str,
-                                                 remark_text: str, pieces_per_small_box: int, boxes_per_set: int, boxes_per_small_box: int, 
+                                                 remark_text: str, pieces_per_box: int, boxes_per_set: int, boxes_per_small_box: int, 
                                                  total_small_boxes: int, small_boxes_per_large_box: int, total_boxes: int, serial_font_size: int = 10):
         """创建单个分盒小箱标PDF文件"""
         c = canvas.Canvas(output_path, pagesize=self.page_size)
@@ -400,7 +399,6 @@ class SplitBoxTemplate(PDFBaseUtils):
                 )
 
             # 🔧 使用新的quantity计算方法
-            pieces_per_box = int(params["张/盒"])
             actual_pieces_in_small_box = split_box_data_processor.calculate_actual_quantity_for_small_box(
                 small_box_num, pieces_per_box, boxes_per_small_box, total_boxes
             )

@@ -256,7 +256,7 @@ class SplitBoxRenderer:
         c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
         # 上层：票数（在分隔线上方居中）
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
-        pcs_text = f"{pieces_per_small_box}PCS"
+        pcs_text = f"{actual_quantity}PCS"
         c.drawCentredString(data_center_x, upper_y, pcs_text)
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
