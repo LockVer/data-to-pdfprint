@@ -583,8 +583,8 @@ class CartonLogicTester:
         
         # 生成文件名
         timestamp = self.start_time.strftime("%Y%m%d_%H%M%S")
-        json_filename = f"test_results_{timestamp}.json"
-        md_filename = f"test_report_{timestamp}.md"
+        json_filename = f"total-result/test_results_{timestamp}.json"
+        md_filename = f"total-result/test_report_{timestamp}.md"
         
         # 准备导出数据
         export_data = {
