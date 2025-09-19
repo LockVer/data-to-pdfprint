@@ -121,3 +121,14 @@ config.json
 
 # 个人配置文件
 *.claude-personal.md
+
+
+# 测试结果文件
+test_results_*.json
+test_report_*.md
+quick_test_results_*.md
+
+total-result/
+
+# 文档
+docs
