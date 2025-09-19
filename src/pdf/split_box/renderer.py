@@ -52,7 +52,7 @@ class SplitBoxRenderer:
         # 下部序列号
         c.drawCentredString(width / 2, serial_number_y, serial_number)
 
-    def draw_split_box_small_box_table(self, c, width, height, theme_text, pieces_per_small_box, 
+    def draw_split_box_small_box_table(self, c, width, height, theme_text, actual_quantity, 
                                        serial_range, carton_no, remark_text, has_paper_card_note=True, serial_font_size=10):
         """绘制分盒小箱标表格"""
         
@@ -151,7 +151,7 @@ class SplitBoxRenderer:
         c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
         # 上层：票数（在分隔线上方居中）
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
-        pcs_text = f"{pieces_per_small_box}PCS"
+        pcs_text = f"{actual_quantity}PCS"
         c.drawCentredString(data_center_x, upper_y, pcs_text)
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
@@ -173,7 +173,7 @@ class SplitBoxRenderer:
         c.drawCentredString(label_center_x, remark_y, "Remark:")
         c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
-    def draw_split_box_small_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_small_box, 
+    def draw_split_box_small_box_table_no_paper_card(self, c, width, height, theme_text, actual_quantity, 
                                                       serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制分盒小箱标表格 - 无纸卡备注模版"""
         # 表格尺寸和位置 - 上下左右各5mm边距
@@ -278,8 +278,8 @@ class SplitBoxRenderer:
         c.drawCentredString(label_center_x, remark_y, "Remark:")
         c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
-    def draw_split_box_large_box_table(self, c, width, height, theme_text, pieces_per_box,
-                                       boxes_per_small_box, small_boxes_per_large_box, serial_range, carton_no, remark_text, serial_font_size=10):
+    def draw_split_box_large_box_table(self, c, width, height, theme_text, actual_quantity,
+                                       serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制分盒大箱标表格"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -366,10 +366,9 @@ class SplitBoxRenderer:
         # 行3: Quantity (第3行，双倍高度)
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
         c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
-        # 上层：计算并显示 (张/盒 × 盒/小箱 × 小箱/大箱)PCS - 根据文档要求修正
+        # 上层：显示实际quantity PCS
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
-        pcs_count = pieces_per_box * boxes_per_small_box * small_boxes_per_large_box  # 张/盒 × 盒/小箱 × 小箱/大箱
-        pcs_text = f"{pcs_count}PCS"
+        pcs_text = f"{actual_quantity}PCS"
         c.drawCentredString(data_center_x, upper_y, pcs_text)
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset
@@ -391,8 +390,8 @@ class SplitBoxRenderer:
         c.drawCentredString(label_center_x, remark_y, "Remark:")
         c.drawCentredString(data_center_x, remark_y, clean_remark_text)
 
-    def draw_split_box_large_box_table_no_paper_card(self, c, width, height, theme_text, pieces_per_box,
-                                                      boxes_per_small_box, small_boxes_per_large_box, serial_range, carton_no, remark_text, serial_font_size=10):
+    def draw_split_box_large_box_table_no_paper_card(self, c, width, height, theme_text, actual_quantity,
+                                                      serial_range, carton_no, remark_text, serial_font_size=10):
         """绘制分盒大箱标表格 - 无纸卡备注模版"""
         # 表格尺寸和位置 - 上下左右各5mm边距
         table_width = width - 10 * mm
@@ -472,10 +471,9 @@ class SplitBoxRenderer:
         # 行2: Quantity (第3行，双倍高度)
         quantity_label_y = row_positions[2] + quantity_row_height/2 - text_offset
         c.drawCentredString(label_center_x, quantity_label_y, "Quantity:")
-        # 上层：计算并显示 (张/盒 * 小箱/大箱)PCS
+        # 上层：显示实际quantity PCS
         upper_y = row_positions[2] + quantity_row_height * 3/4 - text_offset
-        pcs_count = pieces_per_box * boxes_per_small_box * small_boxes_per_large_box  # 张/盒 × 盒/小箱 × 小箱/大箱
-        pcs_text = f"{pcs_count}PCS"
+        pcs_text = f"{actual_quantity}PCS"
         c.drawCentredString(data_center_x, upper_y, pcs_text)
         # 下层：序列号范围（在分隔线下方居中）
         lower_y = row_positions[2] + quantity_row_height/4 - text_offset

@@ -399,13 +399,11 @@ class SplitBoxTemplate(PDFBaseUtils):
                     base_number, small_box_num, boxes_per_small_box, small_boxes_per_large_box, total_boxes
                 )
 
-            # 🔧 计算当前小箱的实际张数（考虑最后一小箱的边界情况）
+            # 🔧 使用新的quantity计算方法
             pieces_per_box = int(params["张/盒"])
-            # 计算当前小箱实际包含的盒数
-            start_box = (small_box_num - 1) * boxes_per_small_box + 1
-            end_box = min(start_box + boxes_per_small_box - 1, total_boxes)
-            actual_boxes_in_small_box = end_box - start_box + 1
-            actual_pieces_in_small_box = actual_boxes_in_small_box * pieces_per_box
+            actual_pieces_in_small_box = split_box_data_processor.calculate_actual_quantity_for_small_box(
+                small_box_num, pieces_per_box, boxes_per_small_box, total_boxes
+            )
 
             # 计算分盒小箱标的Carton No - 基于最新逻辑整理
             print(f"\n📦 准备计算小箱标 #{small_box_num} 的Carton No")
@@ -539,18 +537,21 @@ class SplitBoxTemplate(PDFBaseUtils):
             )
             print(f"📦 大箱标 #{large_box_num} Carton No计算完成: {carton_no}\n")
             
+            # 🔧 使用新的quantity计算方法
+            actual_quantity_for_large_box = split_box_data_processor.calculate_actual_quantity_for_large_box(
+                large_box_num, pieces_per_box, boxes_per_small_box, small_boxes_per_large_box, total_boxes, boxes_per_set
+            )
+            
             # 获取标签模版类型 - 参照常规模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制大箱标表格 - 传入完整的包装参数，根据模版类型选择函数
+            # 绘制大箱标表格 - 使用预计算的quantity值，根据模版类型选择函数
             if template_type == "有纸卡备注":
-                split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
-                                               boxes_per_small_box, small_boxes_per_large_box, serial_range, 
-                                               carton_no, remark_text, serial_font_size)
+                split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, actual_quantity_for_large_box,
+                                               serial_range, carton_no, remark_text, serial_font_size)
             else:  # "无纸卡备注"
-                split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
-                                               boxes_per_small_box, small_boxes_per_large_box, serial_range, 
-                                               carton_no, remark_text, serial_font_size)
+                split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, actual_quantity_for_large_box,
+                                               serial_range, carton_no, remark_text, serial_font_size)
 
         c.save()
 
@@ -649,18 +650,23 @@ class SplitBoxTemplate(PDFBaseUtils):
             )
             print(f"📦 无小箱模式箱标 #{large_box_num} Carton No计算完成: {carton_no}\n")
             
+            # 🔧 使用新的quantity计算方法（二级模式：盒直接装到大箱）
+            total_boxes = math.ceil(total_pieces / pieces_per_box)
+            boxes_per_set = int(params.get("盒/套", params.get("boxes_per_set", 1)))
+            actual_quantity_for_large_box = split_box_data_processor.calculate_actual_quantity_for_large_box(
+                large_box_num, pieces_per_box, boxes_per_large_box, 1, total_boxes, boxes_per_set
+            )
+            
             # 获取标签模版类型 - 参照常规模版的实现方式
             template_type = params.get("标签模版", "有纸卡备注")
             
-            # 绘制箱标表格 - 传入二级包装参数，根据模版类型选择函数，使用计算出的carton_no
+            # 绘制箱标表格 - 使用预计算的quantity值，根据模版类型选择函数
             if template_type == "有纸卡备注":
-                split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, pieces_per_box, 
-                                               boxes_per_large_box, 1, serial_range, 
-                                               carton_no, remark_text, serial_font_size)
+                split_box_renderer.draw_split_box_large_box_table(c, width, height, theme_text, actual_quantity_for_large_box,
+                                               serial_range, carton_no, remark_text, serial_font_size)
             else:  # "无纸卡备注"
-                split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, pieces_per_box, 
-                                               boxes_per_large_box, 1, serial_range, 
-                                               carton_no, remark_text, serial_font_size)
+                split_box_renderer.draw_split_box_large_box_table_no_paper_card(c, width, height, theme_text, actual_quantity_for_large_box,
+                                               serial_range, carton_no, remark_text, serial_font_size)
 
         c.save()
 

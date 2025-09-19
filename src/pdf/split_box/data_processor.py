@@ -493,6 +493,176 @@ class SplitBoxDataProcessor:
         
         print(f"    ✅ 大箱#{large_box_num} Serial范围: {result}")
         return result
+    
+    def calculate_actual_quantity_for_small_box(self, small_box_num: int, pieces_per_box: int, 
+                                              boxes_per_small_box: int, total_boxes: int) -> int:
+        """
+        计算小箱标的实际quantity
+        
+        参数:
+            small_box_num: 小箱编号 (1-based)
+            pieces_per_box: 张/盒数量
+            boxes_per_small_box: 盒/小箱数量（小箱理论容量）
+            total_boxes: 总盒数
+            
+        返回:
+            实际quantity = pieces_per_box × 该小箱实际包含的盒数
+        """
+        # 计算该小箱理论包含的盒子范围
+        start_box = (small_box_num - 1) * boxes_per_small_box + 1
+        end_box = start_box + boxes_per_small_box - 1
+        
+        # 边界检查：确保不超过总盒数，且start_box不超过总盒数，且容器编号有效
+        if start_box > total_boxes or start_box <= 0:
+            # 小箱编号超出范围或无效，没有盒子可分配
+            actual_boxes_in_small_box = 0
+            actual_quantity = 0
+            print(f"🔢 [小箱标Quantity计算] 小箱#{small_box_num}:")
+            if start_box <= 0:
+                print(f"    小箱编号无效，起始盒子{start_box} <= 0")
+            else:
+                print(f"    小箱编号超出范围，起始盒子{start_box} > 总盒数{total_boxes}")
+            print(f"    实际包含盒数: 0")
+            print(f"    实际quantity: 0")
+            return actual_quantity
+        
+        end_box = min(end_box, total_boxes)
+        
+        # 计算实际包含的盒数
+        actual_boxes_in_small_box = end_box - start_box + 1
+        
+        # 计算实际quantity
+        actual_quantity = pieces_per_box * actual_boxes_in_small_box
+        
+        print(f"🔢 [小箱标Quantity计算] 小箱#{small_box_num}:")
+        print(f"    理论盒子范围: {start_box}-{(small_box_num * boxes_per_small_box)}")
+        print(f"    实际盒子范围: {start_box}-{end_box}")
+        print(f"    实际包含盒数: {actual_boxes_in_small_box}")
+        print(f"    张/盒: {pieces_per_box}")
+        print(f"    实际quantity: {actual_quantity} = {pieces_per_box} × {actual_boxes_in_small_box}")
+        
+        return actual_quantity
+    
+    def calculate_actual_quantity_for_large_box(self, large_box_num: int, pieces_per_box: int,
+                                              boxes_per_small_box: int, small_boxes_per_large_box: int, 
+                                              total_boxes: int, boxes_per_set: int = None) -> int:
+        """
+        计算大箱标的实际quantity
+        注意：此方法必须与serial分配逻辑保持一致，特别是处理套盒边界的逻辑
+        
+        参数:
+            large_box_num: 大箱编号 (1-based)
+            pieces_per_box: 张/盒数量
+            boxes_per_small_box: 盒/小箱数量
+            small_boxes_per_large_box: 小箱/大箱数量
+            total_boxes: 总盒数
+            boxes_per_set: 盒/套数量 (可选，用于套盒模式)
+            
+        返回:
+            实际quantity = pieces_per_box × 该大箱实际包含的盒数
+        """
+        # 计算大箱理论容量
+        boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+        
+        # 边界检查：容器编号有效性
+        if large_box_num <= 0:
+            print(f"🔢 [大箱标Quantity计算] 大箱#{large_box_num}:")
+            print(f"    大箱编号无效 (<= 0)")
+            print(f"    实际包含盒数: 0")
+            print(f"    实际quantity: 0")
+            return 0
+        
+        # 如果提供了boxes_per_set，使用与serial生成相同的套盒分配逻辑
+        if boxes_per_set is not None and boxes_per_large_box < boxes_per_set:
+            # 一套分多箱模式：与generate_set_based_large_box_serial_range保持一致
+            print(f"🔢 [大箱标Quantity计算-套盒模式] 大箱#{large_box_num}:")
+            print(f"    模式: 一套分多箱 (大箱容量{boxes_per_large_box} < 盒/套{boxes_per_set})")
+            
+            large_boxes_per_set = math.ceil(boxes_per_set / boxes_per_large_box)   # 每套大箱数量
+            
+            # 确定大箱所属套号
+            set_num = math.ceil(large_box_num / large_boxes_per_set)
+            
+            # 确定套内大箱编号（1-based）
+            large_box_in_set = (large_box_num - 1) % large_boxes_per_set + 1
+            
+            # 计算套内盒子范围
+            start_box_in_set = (large_box_in_set - 1) * boxes_per_large_box + 1
+            end_box_in_set = min(start_box_in_set + boxes_per_large_box - 1, boxes_per_set)
+            
+            # 边界检查：考虑总盒数限制
+            # 计算当前套的全局起始和结束位置
+            set_start_box_global = (set_num - 1) * boxes_per_set + 1
+            set_end_box_global = min(set_start_box_global + boxes_per_set - 1, total_boxes)
+            
+            # 检查当前套是否存在
+            if set_start_box_global > total_boxes:
+                print(f"    所属套#{set_num} 超出总盒数范围")
+                print(f"    实际包含盒数: 0")
+                print(f"    实际quantity: 0")
+                return 0
+            
+            # 计算套内实际盒数
+            actual_boxes_in_set = set_end_box_global - set_start_box_global + 1
+            
+            # 如果套内实际盒数少于套容量，调整套内结束位置
+            if actual_boxes_in_set < boxes_per_set:
+                end_box_in_set = min(end_box_in_set, actual_boxes_in_set)
+            
+            # 检查当前大箱在套内的有效性
+            if start_box_in_set > actual_boxes_in_set:
+                print(f"    套内大箱编号#{large_box_in_set} 超出套内实际盒数")
+                print(f"    实际包含盒数: 0")
+                print(f"    实际quantity: 0")
+                return 0
+            
+            actual_boxes_in_large_box = end_box_in_set - start_box_in_set + 1
+            actual_quantity = pieces_per_box * actual_boxes_in_large_box
+            
+            print(f"    每套大箱数: {large_boxes_per_set}")
+            print(f"    所属套号: {set_num}")
+            print(f"    套内大箱编号: {large_box_in_set}")
+            print(f"    套内盒子范围: {start_box_in_set}-{end_box_in_set}")
+            print(f"    实际包含盒数: {actual_boxes_in_large_box}")
+            print(f"    张/盒: {pieces_per_box}")
+            print(f"    实际quantity: {actual_quantity} = {pieces_per_box} × {actual_boxes_in_large_box}")
+            
+            return actual_quantity
+        
+        else:
+            # 传统均匀分配模式：多套分一箱或无套模式
+            print(f"🔢 [大箱标Quantity计算-均匀分配模式] 大箱#{large_box_num}:")
+            if boxes_per_set is not None:
+                print(f"    模式: 多套分一箱 (大箱容量{boxes_per_large_box} >= 盒/套{boxes_per_set})")
+            else:
+                print(f"    模式: 无套均匀分配")
+            
+            # 计算该大箱理论包含的盒子范围
+            start_box = (large_box_num - 1) * boxes_per_large_box + 1
+            end_box = start_box + boxes_per_large_box - 1
+            
+            # 边界检查：确保不超过总盒数
+            if start_box > total_boxes:
+                print(f"    大箱编号超出范围，起始盒子{start_box} > 总盒数{total_boxes}")
+                print(f"    实际包含盒数: 0")
+                print(f"    实际quantity: 0")
+                return 0
+            
+            end_box = min(end_box, total_boxes)
+            
+            # 计算实际包含的盒数
+            actual_boxes_in_large_box = end_box - start_box + 1
+            
+            # 计算实际quantity
+            actual_quantity = pieces_per_box * actual_boxes_in_large_box
+            
+            print(f"    理论盒子范围: {start_box}-{(large_box_num * boxes_per_large_box)}")
+            print(f"    实际盒子范围: {start_box}-{end_box}")
+            print(f"    实际包含盒数: {actual_boxes_in_large_box}")
+            print(f"    张/盒: {pieces_per_box}")
+            print(f"    实际quantity: {actual_quantity} = {pieces_per_box} × {actual_boxes_in_large_box}")
+            
+            return actual_quantity
 
 
 # 创建全局实例供split_box模板使用
