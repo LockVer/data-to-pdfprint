@@ -465,6 +465,17 @@ class SplitBoxDataProcessor:
             start_box_in_set = (large_box_in_set - 1) * boxes_per_large_box + 1
             end_box_in_set = min(start_box_in_set + boxes_per_large_box - 1, boxes_per_set)
             
+            # 边界检查：考虑总盒数限制
+            if total_boxes is not None:
+                # 计算当前套的总盒数
+                set_start_box_global = (set_num - 1) * boxes_per_set + 1
+                set_end_box_global = min(set_start_box_global + boxes_per_set - 1, total_boxes)
+                actual_boxes_in_set = set_end_box_global - set_start_box_global + 1
+                
+                # 如果套内实际盒数少于套容量，调整套内结束位置
+                if actual_boxes_in_set < boxes_per_set:
+                    end_box_in_set = min(end_box_in_set, actual_boxes_in_set)
+            
             print(f"    每套大箱数: {large_boxes_per_set}")
             print(f"    所属套号: {set_num}")
             print(f"    套内大箱编号: {large_box_in_set}")
