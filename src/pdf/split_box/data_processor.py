@@ -114,6 +114,45 @@ class SplitBoxDataProcessor:
         print(f"📝 分盒盒标 #{box_num}: 主号{current_main}, 副号{suffix_in_group}, 分组大小{group_size}({boxes_per_small_box}×{small_boxes_per_large_box}) → {current_number}")
         return current_number
     
+    def generate_box_serial_with_set_logic(self, base_number: str, box_num: int, boxes_per_set: int) -> str:
+        """
+        生成盒标序列号 - 新逻辑：父级编号为套，子级编号为盒
+        
+        参数:
+            base_number: 基准序列号 (如 DSK01001-01)
+            box_num: 盒子编号 (1-based)
+            boxes_per_set: 盒/套数量
+            
+        返回:
+            Serial号，格式：DSK{套号}-{套内盒号}
+            
+        逻辑:
+            - 父级编号（主号）= 套号
+            - 子级编号（副号）= 套内盒号
+            - 每套使用独立的主号：主号 = 基准主号 + (套号-1)
+        """
+        # 直观的计算方式：
+        # 1. 转换为0-based索引便于计算
+        box_index = box_num - 1
+        
+        # 2. 计算套号（从1开始）
+        set_num = (box_index // boxes_per_set) + 1
+        
+        # 3. 计算套内盒号（从1开始）
+        box_in_set = (box_index % boxes_per_set) + 1
+        
+        # 解析基准序列号
+        serial_info = self.parse_serial_number_format(base_number)
+        
+        # 计算当前套的主号：基准主号 + (套号-1)
+        current_main = serial_info['main_number'] + (set_num - 1)
+        
+        # 生成Serial号：父级编号为套，子级编号为盒
+        result = f"{serial_info['prefix']}{current_main:05d}-{box_in_set:02d}"
+        
+        print(f"📝 [新盒标Serial] 盒#{box_num} → 套{set_num}盒{box_in_set} → {result} (父级编号=套{set_num}, 子级编号=盒{box_in_set})")
+        return result
+    
     def generate_split_small_box_serial_range(self, base_number: str, small_box_num: int, 
                                             boxes_per_small_box: int, small_boxes_per_large_box: int, total_boxes: int = None) -> str:
         """
