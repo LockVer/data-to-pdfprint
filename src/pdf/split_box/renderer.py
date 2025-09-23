@@ -80,7 +80,7 @@ class SplitBoxRenderer:
         
         # 绘制表格边框
         c.setStrokeColor(CMYKColor(0, 0, 0, 1))
-        c.setLineWidth(1)
+        c.setLineWidth(0.567)
         c.rect(table_x, table_y, table_width, table_height)
         
         # 计算各行的Y坐标
@@ -192,7 +192,7 @@ class SplitBoxRenderer:
         
         # 绘制表格边框
         c.setStrokeColor(CMYKColor(0, 0, 0, 1))
-        c.setLineWidth(1)
+        c.setLineWidth(0.567)
         c.rect(table_x, table_y, table_width, table_height)
         
         # 计算各行的Y坐标 - 从底部开始：Remark, Carton No, Quantity(双倍), Item
@@ -297,7 +297,7 @@ class SplitBoxRenderer:
         
         # 绘制表格边框
         c.setStrokeColor(CMYKColor(0, 0, 0, 1))
-        c.setLineWidth(1)
+        c.setLineWidth(0.567)
         c.rect(table_x, table_y, table_width, table_height)
         
         # 计算各行的Y坐标
@@ -409,7 +409,7 @@ class SplitBoxRenderer:
         
         # 绘制表格边框
         c.setStrokeColor(CMYKColor(0, 0, 0, 1))
-        c.setLineWidth(1)
+        c.setLineWidth(0.567)
         c.rect(table_x, table_y, table_width, table_height)
         
         # 计算各行的Y坐标 - 从底部开始：Remark, Carton No, Quantity(双倍), Item
@@ -513,7 +513,7 @@ class SplitBoxRenderer:
         
         # 绘制表格边框
         c.setStrokeColor(CMYKColor(0, 0, 0, 1))
-        c.setLineWidth(1)
+        c.setLineWidth(0.567)
         c.rect(table_x, table_y, table_width, table_height)
         
         # 计算各行的Y坐标
@@ -592,7 +592,7 @@ class SplitBoxRenderer:
         
         # 绘制表格边框
         c.setStrokeColor(CMYKColor(0, 0, 0, 1))
-        c.setLineWidth(1)
+        c.setLineWidth(0.567)
         c.rect(table_x, table_y, table_width, table_height)
         
         # 计算各行的Y坐标 - 从底部开始：Remark, Carton No, Quantity(双倍), Item
