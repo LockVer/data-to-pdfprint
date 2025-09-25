@@ -62,8 +62,8 @@ class RegularDataProcessor:
                 'digits': 5
             }
         
-        # 尝试解析DSK00001这种格式
-        match = re.search(r'([A-Z]+)(\d+)', serial_number)
+        # 尝试解析DSK00001或CAR-01001这种格式
+        match = re.search(r'([A-Z]+)-?(\d+)', serial_number)
         if match:
             prefix = match.group(1)
             start_number = int(match.group(2))
