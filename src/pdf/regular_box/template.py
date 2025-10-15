@@ -2,6 +2,7 @@
 常规模板 - 标准的多级标签PDF生成
 """
 import math
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
@@ -18,6 +19,43 @@ from src.utils.excel_data_extractor import ExcelDataExtractor
 # 导入常规模板专属数据处理器和渲染器
 from src.pdf.regular_box.data_processor import regular_data_processor
 from src.pdf.regular_box.renderer import regular_renderer
+
+
+def _clean_for_filename(text: str) -> str:
+    r"""
+    清理文本使其适合作为Windows/macOS文件名
+
+    处理问题：
+    1. 换行符 (\n, \r) - Excel单元格中的换行会导致Windows文件名错误
+    2. Windows非法字符 (< > : " / \ | ? *)
+    3. 控制字符（ASCII 0-31）
+
+    Args:
+        text: 原始文本
+
+    Returns:
+        清理后的安全文本
+    """
+    if not text:
+        return ""
+
+    # 转为字符串并清理
+    text = str(text)
+
+    # 1. 替换换行符为空格（Excel单元格中的换行）
+    text = text.replace('\n', ' ').replace('\r', ' ')
+
+    # 2. 移除Windows非法字符: < > : " / \ | ? * 和控制字符（ASCII 0-31）
+    text = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', text)
+
+    # 3. 移除前后空格和点号（Windows不允许文件名以这些结尾）
+    text = text.strip('. ')
+
+    # 4. 压缩多余的空格和下划线
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'_+', '_', text)
+
+    return text
 
 
 class RegularTemplate(PDFBaseUtils):
@@ -82,14 +120,18 @@ class RegularTemplate(PDFBaseUtils):
 
         # 创建输出目录
         clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        folder_name = f"{data['客户名称编码']}+{clean_theme}+标签"
+        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])
+        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
-        chinese_name = params.get("中文名称", "")
+        # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
+        chinese_name = _clean_for_filename(params.get("中文名称", ""))
         english_name = clean_theme  # 英文名称使用清理后的主题
-        customer_code = data['客户名称编码']  # 客户编号
+        # 清理客户编号（可能包含Windows非法字符如冒号）
+        customer_code = _clean_for_filename(data['客户名称编码'])
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         generated_files = {}
@@ -144,14 +186,18 @@ class RegularTemplate(PDFBaseUtils):
 
         # 创建输出目录
         clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        folder_name = f"{data['客户名称编码']}+{clean_theme}+标签"
+        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])
+        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
-        chinese_name = params.get("中文名称", "")
+        # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
+        chinese_name = _clean_for_filename(params.get("中文名称", ""))
         english_name = clean_theme  # 英文名称使用清理后的主题
-        customer_code = data['客户名称编码']  # 客户编号
+        # 清理客户编号（可能包含Windows非法字符如冒号）
+        customer_code = _clean_for_filename(data['客户名称编码'])
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         generated_files = {}
@@ -231,7 +277,8 @@ class RegularTemplate(PDFBaseUtils):
         serial_number_y = height - 3.5 * blank_height # 序列号居中在区域4
 
         # 获取中文名称用于空白首页
-        chinese_name = params.get("中文名称", "")
+        # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
+        chinese_name = _clean_for_filename(params.get("中文名称", ""))
         
         # 生成指定范围的盒标
         for box_num in range(start_box, end_box + 1):
@@ -336,7 +383,8 @@ class RegularTemplate(PDFBaseUtils):
         # 在第一页添加空箱标签（仅在处理第一个小箱时）
         if start_small_box == 1:
             # 获取中文名称参数
-            chinese_name = params.get("中文名称", "")
+            # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
+            chinese_name = _clean_for_filename(params.get("中文名称", ""))
             # 获取标签模版类型
             template_type = params.get("标签模版", "有纸卡备注")
             
@@ -444,7 +492,8 @@ class RegularTemplate(PDFBaseUtils):
         # 在第一页添加空箱标签（仅在处理第一个大箱时）
         if start_large_box == 1:
             # 获取中文名称参数
-            chinese_name = params.get("中文名称", "")
+            # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
+            chinese_name = _clean_for_filename(params.get("中文名称", ""))
             # 获取标签模版类型
             template_type = params.get("标签模版", "有纸卡备注")
             
@@ -548,7 +597,8 @@ class RegularTemplate(PDFBaseUtils):
         # 在第一页添加空箱标签（仅在处理第一个箱时）
         if start_large_box == 1:
             # 获取中文名称参数
-            chinese_name = params.get("中文名称", "")
+            # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
+            chinese_name = _clean_for_filename(params.get("中文名称", ""))
             # 获取标签模版类型
             template_type = params.get("标签模版", "有纸卡备注")
             
