@@ -52,6 +52,62 @@ class SplitBoxRenderer:
         # 下部序列号
         c.drawCentredString(width / 2, serial_number_y, serial_number)
 
+    def render_appearance_two(self, c, width, page_size, game_title, ticket_count, serial_number, top_y, bottom_y):
+        """渲染外观二：精确的三行布局格式（完全按照常规模版外观2标准）"""
+        c.setFillColor(CMYKColor(0, 0, 0, 1))
+        font_manager.set_best_font(c, 12, bold=True)
+
+        # 获取页面高度
+        page_height = page_size[1]
+
+        # 左边距 - 统一的左边距
+        left_margin = 4 * mm
+
+        # 清理文本，移除不支持的字符
+        clean_game_title = text_processor.clean_text_for_font(game_title)
+        clean_serial_number = text_processor.clean_text_for_font(str(serial_number))
+
+        # Game title: 距离顶部更大的距离，支持换行并居中显示
+        game_title_y = page_height - 12 * mm  # 距离顶部12mm
+        max_title_width = width - 2 * left_margin  # 留出左右边距
+
+        # 将Game title文本分为标签部分和内容部分
+        title_prefix = "Game title: "
+        title_content = clean_game_title
+
+        # 计算标签部分宽度
+        used_font = font_manager.get_chinese_font_name() or "Helvetica"
+        prefix_width = c.stringWidth(title_prefix, used_font, 12)
+
+        # 计算内容可用宽度
+        content_max_width = max_title_width - prefix_width
+
+        # 对内容部分进行换行处理
+        title_lines = text_processor.wrap_text_to_fit(c, title_content, content_max_width, font_manager.get_chinese_font_name(), 12)
+
+        # 绘制Game title
+        for i, line in enumerate(title_lines):
+            current_y = game_title_y - i * 14  # 行间距14点
+            if i == 0:
+                # 第一行包含"Game title: "前缀，左对齐
+                full_line = f"{title_prefix}{line}"
+                c.drawString(left_margin, current_y, full_line)
+            else:
+                # 后续换行内容居中显示
+                line_width = c.stringWidth(line, used_font, 12)
+                center_x = (width - line_width) / 2
+                c.drawString(center_x, current_y, line)
+
+        # Ticket count: 左下区域，增加与Serial的间距
+        ticket_count_y = 15 * mm  # 距离底部15mm
+        ticket_text = f"Ticket count: {ticket_count}"
+        c.drawString(left_margin, ticket_count_y, ticket_text)
+
+        # Serial: 距离底部
+        serial_y = 6 * mm  # 距离底部6mm
+        serial_text = f"Serial: {clean_serial_number}"
+        c.drawString(left_margin, serial_y, serial_text)
+
     def draw_split_box_small_box_table(self, c, width, height, theme_text, actual_quantity, 
                                        serial_range, carton_no, remark_text, has_paper_card_note=True, serial_font_size=10):
         """绘制分盒小箱标表格"""
@@ -745,8 +801,61 @@ class SplitBoxRenderer:
         
         if current_line:
             lines.append(current_line)
-        
+
         return lines if lines else [text]
+
+    def render_blank_first_page_appearance_two(self, c, width, height, chinese_name):
+        """渲染分盒模版外观2的空白首页 - 完全按照常规模版外观2格式"""
+        # 使用CMYK黑色
+        cmyk_black = CMYKColor(0, 0, 0, 1)
+        c.setFillColor(cmyk_black)
+
+        # 设置字体 - 与外观2保持一致
+        font_manager.set_best_font(c, 12, bold=True)
+
+        # 左边距 - 与外观2保持一致
+        left_margin = 4 * mm
+
+        # 清理中文文本
+        clean_chinese_name = text_processor.clean_text_for_font(chinese_name)
+
+        # Game title: 距离顶部12mm
+        game_title_y = height - 12 * mm
+        max_title_width = width - 2 * left_margin  # 留出左右边距
+
+        # 将Game title文本分为标签部分和内容部分
+        title_prefix = "Game title: "
+        title_content = clean_chinese_name
+
+        # 计算标签部分宽度
+        used_font = font_manager.get_chinese_font_name() or "Helvetica"
+        prefix_width = c.stringWidth(title_prefix, used_font, 12)
+
+        # 计算内容可用宽度
+        content_max_width = max_title_width - prefix_width
+
+        # 对内容部分进行换行处理
+        title_lines = text_processor.wrap_text_to_fit(c, title_content, content_max_width, font_manager.get_chinese_font_name(), 12)
+
+        # 绘制Game title
+        for i, line in enumerate(title_lines):
+            current_y = game_title_y - i * 14  # 行间距14点
+            if i == 0:
+                # 第一行包含"Game title: "前缀，左对齐
+                full_line = f"{title_prefix}{line}"
+                c.drawString(left_margin, current_y, full_line)
+            else:
+                # 后续行只包含内容，需要考虑前缀宽度的缩进
+                indent_x = left_margin + prefix_width
+                c.drawString(indent_x, current_y, line)
+
+        # Ticket count: 空行 - 使用与正常外观2完全相同的位置和渲染方式
+        ticket_count_y = 15 * mm  # 距离底部15mm，与正常外观2一致
+        c.drawString(left_margin, ticket_count_y, "Ticket count:")
+
+        # Serial: 空行 - 使用与正常外观2完全相同的位置和渲染方式
+        serial_y = 6 * mm  # 距离底部6mm，与正常外观2一致
+        c.drawString(left_margin, serial_y, "Serial:")
 
 
 # 创建全局实例供split_box模板使用

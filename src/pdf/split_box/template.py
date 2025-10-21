@@ -334,13 +334,18 @@ class SplitBoxTemplate(PDFBaseUtils):
         
         # 生成指定范围的盒标
         for box_num in range(start_box, end_box + 1):
-            # 🔥 新增：在第一个标签时添加空白首页（只对外观1）
-            if box_num == start_box and style == "外观一" and chinese_name:
-                print(f"📝 生成分盒盒标空白首页: {chinese_name}")
-                split_box_renderer.render_blank_first_page(c, width, height, chinese_name)
+            # 🔥 新增：在第一个标签时添加空白首页（外观1和外观2都支持）
+            if box_num == start_box and style in ["外观一", "外观二"] and chinese_name:
+                print(f"📝 生成分盒盒标空白首页({style}): {chinese_name}")
+                if style == "外观一":
+                    # 外观一：居中显示的空白首页
+                    split_box_renderer.render_blank_first_page(c, width, height, chinese_name)
+                else:  # 外观二
+                    # 外观二：左对齐显示的空白首页
+                    split_box_renderer.render_blank_first_page_appearance_two(c, width, height, chinese_name)
                 c.showPage()
                 c.setFillColor(cmyk_black)
-            
+
             if box_num > start_box:
                 c.showPage()
                 c.setFillColor(cmyk_black)
@@ -349,9 +354,15 @@ class SplitBoxTemplate(PDFBaseUtils):
             current_number = split_box_data_processor.generate_box_serial_with_set_logic(
                 base_number, box_num, boxes_per_set
             )
-            
-            # 分盒模板只有一种固定外观，使用简洁标准样式
-            split_box_renderer.render_appearance_one(c, width, top_text, current_number, top_text_y, serial_number_y)
+
+            # 根据选择的外观渲染
+            if style == "外观一":
+                split_box_renderer.render_appearance_one(c, width, top_text, current_number, top_text_y, serial_number_y)
+            else:  # 外观二
+                # 获取票数信息用于外观二
+                total_pieces = int(float(data["总张数"]))
+                pieces_per_box = int(params["张/盒"])
+                split_box_renderer.render_appearance_two(c, width, self.page_size, top_text, pieces_per_box, current_number, top_text_y, serial_number_y)
 
         c.save()
 
