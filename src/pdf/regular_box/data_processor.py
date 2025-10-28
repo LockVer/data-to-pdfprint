@@ -82,6 +82,21 @@ class RegularDataProcessor:
                 'digits': 5
             }
     
+    def format_serial_number(self, prefix: str, number: int, original_digits: int) -> str:
+        """
+        智能格式化序列号 - 保持原始位数
+        
+        参数:
+            prefix: 前缀字符串
+            number: 数字值
+            original_digits: 原始数字位数
+            
+        返回:
+            格式化后的序列号，保持原始位数
+        """
+        # 根据原始位数决定格式化方式
+        return f"{prefix}{number:0{original_digits}d}"
+    
     def calculate_quantities(self, total_pieces: int, pieces_per_box: int, 
                            boxes_per_small_box: int, small_boxes_per_large_box: int) -> Dict[str, int]:
         """

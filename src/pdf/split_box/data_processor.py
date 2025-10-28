@@ -45,8 +45,8 @@ class SplitBoxDataProcessor:
     
     def parse_serial_number_format(self, serial_number: str) -> Dict[str, Any]:
         """
-        解析序列号格式 - 与原有逻辑完全一致
-        对应原来代码中的正则表达式解析逻辑
+        解析序列号格式 - 保持原始数字格式
+        对应原来代码中的正则表达式解析逻辑，增强以保持原始位数
         """
         # 分盒模板使用简单的数字提取逻辑（与原代码一致）
         match = re.search(r'(\d+)', serial_number)
@@ -55,19 +55,37 @@ class SplitBoxDataProcessor:
             digit_start = match.start()
             # 截取主号前面的所有字符作为前缀
             prefix_part = serial_number[:digit_start]
-            base_main_num = int(match.group(1))  # 主号
+            original_number_str = match.group(1)  # 原始数字字符串
+            base_main_num = int(original_number_str)  # 主号数值
             
             return {
                 'prefix': prefix_part,
                 'main_number': base_main_num,
+                'original_digits': len(original_number_str),  # 🔑 新增：原始位数
                 'digit_start': digit_start
             }
         else:
             return {
                 'prefix': 'DSK',
                 'main_number': 1001,
+                'original_digits': 5,  # 默认5位
                 'digit_start': 0
             }
+    
+    def format_serial_number(self, prefix: str, number: int, original_digits: int) -> str:
+        """
+        智能格式化序列号 - 保持原始位数
+        
+        参数:
+            prefix: 前缀字符串
+            number: 数字值
+            original_digits: 原始数字位数
+            
+        返回:
+            格式化后的序列号，保持原始位数
+        """
+        # 根据原始位数决定格式化方式
+        return f"{prefix}{number:0{original_digits}d}"
     
     def calculate_quantities(self, total_pieces: int, pieces_per_box: int, 
                            boxes_per_small_box: int, small_boxes_per_large_box: int) -> Dict[str, int]:
@@ -109,7 +127,7 @@ class SplitBoxDataProcessor:
         suffix_in_group = (box_index % group_size) + 1  # 当前组内的副号（1-based）
         
         current_main = serial_info['main_number'] + main_increments
-        current_number = f"{serial_info['prefix']}{current_main:05d}-{suffix_in_group:02d}"
+        current_number = f"{self.format_serial_number(serial_info['prefix'], current_main, serial_info['original_digits'])}-{suffix_in_group:02d}"
         
         print(f"📝 分盒盒标 #{box_num}: 主号{current_main}, 副号{suffix_in_group}, 分组大小{group_size}({boxes_per_small_box}×{small_boxes_per_large_box}) → {current_number}")
         return current_number
@@ -148,7 +166,7 @@ class SplitBoxDataProcessor:
         current_main = serial_info['main_number'] + (set_num - 1)
         
         # 生成Serial号：父级编号为套，子级编号为盒
-        result = f"{serial_info['prefix']}{current_main:05d}-{box_in_set:02d}"
+        result = f"{self.format_serial_number(serial_info['prefix'], current_main, serial_info['original_digits'])}-{box_in_set:02d}"
         
         print(f"📝 [新盒标Serial] 盒#{box_num} → 套{set_num}盒{box_in_set} → {result} (父级编号=套{set_num}, 子级编号=盒{box_in_set})")
         return result
@@ -177,14 +195,14 @@ class SplitBoxDataProcessor:
         first_main_increments = first_box_index // group_size
         first_suffix = (first_box_index % group_size) + 1
         first_main = serial_info['main_number'] + first_main_increments
-        first_serial = f"{serial_info['prefix']}{first_main:05d}-{first_suffix:02d}"
+        first_serial = f"{self.format_serial_number(serial_info['prefix'], first_main, serial_info['original_digits'])}-{first_suffix:02d}"
         
         # 计算范围内最后一个盒子的序列号  
         last_box_index = end_box - 1
         last_main_increments = last_box_index // group_size
         last_suffix = (last_box_index % group_size) + 1
         last_main = serial_info['main_number'] + last_main_increments
-        last_serial = f"{serial_info['prefix']}{last_main:05d}-{last_suffix:02d}"
+        last_serial = f"{self.format_serial_number(serial_info['prefix'], last_main, serial_info['original_digits'])}-{last_suffix:02d}"
         
         # 始终显示为范围格式，即使首尾序列号相同
         serial_range = f"{first_serial}-{last_serial}"
@@ -221,14 +239,14 @@ class SplitBoxDataProcessor:
         first_main_increments = first_box_index // group_size
         first_suffix = (first_box_index % group_size) + 1
         first_main = serial_info['main_number'] + first_main_increments
-        first_serial = f"{serial_info['prefix']}{first_main:05d}-{first_suffix:02d}"
+        first_serial = f"{self.format_serial_number(serial_info['prefix'], first_main, serial_info['original_digits'])}-{first_suffix:02d}"
         
         # 计算范围内最后一个盒子的序列号
         last_box_index = end_box - 1
         last_main_increments = last_box_index // group_size
         last_suffix = (last_box_index % group_size) + 1
         last_main = serial_info['main_number'] + last_main_increments
-        last_serial = f"{serial_info['prefix']}{last_main:05d}-{last_suffix:02d}"
+        last_serial = f"{self.format_serial_number(serial_info['prefix'], last_main, serial_info['original_digits'])}-{last_suffix:02d}"
         
         # 始终显示为范围格式，即使首尾序列号相同
         serial_range = f"{first_serial}-{last_serial}"
@@ -352,7 +370,7 @@ class SplitBoxDataProcessor:
         current_main = serial_info['main_number'] + (set_num - 1)
         
         # 生成Serial号
-        result = f"{serial_info['prefix']}{current_main:05d}-{box_in_set:02d}"
+        result = f"{self.format_serial_number(serial_info['prefix'], current_main, serial_info['original_digits'])}-{box_in_set:02d}"
         
         print(f"📝 [套盒Serial] 盒#{box_num} → 套{set_num}盒{box_in_set} → {result}")
         return result
@@ -428,8 +446,8 @@ class SplitBoxDataProcessor:
             serial_info = self.parse_serial_number_format(base_number)
             set_main_number = serial_info['main_number'] + (set_num - 1)
             
-            start_serial = f"{serial_info['prefix']}{set_main_number:05d}-{start_box_in_set:02d}"
-            end_serial = f"{serial_info['prefix']}{set_main_number:05d}-{end_box_in_set:02d}"
+            start_serial = f"{self.format_serial_number(serial_info['prefix'], set_main_number, serial_info['original_digits'])}-{start_box_in_set:02d}"
+            end_serial = f"{self.format_serial_number(serial_info['prefix'], set_main_number, serial_info['original_digits'])}-{end_box_in_set:02d}"
         
         # 生成范围格式 - 始终显示为范围形式
         result = f"{start_serial}-{end_serial}"
@@ -524,8 +542,8 @@ class SplitBoxDataProcessor:
             serial_info = self.parse_serial_number_format(base_number)
             set_main_number = serial_info['main_number'] + (set_num - 1)
             
-            start_serial = f"{serial_info['prefix']}{set_main_number:05d}-{start_box_in_set:02d}"
-            end_serial = f"{serial_info['prefix']}{set_main_number:05d}-{end_box_in_set:02d}"
+            start_serial = f"{self.format_serial_number(serial_info['prefix'], set_main_number, serial_info['original_digits'])}-{start_box_in_set:02d}"
+            end_serial = f"{self.format_serial_number(serial_info['prefix'], set_main_number, serial_info['original_digits'])}-{end_box_in_set:02d}"
         
         # 生成范围格式 - 始终显示为范围形式
         result = f"{start_serial}-{end_serial}"

@@ -298,20 +298,16 @@ class RegularTemplate(PDFBaseUtils):
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 解析基础序列号格式
-            import re
-            match = re.search(r'(\d+)', base_number)
-            if match:
-                # 获取数字前的前缀和数字
-                digit_start = match.start()
-                prefix = base_number[:digit_start]
-                base_num = int(match.group(1))
-                
-                # 计算当前序列号
-                current_num = base_num + (box_num - 1)
-                current_number = f"{prefix}{current_num:05d}"
+            # 使用数据处理器解析和格式化序列号
+            serial_info = regular_data_processor.parse_serial_number_format(base_number)
+            
+            if serial_info['prefix'] != 'DSK' or serial_info['start_number'] != 1:
+                # 成功解析用户输入的格式
+                current_num = serial_info['start_number'] + (box_num - 1)
+                current_number = regular_data_processor.format_serial_number(
+                    serial_info['prefix'], current_num, serial_info['digits'])
             else:
-                # 如果无法解析，使用简单递增
+                # 如果无法解析，使用简单递增，保持5位数字格式（向后兼容）
                 current_number = f"BOX{box_num:05d}"
 
             # 根据选择的外观渲染
