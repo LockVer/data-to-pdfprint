@@ -111,26 +111,42 @@ class TextProcessor:
         return f"{prefix}{main_number:0{main_digits}d}-{suffix:0{suffix_digits}d}"
     
     def clean_filename(self, filename: str) -> str:
-        """
+        r"""
         清理文件名，移除不合法字符
-        
+        适用于Windows/macOS文件名和文件夹名
+
+        处理问题：
+        1. 换行符 (\n, \r) - Excel单元格中的换行会导致Windows文件名错误
+        2. Windows非法字符 (< > : " / \ | ? *)
+        3. 控制字符（ASCII 0-31）
+
         Args:
             filename: 原文件名
-            
+
         Returns:
             清理后的文件名
         """
         if not filename:
             return "untitled"
-        
-        # 替换不合法字符
-        illegal_chars = ['\\', '/', ':', '*', '?', '"', '<', '>', '|', '!', '\n']
-        cleaned = filename
-        
-        for char in illegal_chars:
-            cleaned = cleaned.replace(char, '_')
-        
-        return cleaned.strip()
+
+        # 转为字符串并清理
+        filename = str(filename)
+
+        # 1. 替换换行符为空格（Excel单元格中的换行）
+        filename = filename.replace('\n', ' ').replace('\r', ' ')
+
+        # 2. 移除Windows非法字符: < > : " / \ | ? * 和控制字符（ASCII 0-31）
+        import re
+        filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', filename)
+
+        # 3. 移除前后空格和点号（Windows不允许文件名以这些结尾）
+        filename = filename.strip('. ')
+
+        # 4. 压缩多余的空格和下划线
+        filename = re.sub(r'\s+', ' ', filename)
+        filename = re.sub(r'_+', '_', filename)
+
+        return filename if filename else "untitled"
     
     def split_text_by_length(self, text: str, max_length: int) -> List[str]:
         """

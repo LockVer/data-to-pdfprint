@@ -118,20 +118,20 @@ class RegularTemplate(PDFBaseUtils):
             ),
         }
 
-        # 创建输出目录
-        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
-        clean_customer_code = _clean_for_filename(data['客户名称编码'])
-        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
+        # 创建输出目录 - 新格式：编号+英文名+中文名+标签
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])  # 编号
+        clean_label_name = _clean_for_filename(data['标签名称'])  # 英文名
+        clean_chinese_name = _clean_for_filename(params.get("中文名称", ""))  # 中文名
+        folder_name = f"{clean_customer_code}+{clean_label_name}+{clean_chinese_name}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
         # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
-        chinese_name = _clean_for_filename(params.get("中文名称", ""))
-        english_name = clean_theme  # 英文名称使用清理后的主题
+        chinese_name = clean_chinese_name  # 使用已清理的中文名称
+        english_name = clean_label_name  # 使用已清理的标签名称
         # 清理客户编号（可能包含Windows非法字符如冒号）
-        customer_code = _clean_for_filename(data['客户名称编码'])
+        customer_code = clean_customer_code  # 使用已清理的客户编码
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         generated_files = {}
@@ -184,20 +184,20 @@ class RegularTemplate(PDFBaseUtils):
         total_boxes = math.ceil(total_pieces / pieces_per_box)
         total_large_boxes = math.ceil(total_boxes / boxes_per_large_box)
 
-        # 创建输出目录
-        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
-        clean_customer_code = _clean_for_filename(data['客户名称编码'])
-        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
+        # 创建输出目录 - 新格式：编号+英文名+中文名+标签
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])  # 编号
+        clean_label_name = _clean_for_filename(data['标签名称'])  # 英文名
+        clean_chinese_name = _clean_for_filename(params.get("中文名称", ""))  # 中文名
+        folder_name = f"{clean_customer_code}+{clean_label_name}+{clean_chinese_name}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
         # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
-        chinese_name = _clean_for_filename(params.get("中文名称", ""))
-        english_name = clean_theme  # 英文名称使用清理后的主题
+        chinese_name = clean_chinese_name  # 使用已清理的中文名称
+        english_name = clean_label_name  # 使用已清理的标签名称
         # 清理客户编号（可能包含Windows非法字符如冒号）
-        customer_code = _clean_for_filename(data['客户名称编码'])
+        customer_code = clean_customer_code  # 使用已清理的客户编码
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         generated_files = {}

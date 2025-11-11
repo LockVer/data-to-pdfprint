@@ -497,9 +497,12 @@ class DataToPDFApp:
                 for label_type, file_path in generated_files.items():
                     result_text += f"  - {label_type}: {Path(file_path).name}\n"
 
-                # 使用和模板中完全相同的主题清理逻辑
-                clean_theme = self.current_data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-                folder_name = f"{self.current_data['客户名称编码']}+{clean_theme}+标签"
+                # 使用统一的文件名清理方法（与模板文件保持一致）
+                # 新格式：编号+英文名+中文名+标签
+                clean_customer_code = text_processor.clean_filename(self.current_data['客户名称编码'])  # 编号
+                clean_label_name = text_processor.clean_filename(self.current_data['标签名称'])  # 英文名
+                clean_chinese_name = text_processor.clean_filename(self.chinese_name_var.get().strip())  # 中文名
+                folder_name = f"{clean_customer_code}+{clean_label_name}+{clean_chinese_name}+标签"
                 result_text += (
                     f"\n📁 保存目录: {os.path.join(output_dir, folder_name)}\n"
                 )
