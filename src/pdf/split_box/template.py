@@ -14,6 +14,7 @@ from src.utils.pdf_base import PDFBaseUtils
 # 导入分盒模板专属数据处理器和渲染器
 from src.pdf.split_box.data_processor import split_box_data_processor
 from src.pdf.split_box.renderer import split_box_renderer
+from src.utils.carton_summary_generator import generate_carton_summary_for_template
 
 
 def _clean_for_filename(text: str) -> str:
@@ -182,6 +183,24 @@ class SplitBoxTemplate(PDFBaseUtils):
         )
         generated_files["大箱标"] = str(large_box_path)
 
+        # 生成外箱汇总表
+        try:
+            # 计算每箱盒数（有小箱的情况：盒/小箱 × 小箱/大箱）
+            boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+
+            summary_file_path = generate_carton_summary_for_template(
+                output_dir=str(full_output_dir),
+                data=data,
+                params=params,
+                total_large_boxes=total_large_boxes,
+                boxes_per_large_box=boxes_per_large_box
+            )
+            generated_files["外箱汇总表"] = summary_file_path
+            print(f"✅ 外箱汇总表已生成: {summary_file_path}")
+        except Exception as e:
+            print(f"⚠️ 外箱汇总表生成失败: {e}")
+            # 汇总表生成失败不影响主流程
+
         return generated_files
     
     def _create_two_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
@@ -278,6 +297,22 @@ class SplitBoxTemplate(PDFBaseUtils):
             data, params, str(large_box_path), total_large_boxes, total_boxes, boxes_per_large_box, excel_file_path, large_boxes_per_set_ratio
         )
         generated_files["箱标"] = str(large_box_path)
+
+        # 生成外箱汇总表
+        try:
+            # 无小箱的情况，每箱盒数就是 boxes_per_large_box
+            summary_file_path = generate_carton_summary_for_template(
+                output_dir=str(full_output_dir),
+                data=data,
+                params=params,
+                total_large_boxes=total_large_boxes,
+                boxes_per_large_box=boxes_per_large_box
+            )
+            generated_files["外箱汇总表"] = summary_file_path
+            print(f"✅ 外箱汇总表已生成: {summary_file_path}")
+        except Exception as e:
+            print(f"⚠️ 外箱汇总表生成失败: {e}")
+            # 汇总表生成失败不影响主流程
 
         return generated_files
 
