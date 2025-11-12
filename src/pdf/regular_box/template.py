@@ -335,16 +335,16 @@ class RegularTemplate(PDFBaseUtils):
 
             # 解析基础序列号格式
             import re
-            match = re.search(r'(\d+)', base_number)
+            match = re.search(r'(\w+)(-?)(\d+)', base_number)
             if match:
-                # 获取数字前的前缀和数字
-                digit_start = match.start()
-                prefix = base_number[:digit_start]
-                base_num = int(match.group(1))
-                
+                # 获取前缀、连字符和数字
+                prefix = match.group(1)
+                separator = match.group(2)  # 保留连字符（如果存在）
+                base_num = int(match.group(3))
+
                 # 计算当前序列号
                 current_num = base_num + (box_num - 1)
-                current_number = f"{prefix}{current_num:05d}"
+                current_number = f"{prefix}{separator}{current_num:05d}"
             else:
                 # 如果无法解析，使用简单递增
                 current_number = f"BOX{box_num:05d}"
