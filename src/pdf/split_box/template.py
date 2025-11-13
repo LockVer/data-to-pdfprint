@@ -14,6 +14,7 @@ from src.utils.pdf_base import PDFBaseUtils
 # 导入分盒模板专属数据处理器和渲染器
 from src.pdf.split_box.data_processor import split_box_data_processor
 from src.pdf.split_box.renderer import split_box_renderer
+from src.utils.carton_summary_generator import generate_carton_summary_for_template
 
 
 def _clean_for_filename(text: str) -> str:
@@ -130,20 +131,20 @@ class SplitBoxTemplate(PDFBaseUtils):
             sets_per_large_box = math.ceil(1 / large_boxes_per_set_ratio)
             print(f"    总大箱数: {total_large_boxes} = ceil({total_sets} ÷ {sets_per_large_box}) (多套分一个大箱)")
 
-        # 创建输出目录
-        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
-        clean_customer_code = _clean_for_filename(data['客户名称编码'])
-        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
+        # 创建输出目录 - 新格式：编号+英文名+中文名+标签
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])  # 编号
+        clean_label_name = _clean_for_filename(data['标签名称'])  # 英文名
+        clean_chinese_name = _clean_for_filename(params.get("中文名称", ""))  # 中文名
+        folder_name = f"{clean_customer_code}+{clean_label_name}+{clean_chinese_name}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
         # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
-        chinese_name = _clean_for_filename(params.get("中文名称", ""))
-        english_name = clean_theme  # 英文名称使用清理后的主题
+        chinese_name = clean_chinese_name  # 使用已清理的中文名称
+        english_name = clean_label_name  # 使用已清理的标签名称
         # 清理客户编号（可能包含Windows非法字符如冒号）
-        customer_code = _clean_for_filename(data['客户名称编码'])
+        customer_code = clean_customer_code  # 使用已清理的客户编码
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         generated_files = {}
@@ -181,6 +182,24 @@ class SplitBoxTemplate(PDFBaseUtils):
             data, params, str(large_box_path), total_large_boxes, excel_file_path, large_boxes_per_set_ratio
         )
         generated_files["大箱标"] = str(large_box_path)
+
+        # 生成外箱汇总表
+        try:
+            # 计算每箱盒数（有小箱的情况：盒/小箱 × 小箱/大箱）
+            boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+
+            summary_file_path = generate_carton_summary_for_template(
+                output_dir=str(full_output_dir),
+                data=data,
+                params=params,
+                total_large_boxes=total_large_boxes,
+                boxes_per_large_box=boxes_per_large_box
+            )
+            generated_files["外箱汇总表"] = summary_file_path
+            print(f"✅ 外箱汇总表已生成: {summary_file_path}")
+        except Exception as e:
+            print(f"⚠️ 外箱汇总表生成失败: {e}")
+            # 汇总表生成失败不影响主流程
 
         return generated_files
     
@@ -236,20 +255,20 @@ class SplitBoxTemplate(PDFBaseUtils):
             sets_per_large_box = math.ceil(1 / large_boxes_per_set_ratio)
             print(f"    总大箱数: {total_large_boxes} = ceil({total_sets} ÷ {sets_per_large_box}) (多套分一个大箱)")
 
-        # 创建输出目录
-        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
-        clean_customer_code = _clean_for_filename(data['客户名称编码'])
-        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
+        # 创建输出目录 - 新格式：编号+英文名+中文名+标签
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])  # 编号
+        clean_label_name = _clean_for_filename(data['标签名称'])  # 英文名
+        clean_chinese_name = _clean_for_filename(params.get("中文名称", ""))  # 中文名
+        folder_name = f"{clean_customer_code}+{clean_label_name}+{clean_chinese_name}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
         # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
-        chinese_name = _clean_for_filename(params.get("中文名称", ""))
-        english_name = clean_theme  # 英文名称使用清理后的主题
+        chinese_name = clean_chinese_name  # 使用已清理的中文名称
+        english_name = clean_label_name  # 使用已清理的标签名称
         # 清理客户编号（可能包含Windows非法字符如冒号）
-        customer_code = _clean_for_filename(data['客户名称编码'])
+        customer_code = clean_customer_code  # 使用已清理的客户编码
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         generated_files = {}
@@ -278,6 +297,22 @@ class SplitBoxTemplate(PDFBaseUtils):
             data, params, str(large_box_path), total_large_boxes, total_boxes, boxes_per_large_box, excel_file_path, large_boxes_per_set_ratio
         )
         generated_files["箱标"] = str(large_box_path)
+
+        # 生成外箱汇总表
+        try:
+            # 无小箱的情况，每箱盒数就是 boxes_per_large_box
+            summary_file_path = generate_carton_summary_for_template(
+                output_dir=str(full_output_dir),
+                data=data,
+                params=params,
+                total_large_boxes=total_large_boxes,
+                boxes_per_large_box=boxes_per_large_box
+            )
+            generated_files["外箱汇总表"] = summary_file_path
+            print(f"✅ 外箱汇总表已生成: {summary_file_path}")
+        except Exception as e:
+            print(f"⚠️ 外箱汇总表生成失败: {e}")
+            # 汇总表生成失败不影响主流程
 
         return generated_files
 

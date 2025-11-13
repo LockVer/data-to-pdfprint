@@ -19,6 +19,7 @@ from src.utils.excel_data_extractor import ExcelDataExtractor
 # 导入常规模板专属数据处理器和渲染器
 from src.pdf.regular_box.data_processor import regular_data_processor
 from src.pdf.regular_box.renderer import regular_renderer
+from src.utils.carton_summary_generator import generate_carton_summary_for_template
 
 
 def _clean_for_filename(text: str) -> str:
@@ -118,20 +119,20 @@ class RegularTemplate(PDFBaseUtils):
             ),
         }
 
-        # 创建输出目录
-        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
-        clean_customer_code = _clean_for_filename(data['客户名称编码'])
-        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
+        # 创建输出目录 - 新格式：编号+英文名+中文名+标签
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])  # 编号
+        clean_label_name = _clean_for_filename(data['标签名称'])  # 英文名
+        clean_chinese_name = _clean_for_filename(params.get("中文名称", ""))  # 中文名
+        folder_name = f"{clean_customer_code}+{clean_label_name}+{clean_chinese_name}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
         # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
-        chinese_name = _clean_for_filename(params.get("中文名称", ""))
-        english_name = clean_theme  # 英文名称使用清理后的主题
+        chinese_name = clean_chinese_name  # 使用已清理的中文名称
+        english_name = clean_label_name  # 使用已清理的标签名称
         # 清理客户编号（可能包含Windows非法字符如冒号）
-        customer_code = _clean_for_filename(data['客户名称编码'])
+        customer_code = clean_customer_code  # 使用已清理的客户编码
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         generated_files = {}
@@ -169,6 +170,24 @@ class RegularTemplate(PDFBaseUtils):
         )
         generated_files["大箱标"] = str(large_box_path)
 
+        # 生成外箱汇总表
+        try:
+            # 计算每箱盒数（有小箱的情况：盒/小箱 × 小箱/大箱）
+            boxes_per_large_box = boxes_per_small_box * small_boxes_per_large_box
+
+            summary_file_path = generate_carton_summary_for_template(
+                output_dir=str(full_output_dir),
+                data=data,
+                params=params,
+                total_large_boxes=total_large_boxes,
+                boxes_per_large_box=boxes_per_large_box
+            )
+            generated_files["外箱汇总表"] = summary_file_path
+            print(f"✅ 外箱汇总表已生成: {summary_file_path}")
+        except Exception as e:
+            print(f"⚠️ 外箱汇总表生成失败: {e}")
+            # 汇总表生成失败不影响主流程
+
         return generated_files
     
     def _create_two_level_pdfs(self, data: Dict[str, Any], params: Dict[str, Any], output_dir: str, excel_file_path: str = None) -> Dict[str, str]:
@@ -184,20 +203,20 @@ class RegularTemplate(PDFBaseUtils):
         total_boxes = math.ceil(total_pieces / pieces_per_box)
         total_large_boxes = math.ceil(total_boxes / boxes_per_large_box)
 
-        # 创建输出目录
-        clean_theme = data['标签名称'].replace('\n', ' ').replace('/', '_').replace('\\', '_').replace(':', '_').replace('?', '_').replace('*', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_').replace('!', '_')
-        # 清理客户编码用于文件夹名（可能包含Windows非法字符）
-        clean_customer_code = _clean_for_filename(data['客户名称编码'])
-        folder_name = f"{clean_customer_code}+{clean_theme}+标签"
+        # 创建输出目录 - 新格式：编号+英文名+中文名+标签
+        clean_customer_code = _clean_for_filename(data['客户名称编码'])  # 编号
+        clean_label_name = _clean_for_filename(data['标签名称'])  # 英文名
+        clean_chinese_name = _clean_for_filename(params.get("中文名称", ""))  # 中文名
+        folder_name = f"{clean_customer_code}+{clean_label_name}+{clean_chinese_name}+标签"
         full_output_dir = Path(output_dir) / folder_name
         full_output_dir.mkdir(parents=True, exist_ok=True)
 
         # 获取参数和日期时间戳
         # 清理中文名称（可能包含Excel换行符\n和Windows非法字符）
-        chinese_name = _clean_for_filename(params.get("中文名称", ""))
-        english_name = clean_theme  # 英文名称使用清理后的主题
+        chinese_name = clean_chinese_name  # 使用已清理的中文名称
+        english_name = clean_label_name  # 使用已清理的标签名称
         # 清理客户编号（可能包含Windows非法字符如冒号）
-        customer_code = _clean_for_filename(data['客户名称编码'])
+        customer_code = clean_customer_code  # 使用已清理的客户编码
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         generated_files = {}
@@ -230,6 +249,22 @@ class RegularTemplate(PDFBaseUtils):
             data, virtual_params, str(large_box_path), total_large_boxes, total_boxes, boxes_per_large_box, excel_file_path
         )
         generated_files["箱标"] = str(large_box_path)
+
+        # 生成外箱汇总表
+        try:
+            # 无小箱的情况，每箱盒数就是 boxes_per_large_box
+            summary_file_path = generate_carton_summary_for_template(
+                output_dir=str(full_output_dir),
+                data=data,
+                params=params,
+                total_large_boxes=total_large_boxes,
+                boxes_per_large_box=boxes_per_large_box
+            )
+            generated_files["外箱汇总表"] = summary_file_path
+            print(f"✅ 外箱汇总表已生成: {summary_file_path}")
+        except Exception as e:
+            print(f"⚠️ 外箱汇总表生成失败: {e}")
+            # 汇总表生成失败不影响主流程
 
         return generated_files
 
@@ -298,14 +333,18 @@ class RegularTemplate(PDFBaseUtils):
                 c.showPage()
                 c.setFillColor(cmyk_black)
 
-            # 使用数据处理器解析和格式化序列号
-            serial_info = regular_data_processor.parse_serial_number_format(base_number)
-            
-            if serial_info['prefix'] != 'DSK' or serial_info['start_number'] != 1:
-                # 成功解析用户输入的格式
-                current_num = serial_info['start_number'] + (box_num - 1)
-                current_number = regular_data_processor.format_serial_number(
-                    serial_info['prefix'], current_num, serial_info['digits'])
+            # 解析基础序列号格式
+            import re
+            match = re.search(r'(\w+)(-?)(\d+)', base_number)
+            if match:
+                # 获取前缀、连字符和数字
+                prefix = match.group(1)
+                separator = match.group(2)  # 保留连字符（如果存在）
+                base_num = int(match.group(3))
+
+                # 计算当前序列号
+                current_num = base_num + (box_num - 1)
+                current_number = f"{prefix}{separator}{current_num:05d}"
             else:
                 # 如果无法解析，使用简单递增，保持5位数字格式（向后兼容）
                 current_number = f"BOX{box_num:05d}"

@@ -59,27 +59,31 @@ class RegularDataProcessor:
             return {
                 'prefix': 'DSK',
                 'start_number': 1,
-                'digits': 5
+                'digits': 5,
+                'separator': ''
             }
-        
+
         # 尝试解析DSK00001或CAR-01001这种格式
-        match = re.search(r'([A-Z]+)-?(\d+)', serial_number)
+        match = re.search(r'([A-Z]+)(-?)(\d+)', serial_number)
         if match:
             prefix = match.group(1)
-            start_number = int(match.group(2))
-            digits = len(match.group(2))
-            
+            separator = match.group(2)  # 保存连字符（如果存在）
+            start_number = int(match.group(3))
+            digits = len(match.group(3))
+
             return {
                 'prefix': prefix,
                 'start_number': start_number,
-                'digits': digits
+                'digits': digits,
+                'separator': separator
             }
         else:
             # 如果无法解析，使用默认格式
             return {
                 'prefix': 'DSK',
                 'start_number': 1,
-                'digits': 5
+                'digits': 5,
+                'separator': ''
             }
     
     def format_serial_number(self, prefix: str, number: int, original_digits: int) -> str:
@@ -130,15 +134,15 @@ class RegularDataProcessor:
         """
         生成常规盒标的序列号 - 与原有逻辑完全一致
         对应原来 _create_regular_box_label 中的序列号生成逻辑
-        
+
         常规模板使用简单的线性递增
         """
         serial_info = self.parse_serial_number_format(base_number)
-        
+
         # 常规模板序列号生成逻辑：简单的线性递增（与原代码完全一致）
         current_number = serial_info['start_number'] + (box_num - 1)
-        formatted_number = f"{serial_info['prefix']}{current_number:0{serial_info['digits']}d}"
-        
+        formatted_number = f"{serial_info['prefix']}{serial_info['separator']}{current_number:0{serial_info['digits']}d}"
+
         print(f"📝 常规盒标 #{box_num}: {formatted_number}")
         return formatted_number
     
@@ -158,17 +162,17 @@ class RegularDataProcessor:
         # 🔧 边界检查：确保end_box不超过总盒数
         if total_boxes is not None:
             end_box = min(end_box, total_boxes)
-        
+
         # 生成范围内第一个和最后一个序列号
         first_serial_num = serial_info['start_number'] + (start_box - 1)
         last_serial_num = serial_info['start_number'] + (end_box - 1)
-        
-        first_serial = f"{serial_info['prefix']}{first_serial_num:0{serial_info['digits']}d}"
-        last_serial = f"{serial_info['prefix']}{last_serial_num:0{serial_info['digits']}d}"
-        
+
+        first_serial = f"{serial_info['prefix']}{serial_info['separator']}{first_serial_num:0{serial_info['digits']}d}"
+        last_serial = f"{serial_info['prefix']}{serial_info['separator']}{last_serial_num:0{serial_info['digits']}d}"
+
         # 始终显示为范围格式，即使首尾序列号相同
         serial_range = f"{first_serial}-{last_serial}"
-        
+
         print(f"📝 常规小箱标 #{small_box_num}: 包含盒{start_box}-{end_box}, 序列号范围={serial_range}")
         return serial_range
     
@@ -196,13 +200,13 @@ class RegularDataProcessor:
         # 生成范围内第一个和最后一个序列号
         first_serial_num = serial_info['start_number'] + (start_box - 1)
         last_serial_num = serial_info['start_number'] + (end_box - 1)
-        
-        first_serial = f"{serial_info['prefix']}{first_serial_num:0{serial_info['digits']}d}"
-        last_serial = f"{serial_info['prefix']}{last_serial_num:0{serial_info['digits']}d}"
-        
+
+        first_serial = f"{serial_info['prefix']}{serial_info['separator']}{first_serial_num:0{serial_info['digits']}d}"
+        last_serial = f"{serial_info['prefix']}{serial_info['separator']}{last_serial_num:0{serial_info['digits']}d}"
+
         # 始终显示为范围格式，即使首尾序列号相同
         serial_range = f"{first_serial}-{last_serial}"
-        
+
         print(f"📝 常规大箱标 #{large_box_num}: 包含小箱{start_small_box}-{end_small_box}, 盒{start_box}-{end_box}, 序列号范围={serial_range}")
         return serial_range
     
