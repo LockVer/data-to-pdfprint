@@ -335,16 +335,21 @@ class RegularTemplate(PDFBaseUtils):
 
             # 解析基础序列号格式
             import re
-            match = re.search(r'(\w+)(-?)(\d+)', base_number)
+            # 修复: 使用只匹配字母的前缀，避免将数字当作前缀的一部分
+            # 例如 'CCD01001' 应解析为 prefix='CCD', number='01001'
+            match = re.search(r'([A-Za-z]+)(-?)(\d+)', base_number)
             if match:
                 # 获取前缀、连字符和数字
                 prefix = match.group(1)
                 separator = match.group(2)  # 保留连字符（如果存在）
-                base_num = int(match.group(3))
+                number_str = match.group(3)
+                base_num = int(number_str)
+                digits = len(number_str)
 
                 # 计算当前序列号
                 current_num = base_num + (box_num - 1)
-                current_number = f"{prefix}{separator}{current_num:05d}"
+                # 保持与Excel中数字部分相同的位数
+                current_number = f"{prefix}{separator}{current_num:0{digits}d}"
             else:
                 # 如果无法解析，使用简单递增，保持5位数字格式（向后兼容）
                 current_number = f"BOX{box_num:05d}"
@@ -678,4 +683,3 @@ class RegularTemplate(PDFBaseUtils):
                                                  serial_range, carton_no, remark_text, template_type, serial_font_size)
 
         c.save()
-
