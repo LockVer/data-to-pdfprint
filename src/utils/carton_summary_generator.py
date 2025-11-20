@@ -56,7 +56,8 @@ class CartonSummaryGenerator:
         english_name: str,
         pieces_per_box: int,
         total_large_boxes: int,
-        boxes_per_large_box: int
+        boxes_per_large_box: int,
+        total_boxes: int
     ) -> str:
         """
         生成外箱装箱信息汇总表
@@ -69,6 +70,7 @@ class CartonSummaryGenerator:
             pieces_per_box: 每盒数量（张/盒）
             total_large_boxes: 总箱数（总外箱数）
             boxes_per_large_box: 每箱盒数（每个大箱包含的盒数）
+            total_boxes: 总盒数
 
         Returns:
             生成的Excel文件路径
@@ -83,13 +85,27 @@ class CartonSummaryGenerator:
         if not display_name:
             display_name = "未知产品"
 
-        # 创建数据字典
-        summary_data = {
-            "名称": [display_name],
-            "每盒数量": [pieces_per_box],
-            "总箱数": [total_large_boxes],
-            "每箱盒数": [boxes_per_large_box]
-        }
+        # 判断是否需要分行显示（最后一箱不满）
+        remaining_boxes_in_last_carton = total_boxes % boxes_per_large_box
+
+        if remaining_boxes_in_last_carton == 0:
+            # 所有箱都装满，单行显示
+            summary_data = {
+                "名称": [display_name],
+                "每盒数量": [pieces_per_box],
+                "总箱数": [total_large_boxes],
+                "每箱盒数": [boxes_per_large_box]
+            }
+        else:
+            # 最后一箱不满，分两行显示
+            full_cartons = total_large_boxes - 1  # 完整箱数
+
+            summary_data = {
+                "名称": [display_name, display_name],
+                "每盒数量": [pieces_per_box, pieces_per_box],
+                "总箱数": [full_cartons, 1],
+                "每箱盒数": [boxes_per_large_box, remaining_boxes_in_last_carton]
+            }
 
         # 创建DataFrame
         df = pd.DataFrame(summary_data)
@@ -130,7 +146,8 @@ def generate_carton_summary_for_template(
     data: Dict[str, Any],
     params: Dict[str, Any],
     total_large_boxes: int,
-    boxes_per_large_box: int
+    boxes_per_large_box: int,
+    total_boxes: int
 ) -> str:
     """
     为模板生成外箱汇总表的便捷函数
@@ -141,6 +158,7 @@ def generate_carton_summary_for_template(
         params: 参数字典（包含中文名称、张/盒等）
         total_large_boxes: 总箱数（总外箱数）
         boxes_per_large_box: 每箱盒数
+        total_boxes: 总盒数
 
     Returns:
         生成的Excel文件路径
@@ -159,5 +177,6 @@ def generate_carton_summary_for_template(
         english_name=english_name,
         pieces_per_box=pieces_per_box,
         total_large_boxes=total_large_boxes,
-        boxes_per_large_box=boxes_per_large_box
+        boxes_per_large_box=boxes_per_large_box,
+        total_boxes=total_boxes
     )

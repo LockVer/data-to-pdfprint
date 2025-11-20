@@ -180,7 +180,8 @@ class RegularTemplate(PDFBaseUtils):
                 data=data,
                 params=params,
                 total_large_boxes=total_large_boxes,
-                boxes_per_large_box=boxes_per_large_box
+                boxes_per_large_box=boxes_per_large_box,
+                total_boxes=total_boxes
             )
             generated_files["外箱汇总表"] = summary_file_path
             print(f"✅ 外箱汇总表已生成: {summary_file_path}")
@@ -258,7 +259,8 @@ class RegularTemplate(PDFBaseUtils):
                 data=data,
                 params=params,
                 total_large_boxes=total_large_boxes,
-                boxes_per_large_box=boxes_per_large_box
+                boxes_per_large_box=boxes_per_large_box,
+                total_boxes=total_boxes
             )
             generated_files["外箱汇总表"] = summary_file_path
             print(f"✅ 外箱汇总表已生成: {summary_file_path}")
